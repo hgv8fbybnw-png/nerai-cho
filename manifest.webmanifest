@@ -4,7 +4,6 @@
   "description": "台の狙い目ごとの収支を記録する",
   "lang": "ja",
   "dir": "ltr",
-  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",

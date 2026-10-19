@@ -14,8 +14,10 @@
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 </head><body><style>
 /* 狙い目帳 (2026-10-19): a play log kept apart from 鬣犬. The team has not settled the 狙い目 yet, so each play is
-   written down as 台 + the 狙い目 in free words + 投資/回収, with the time it was saved, and the ranking is per
-   (台 × 狙い目), never per 台 overall. Colors and the money rule are the same as 鬣犬. */
+   written down as 台 + the 狙い目 in free words (or none) + 投資/回収 + 打った人/拾った人 + the date and time, and the
+   ranking is per (台 × 狙い目), never per 台 overall. From the second version the five members share one record place
+   (a Google spreadsheet behind a small API); each member opens the app with their own 合言葉.
+   Colors and the money rule are the same as 鬣犬. */
 :root{
   --bg:#F1F2F7; --surface:#FFFFFF; --ink:#151A2D; --muted:#596079; --line:#D8DBE6;
   --accent:#2B45C4; --accent-ink:#FFFFFF; --accent-soft:#E5E9FA;
@@ -51,19 +53,35 @@ p{margin:0}
 .brand small{color:var(--muted);font-size:12px;letter-spacing:.06em}
 .brand h1{font-size:20px}
 .block{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.block h2{font-size:16px}
 .hint{color:var(--muted);font-size:13px;line-height:1.5}
 .warn{background:var(--skip-soft);color:var(--skip);border-radius:var(--r);padding:10px 14px;font-size:14px;font-weight:700}
+.note{background:var(--accent-soft);border:1px solid var(--accent);border-radius:var(--r);padding:12px 14px;display:flex;flex-direction:column;gap:10px;font-size:14px}
+.note .acts{flex-wrap:wrap}
+
+/* the strip at the top: who is using it and whether everything is sent */
+.bar{display:flex;align-items:center;gap:10px;font-size:13px;min-height:36px}
+.bar-me{font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-me small{font-weight:400;color:var(--muted);margin-left:4px}
+.sync{color:var(--muted);font-weight:700;margin-left:auto;white-space:nowrap}
+.sync.bad{color:var(--skip)}
+.bar .btn{margin-left:auto}
+.sync+.btn{margin-left:0}
 
 /* 記録する */
 .field{display:flex;flex-direction:column;gap:6px;min-width:0}
 .field>label,.lbl{font-weight:700;font-size:14px}
+.lbl small,.field>label small{font-weight:400;color:var(--muted);margin-left:4px}
 .tin,.sel{font:inherit;font-size:16px;width:100%;min-width:0;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
 .tin:focus,.sel:focus{outline:3px solid var(--accent);outline-offset:1px}
+input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appearance:none}
+.at-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chips-h{font-size:12px;color:var(--muted);font-weight:700}
 .chip{font:inherit;font-size:14px;font-weight:700;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:6px 12px;min-height:38px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;touch-action:manipulation}
 .chip small{font-weight:400;color:var(--muted);margin-left:5px}
 .chip[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.chip:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .seg{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .seg.seg3{grid-template-columns:repeat(3,1fr)}
 .seg input{position:absolute;opacity:0;pointer-events:none}
@@ -95,6 +113,7 @@ p{margin:0}
 .btn.sm{min-height:38px;font-size:13px;padding:4px 12px}
 .btn.danger{background:var(--skip);border-color:var(--skip);color:var(--surface)}
 .need{font-size:13px;color:var(--muted);font-weight:700;text-align:center}
+.err{font-size:13px;color:var(--skip);font-weight:700}
 
 /* 一覧 */
 .list{display:flex;flex-direction:column;gap:8px}
@@ -104,21 +123,41 @@ p{margin:0}
 .it-time{font-family:var(--font-num);font-size:14px;color:var(--muted);flex:none}
 .it-name{font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tag{flex:none;font-size:11px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:0 6px;white-space:nowrap}
+.tag.wait{color:var(--skip);border-color:var(--skip)}
 .it-aim{font-size:16px;font-weight:700;overflow-wrap:anywhere}
+.it-aim.none{color:var(--muted);font-weight:400;font-size:14px}
 .it-res{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
 .it-res b{font-family:var(--font-num);font-size:20px;font-variant-numeric:tabular-nums}
 .it-res b+b{font-size:15px}
 .it-sub{font-size:12px;color:var(--muted)}
+.it-who{font-size:13px;display:flex;flex-wrap:wrap;column-gap:12px}
+.it-who span{white-space:nowrap}
+.it-who em{font-style:normal;color:var(--muted);font-size:12px;margin-right:3px}
 .it-act{display:flex;gap:6px;margin-left:auto;align-self:center}
 .confirm{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--skip-soft);color:var(--skip);border-radius:10px;padding:8px 10px;font-size:13px;font-weight:700}
 .confirm span{flex:1 1 auto}
 .empty{background:var(--surface);border:1px dashed var(--line);border-radius:var(--r);padding:20px 16px;color:var(--muted);font-size:14px;text-align:center}
 .count{font-size:13px;color:var(--muted);font-weight:700}
 
-/* ランキング */
+/* 月の収支 */
+.mon-nav{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:center}
+.mon-nav b{text-align:center;font-size:18px}
+.mon-nav .btn{min-width:48px;font-size:18px}
+.sum{display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 0}
+.sum small{font-size:13px;font-weight:700;color:var(--muted)}
+.sum b{font-family:var(--font-num);font-size:34px;line-height:1.2;font-variant-numeric:tabular-nums}
+.sum-meta{display:flex;flex-wrap:wrap;justify-content:center;column-gap:12px;font-size:13px;color:var(--muted)}
+.sum-meta span{white-space:nowrap}
+.pbar{position:relative;height:6px;border-radius:3px;background:var(--bg);margin-top:4px}
+.pbar::after{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--line)}
+.pbar i{position:absolute;top:0;bottom:0;border-radius:3px}
+.pbar i.pos{background:var(--go)} .pbar i.neg{background:var(--skip)}
+
+/* ランキング・月の人ごと */
 .rk-ctl{display:flex;flex-direction:column;gap:10px}
 .rk{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);min-width:0}
 .rk summary{list-style:none;display:grid;grid-template-columns:2em minmax(0,1fr) auto;gap:10px;align-items:center;padding:12px 14px;cursor:pointer}
+.rk.pp summary{grid-template-columns:minmax(0,1fr) auto}
 .rk summary::-webkit-details-marker{display:none}
 .rk summary:focus-visible{outline:3px solid var(--accent);outline-offset:-3px;border-radius:var(--r)}
 .rk-no{width:2em;height:2em;border-radius:50%;display:grid;place-items:center;font-family:var(--font-num);font-weight:700;font-size:15px;background:var(--bg);color:var(--muted)}
@@ -126,6 +165,7 @@ p{margin:0}
 .rk-main{display:flex;flex-direction:column;min-width:0}
 .rk-main small{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rk-main b{font-size:16px;overflow-wrap:anywhere;line-height:1.35}
+.rk-main b.none{color:var(--muted);font-weight:400;font-size:14px}
 .rk-meta{font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;column-gap:8px}
 .rk-meta span{white-space:nowrap}
 .rk-val{display:flex;flex-direction:column;align-items:flex-end;text-align:right}
@@ -133,13 +173,26 @@ p{margin:0}
 .rk-val small{font-size:11px;color:var(--muted);font-weight:700}
 .rk-plays{border-top:1px dashed var(--line);margin:0 14px;padding:8px 0 12px;display:flex;flex-direction:column;gap:4px}
 .rk-play{display:flex;justify-content:space-between;gap:10px;font-size:13px}
-.rk-play span{color:var(--muted)}
-.rk-play b{font-family:var(--font-num);font-variant-numeric:tabular-nums}
+.rk-play span{color:var(--muted);min-width:0;overflow-wrap:anywhere}
+.rk-play b{font-family:var(--font-num);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* 設定・メンバー */
+.mem{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);padding-top:12px}
+.mem:first-child{border-top:0;padding-top:0}
+.mem-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.mem-top b{font-size:16px}
+.mem-edit{display:flex;flex-direction:column;gap:10px;background:var(--bg);border-radius:10px;padding:12px}
+.mem-edit .tin{background:var(--surface)}
+.chk{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700}
+.chk input{width:20px;height:20px}
+.key-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+.link-box{display:flex;flex-direction:column;gap:8px;background:var(--go-soft);border-radius:10px;padding:12px;font-size:14px}
+.link-box code{font-family:var(--font-num);font-size:12px;overflow-wrap:anywhere;color:var(--muted)}
 
 /* bottom bar + toast */
 .dock{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);z-index:5}
-.nav{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);padding:0 16px env(safe-area-inset-bottom, 0px)}
-.nav button{font:inherit;font-size:11px;font-weight:700;line-height:1.2;border:0;background:transparent;color:var(--muted);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:54px;padding:6px 4px;touch-action:manipulation}
+.nav{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);padding:0 8px env(safe-area-inset-bottom, 0px)}
+.nav button{font:inherit;font-size:11px;font-weight:700;line-height:1.2;border:0;background:transparent;color:var(--muted);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:54px;padding:6px 2px;touch-action:manipulation}
 .nav button svg{width:24px;height:24px}
 .nav button[aria-current="page"]{color:var(--accent)}
 .nav button:focus-visible{outline:3px solid var(--accent);outline-offset:-3px;border-radius:10px}
@@ -148,11 +201,35 @@ p{margin:0}
 </style>
 
 <div class="wrap">
-  <div id="no-store" class="warn" hidden>この開き方では記録が残りません。ホーム画面のアイコンか、ふつうのブラウザで開いてください。</div>
+  <div id="no-store" class="warn" hidden>この開き方では、合言葉や送れていない記録が残りません。ホーム画面のアイコンか、ふつうのブラウザで開いてください。</div>
+
+  <!-- 合言葉 -->
+  <section id="view-key" class="view" aria-labelledby="key-title" hidden>
+    <header class="top"><div class="brand"><small>5人の記録帳</small><h1 id="key-title">狙い目帳</h1></div></header>
+    <div class="block">
+      <div class="field">
+        <label for="k-in">合言葉</label>
+        <input id="k-in" class="tin" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="合言葉か、もらったリンク">
+      </div>
+      <p id="k-err" class="err" role="alert" hidden></p>
+      <div class="acts"><button type="button" id="k-go" class="btn main">開く</button></div>
+      <p class="hint">合言葉は一人ずつ違います。管理の人からもらった合言葉を入れてください。もらったリンクをそのまま貼っても開けます。</p>
+    </div>
+  </section>
+
+  <div id="bar" class="bar" hidden>
+    <span class="bar-me" id="bar-me"></span>
+    <span id="sync" class="sync" role="status"></span>
+    <button type="button" id="open-set" class="btn sm">設定</button>
+  </div>
 
   <!-- 記録する -->
-  <section id="view-rec" class="view" aria-labelledby="rec-title">
+  <section id="view-rec" class="view" aria-labelledby="rec-title" hidden>
     <header class="top"><div class="brand"><small>打った台と狙い目</small><h1 id="rec-title">記録する</h1></div></header>
+    <div id="old-note" class="note" hidden>
+      <p id="old-text"></p>
+      <div class="acts"><button type="button" id="old-send" class="btn sm">みんなの記録に入れる</button><button type="button" id="old-skip" class="btn sm">入れない</button></div>
+    </div>
     <div class="block">
       <div class="field">
         <label for="f-machine">台</label>
@@ -160,13 +237,25 @@ p{margin:0}
         <input id="f-custom" class="tin" type="text" maxlength="40" placeholder="台の名前を入れる" autocomplete="off" hidden>
       </div>
       <div class="field">
-        <label for="f-aim">狙い目</label>
+        <label for="f-aim">狙い目<small>なくても記録できます</small></label>
         <input id="f-aim" class="tin" type="text" maxlength="80" placeholder="例：CZ間 400G〜／駆け抜け後" autocomplete="off">
         <div id="aim-past" hidden>
           <p class="chips-h">この台で前に入れた狙い目（押すと入ります）</p>
           <div id="aim-chips" class="chips"></div>
         </div>
         <p class="hint">同じ狙い目は、同じ書き方で入れてください。書き方が違うと、ランキングで別の狙い目として数えます。</p>
+      </div>
+      <div class="field">
+        <span class="lbl" id="by-lbl">打った人</span>
+        <div id="f-by" class="chips" role="group" aria-labelledby="by-lbl"></div>
+      </div>
+      <div class="field">
+        <span class="lbl" id="pick-lbl">拾った人</span>
+        <div id="f-pick" class="chips" role="group" aria-labelledby="pick-lbl"></div>
+      </div>
+      <div class="field">
+        <label for="f-at">打った日時</label>
+        <div class="at-row"><input id="f-at" class="tin" type="datetime-local"><button type="button" id="f-now" class="btn sm">いまにする</button></div>
       </div>
       <div class="field">
         <span class="lbl" id="rate-lbl">交換率</span>
@@ -189,34 +278,78 @@ p{margin:0}
 
   <!-- 一覧 -->
   <section id="view-list" class="view" aria-labelledby="list-title" hidden>
-    <header class="top"><div class="brand"><small>記録したもの</small><h1 id="list-title">一覧</h1></div><span id="list-count" class="count"></span></header>
+    <header class="top"><div class="brand"><small>みんなの記録</small><h1 id="list-title">一覧</h1></div><span id="list-count" class="count"></span></header>
+    <select id="ls-who" class="sel" aria-label="打った人でしぼる"></select>
     <div id="list" class="list"></div>
+    <button type="button" id="ls-more" class="btn" hidden>もっと見る</button>
+  </section>
+
+  <!-- 月の収支 -->
+  <section id="view-month" class="view" aria-labelledby="mon-title" hidden>
+    <header class="top"><div class="brand"><small>チームと一人ずつ</small><h1 id="mon-title">月の収支</h1></div></header>
+    <div class="block">
+      <div class="mon-nav"><button type="button" id="mon-prev" class="btn" aria-label="前の月">‹</button><b id="mon-label"></b><button type="button" id="mon-next" class="btn" aria-label="次の月">›</button></div>
+      <div id="mon-sum" class="sum" aria-live="polite"></div>
+    </div>
+    <div class="seg" role="radiogroup" aria-label="分け方">
+      <input type="radio" name="mon-by" id="mon-by-by" value="by" checked><label for="mon-by-by">打った人ごと</label>
+      <input type="radio" name="mon-by" id="mon-by-pick" value="pick"><label for="mon-by-pick">拾った人ごと</label>
+    </div>
+    <div id="mon-people" class="list"></div>
+    <p class="hint">収支は円で足しています。現金は換金の枚数で数えて、記録ごとの交換率で円にしてから足します。押すと、その月の中身が出ます。</p>
   </section>
 
   <!-- ランキング -->
   <section id="view-rank" class="view" aria-labelledby="rank-title" hidden>
-    <header class="top"><div class="brand"><small>台の狙い目ごと</small><h1 id="rank-title">ランキング</h1></div></header>
+    <header class="top"><div class="brand"><small>台の狙い目ごと（みんなの記録）</small><h1 id="rank-title">ランキング</h1></div></header>
     <div class="block rk-ctl">
       <select id="rk-machine" class="sel" aria-label="台をしぼる"></select>
       <div class="seg" role="radiogroup" aria-label="並べ方">
         <input type="radio" name="rk-sort" id="rk-avg" value="avg" checked><label for="rk-avg">1回あたりの収支</label>
         <input type="radio" name="rk-sort" id="rk-sum" value="sum"><label for="rk-sum">合計の収支</label>
       </div>
-      <p class="hint">同じ台で、同じ書き方の狙い目を1つにまとめて数えます。回数が少ないうちは、たまたまの当たり外れで順位が大きく動きます。</p>
+      <p class="hint">同じ台で、同じ書き方の狙い目を1つにまとめて数えます。狙い目を書かなかった記録は「狙い目なし」にまとめます。回数が少ないうちは、たまたまの当たり外れで順位が大きく動きます。</p>
     </div>
     <div id="rank" class="list"></div>
   </section>
+
+  <!-- 設定 -->
+  <section id="view-set" class="view" aria-labelledby="set-title" hidden>
+    <header class="top"><div class="brand"><small>この端末と、メンバー</small><h1 id="set-title">設定</h1></div></header>
+    <div class="block">
+      <p id="set-me"></p>
+      <div class="acts" style="flex-wrap:wrap"><button type="button" id="set-reload" class="btn sm">読み込み直す</button><button type="button" id="set-switch" class="btn sm">合言葉を入れ直す</button></div>
+      <p class="hint">「合言葉を入れ直す」は、この端末でほかの人の合言葉に切りかえるときに使います。記録そのものは消えません。</p>
+    </div>
+    <div id="adm" class="block" hidden>
+      <h2>メンバー</h2>
+      <div id="adm-list" class="list"></div>
+      <div id="adm-link" class="link-box" hidden></div>
+      <h2>メンバーを足す</h2>
+      <div class="field"><label for="adm-name">名前</label><input id="adm-name" class="tin" type="text" maxlength="20" autocomplete="off"></div>
+      <div class="field"><label for="adm-key">合言葉<small>6文字以上・空白なし</small></label>
+        <div class="key-row"><input id="adm-key" class="tin" type="text" maxlength="40" autocomplete="off" autocapitalize="off" spellcheck="false"><button type="button" id="adm-gen" class="btn sm">おまかせで作る</button></div></div>
+      <label class="chk"><input type="checkbox" id="adm-admin">管理もできる人にする</label>
+      <p id="adm-err" class="err" role="alert" hidden></p>
+      <div class="acts"><button type="button" id="adm-add" class="btn main">足す</button></div>
+      <p class="hint">足したら、その人専用のリンクが出ます。本人に送って、iPhoneの Safari で開いてもらい、共有ボタン →「ホーム画面に追加」をしてもらってください。合言葉を打たずに開けます。</p>
+    </div>
+  </section>
 </div>
 
-<div class="dock">
+<div class="dock" id="dock" hidden>
   <nav class="nav" aria-label="画面の切り替え">
-    <button type="button" data-view="rec" aria-current="page">
+    <button type="button" data-view="rec">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M13 7l4 4" fill="none" stroke="currentColor" stroke-width="2"/></svg>
       <span>記録する</span>
     </button>
     <button type="button" data-view="list">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="4.5" cy="6" r="1.5" fill="currentColor"/><circle cx="4.5" cy="12" r="1.5" fill="currentColor"/><circle cx="4.5" cy="18" r="1.5" fill="currentColor"/></svg>
       <span>一覧</span>
+    </button>
+    <button type="button" data-view="month">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3.5 10h17M8 3v4M16 3v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <span>月の収支</span>
     </button>
     <button type="button" data-view="rank">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><rect x="9" y="5" width="6" height="15" rx="1.2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="3" y="11" width="6" height="9" rx="1.2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="15" y="14" width="6" height="6" rx="1.2" fill="none" stroke="currentColor" stroke-width="2"/></svg>
@@ -231,23 +364,28 @@ p{margin:0}
   'use strict';
   /* the machines of 鬣犬 (data/picker.json, 50音順). A machine that is not on it can be typed in. */
   var MACHINES = [{"id":"azurlane","label":"アズールレーン"},{"id":"iza_bancho","label":"いざ！番長"},{"id":"initiald2","label":"頭文字D 2nd"},{"id":"valvrave","label":"ヴァルヴレイヴ（初代）"},{"id":"valvrave2","label":"ヴァルヴレイヴ2"},{"id":"enen2","label":"炎炎ノ消防隊2"},{"id":"kaguya","label":"かぐや様は告らせたい"},{"id":"kanokari","label":"彼女、お借りします"},{"id":"kabaneri_kaimon","label":"カバネリ海門決戦"},{"id":"karakuri","label":"からくりサーカス（初代）"},{"id":"karakuri2","label":"からくりサーカス2"},{"id":"koukaku","label":"攻殻機動隊"},{"id":"god_eater","label":"ゴッドイーター リザレクション"},{"id":"juuou","label":"獣王"},{"id":"zenigata5","label":"主役は銭形5"},{"id":"shinuchi_yoshimune","label":"真打吉宗"},{"id":"street_fighter6","label":"ストリートファイター6"},{"id":"aobuta","label":"青春ブタ野郎"},{"id":"sencolle6","label":"戦国コレクション6"},{"id":"sao2","label":"ソードアート・オンラインⅡ"},{"id":"tokyo_ghoul","label":"東京喰種"},{"id":"basilisk_tenzen","label":"バジリスク絆2 天膳"},{"id":"paripi_koumei","label":"パリピ孔明"},{"id":"hokuto","label":"北斗の拳"},{"id":"magireco","label":"マギアレコード"},{"id":"million_god","label":"ミリオンゴッド 神々の軌跡"},{"id":"monkey_turn5","label":"モンキーターンV"},{"id":"mh_rise","label":"モンスターハンターライズ"},{"id":"yajikita","label":"やじきた道中記参る！"},{"id":"lycoris","label":"リコリス・リコイル"}];
+  /* where the five members' records are kept (an Apps Script in front of the team spreadsheet) */
+  var API = 'https://script.google.com/macros/s/AKfycbwpscWKcnidJbAb8TLqmOJsbwcSBb1Qok8Ma4UqY7dUZBGY6yvc6Vbft71lsjD5P_VEcA/exec';
   /* the team's exchange settings, the same three as 鬣犬: coins for 1000円 (rent) and coins handed in for 1000円 (exch) */
   var RATES = {
     super:  {label:'スーパー等価', sub:'1k46・換金46', rent:46, exch:46},
     toka:   {label:'等価',         sub:'1k52・換金52', rent:52, exch:52},
     hitoka: {label:'非等価',       sub:'1k46・換金52', rent:46, exch:52}
   };
-  var LS = 'neraicho.records', LS_RATE = 'neraicho.rate';
+  var LS_KEY = 'neraicho.key', LS_CACHE = 'neraicho.cache', LS_QUEUE = 'neraicho.queue', LS_RATE = 'neraicho.rate',
+      LS_OLD = 'neraicho.records', LS_OLD_DONE = 'neraicho.oldDone';
   var $ = function(id){ return document.getElementById(id); };
   function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
   function load(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
   function store(k, v){ try { localStorage.setItem(k, v); return true; } catch(e){ return false; } }
+  function loadJSON(k, d){ try { var v = JSON.parse(load(k)); return v==null ? d : v; } catch(e){ return d; } }
   var canStore = store('neraicho.t', '1');
   try { localStorage.removeItem('neraicho.t'); } catch(e){}
 
   /* ---------- money: the same rule as 鬣犬 (team decision 2026-10-13) ----------
      The point is the real result, so cash is counted at the EXCHANGE price (換金枚数), never the lending one:
-     現金 → 枚 = 円 × 換金枚数 / 1000, 収支(枚) = 回収 − 投資メダル − 現金の枚数, 収支(円) = 枚 × 1000 / 換金枚数. */
+     現金 → 枚 = 円 × 換金枚数 / 1000, 収支(枚) = 回収 − 投資メダル − 現金の枚数, 収支(円) = 枚 × 1000 / 換金枚数.
+     The spreadsheet side (コード.gs) uses the same rule for its two 収支 columns. */
   function roundHalfAway(x){ x = x<0 ? x-1e-9 : x+1e-9; return x<0 ? -Math.round(-x) : Math.round(x); }
   function calc(r){
     var R = RATES[r.rate] || RATES.toka, cashCoins = r.cash*R.exch/1000, coins = r.out - r.medal - cashCoins;
@@ -257,34 +395,150 @@ p{margin:0}
   function cls(v){ return v>0 ? 'pos' : v<0 ? 'neg' : ''; }
   function n0(v){ return v.toLocaleString('ja-JP'); }
 
-  /* ---------- records ----------
-     {id, at (ms, when it was saved), m (machine id, '' = typed in), name, aim, rate, cash (円), medal (枚), out (枚)} */
-  var recs = [];
-  (function(){
-    var a = null; try { a = JSON.parse(load(LS) || '[]'); } catch(e){}
-    recs = (Array.isArray(a) ? a : []).filter(function(r){ return r && r.id && typeof r.at==='number' && r.name && r.aim; });
-    recs.sort(function(a, b){ return b.at - a.at; });
-  })();
-  function persist(){ if (!store(LS, JSON.stringify(recs))) $('no-store').hidden = false; }
-  function newId(){ return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+  /* ---------- small helpers ---------- */
   // what counts as "the same": full/half width, spaces and 〜/～/~ do not matter
   function norm(s){ return String(s).normalize('NFKC').replace(/[\s　]+/g, '').replace(/[〜~]/g, '~').toLowerCase(); }
   function mKey(r){ return r.m ? r.m : 'c:' + norm(r.name); }
   function machineLabel(id){ for (var i=0; i<MACHINES.length; i++) if (MACHINES[i].id===id) return MACHINES[i].label; return null; }
-  // typed-in machines, newest first, one per name
-  function customMachines(){
-    var seen = {}, out = [];
-    recs.forEach(function(r){ if (!r.m){ var k = mKey(r); if (!seen[k]){ seen[k] = 1; out.push({key:k, label:r.name}); } } });
-    return out;
-  }
   function pad(n){ return (n<10 ? '0' : '') + n; }
-  function timeLabel(d){ return d.getHours() + ':' + pad(d.getMinutes()); }
-  function dayLabel(d){
-    var now = new Date();
-    return (d.getFullYear()!==now.getFullYear() ? d.getFullYear()+'年' : '') + (d.getMonth()+1)+'月'+d.getDate()+'日（'+'日月火水木金土'.charAt(d.getDay())+'）';
+  // a play time is kept as text 'YYYY-MM-DD HH:mm' (Japan time, as the phone shows it)
+  function fmtAt(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+' '+pad(d.getHours())+':'+pad(d.getMinutes()); }
+  function parseAt(s){ var m = /^(\d{4})-(\d\d)-(\d\d)[ T](\d\d):(\d\d)/.exec(s || ''); return m ? new Date(+m[1], m[2]-1, +m[3], +m[4], +m[5]) : null; }
+  function timeLabel(s){ var d = parseAt(s); return d ? d.getHours() + ':' + pad(d.getMinutes()) : ''; }
+  function dayLabel(s){
+    var d = parseAt(s); if (!d) return '';
+    return (d.getFullYear()!==new Date().getFullYear() ? d.getFullYear()+'年' : '') + (d.getMonth()+1)+'月'+d.getDate()+'日（'+'日月火水木金土'.charAt(d.getDay())+'）';
   }
-  function dayKey(d){ return d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate(); }
+  function shortDay(s){ var d = parseAt(s); return d ? (d.getMonth()+1)+'/'+d.getDate()+' '+d.getHours()+':'+pad(d.getMinutes()) : ''; }
+  function monthLabel(m){ var p = m.split('-'); return p[0]+'年'+Number(p[1])+'月'; }
+  function shiftMonth(m, k){ var p = m.split('-'), d = new Date(+p[0], p[1]-1+k, 1); return d.getFullYear()+'-'+pad(d.getMonth()+1); }
   function digits(v){ return String(v).replace(/[０-９]/g, function(c){ return String.fromCharCode(c.charCodeAt(0)-0xFEE0); }).replace(/[^0-9]/g, ''); }
+  function byNewest(a, b){ return a.at<b.at ? 1 : a.at>b.at ? -1 : (a.saved||'')<(b.saved||'') ? 1 : (a.saved||'')>(b.saved||'') ? -1 : 0; }
+
+  /* ---------- state ----------
+     A record: {id, at, m, name, aim, rate, cash (円), medal (枚), out (枚), by (打った人), pick (拾った人), who (記録した人), saved, cid}
+     S.recs is what the spreadsheet last said; S.queue holds what this phone did and has not sent yet. The screen always
+     shows S.recs with the queue laid on top, so a record appears at once even with no signal in the hall. */
+  var S = {key:'', me:null, members:[], recs:[], queue:[], sending:null, loading:false, failed:'', retry:null};
+  (function(){
+    var c = loadJSON(LS_CACHE, null);
+    if (c && Array.isArray(c.records)){ S.me = c.me || null; S.members = c.members || []; S.recs = c.records; }
+    var q = loadJSON(LS_QUEUE, []);
+    S.queue = Array.isArray(q) ? q : [];
+  })();
+  function saveCache(){ store(LS_CACHE, JSON.stringify({me:S.me, members:S.members, records:S.recs})); }
+  function saveQueue(){ if (!store(LS_QUEUE, JSON.stringify(S.queue)) && S.queue.length) $('no-store').hidden = false; }
+
+  // the records as this phone should show them: the spreadsheet's, with the unsent changes laid on top
+  function applyQueue(recs, queue, meName){
+    var out = recs.map(function(r){ return r; });
+    function at(ref){ for (var i=0; i<out.length; i++) if (out[i].id===ref) return i; return -1; }
+    queue.forEach(function(op){
+      var i;
+      if (op.t==='add'){
+        if (!out.some(function(r){ return r.cid===op.cid; })) out.push(Object.assign({id:'tmp_'+op.cid, cid:op.cid, who:meName || '', saved:'', pending:true}, op.rec));
+      } else if (op.t==='upd'){
+        i = at(op.ref); if (i>=0) out[i] = Object.assign({}, out[i], op.rec, {pending:true});
+      } else if (op.t==='del'){
+        i = at(op.ref); if (i>=0) out.splice(i, 1);
+      } else if (op.t==='undel'){
+        if (at(op.ref)<0 && op.snap) out.push(Object.assign({}, op.snap, {pending:true}));
+      }
+    });
+    return out.sort(byNewest);
+  }
+  function recs(){ return applyQueue(S.recs, S.queue, S.me && S.me.name); }
+  function byId(id){ var a = recs(); for (var i=0; i<a.length; i++) if (a[i].id===id) return a[i]; return null; }
+  function again_(r){ return byId(r.id) || (r.cid ? recs().filter(function(x){ return x.cid===r.cid; })[0] : null); }
+  function canTouch(r){ return !!S.me && (S.me.admin || r.who===S.me.name || r.by===S.me.name || !!r.pending); }
+  function activeNames(){ return S.members.filter(function(m){ return m.active; }).map(function(m){ return m.name; }); }
+
+  /* ---------- talking to the spreadsheet (JSONP, the same way as 収支帳: a <script> tag is never stopped by CORS) ---------- */
+  var seq = 0;
+  function call(action, params){
+    return new Promise(function(resolve, reject){
+      var cb = '__nc' + (seq++) + '_' + Math.floor(Math.random()*1e6), s = document.createElement('script');
+      var timer = setTimeout(function(){ done(); reject(new Error('timeout')); }, 25000);
+      function done(){ clearTimeout(timer); try { delete window[cb]; } catch(e){ window[cb] = undefined; } if (s.parentNode) s.parentNode.removeChild(s); }
+      window[cb] = function(d){ done(); resolve(d || {}); };
+      s.onerror = function(){ done(); reject(new Error('network')); };
+      var q = ['action='+encodeURIComponent(action), 'k='+encodeURIComponent(S.key), 'callback='+cb];
+      Object.keys(params || {}).forEach(function(k){ if (params[k]!=null) q.push(encodeURIComponent(k)+'='+encodeURIComponent(params[k])); });
+      s.src = API + '?' + q.join('&') + '&_=' + Date.now();
+      document.head.appendChild(s);
+    });
+  }
+
+  function status(){
+    var e = $('sync'), wait = S.queue.length, t = '', bad = false;
+    if (wait){ t = wait + '件 送れていません'; bad = true; }
+    else if (S.loading) t = 'よみこみ中';
+    else if (S.failed && !S.recs.length){ t = S.failed; bad = true; }
+    e.textContent = t; e.className = 'sync' + (bad ? ' bad' : '');
+    if (S.me) $('bar-me').innerHTML = esc(S.me.name) + (S.me.admin ? '<small>管理</small>' : '');
+  }
+
+  // fetch everything; Apps Script sometimes takes 10 s or fails, so try again quietly — the screen already shows the last copy
+  function reload(left){
+    if (S.loading || !S.key) return;
+    left = left==null ? 2 : left;
+    S.loading = true; status();
+    call('all', {}).then(function(r){
+      S.loading = false;
+      if (r.ok){
+        S.me = r.me; S.members = r.members || []; S.recs = r.records || []; S.failed = '';
+        saveCache(); refresh(); flush();
+        return;
+      }
+      if (r.鍵ちがい) return lockOut('合言葉が変わったか、止められています。管理の人に確かめてください。');
+      again(left, r.error || 'とれませんでした');
+    }, function(){ S.loading = false; again(left, 'つながりません'); });
+  }
+  function again(left, msg){
+    if (left>0) return setTimeout(function(){ reload(left-1); }, 2500);
+    S.failed = msg; status();
+  }
+
+  /* send the unsent changes one by one, oldest first */
+  function flush(){
+    if (S.sending || !S.queue.length || !S.key) return;
+    var op = S.queue[0], p;
+    if (op.t==='add') p = Object.assign({cid:op.cid}, op.rec);
+    else if (op.t==='upd') p = Object.assign({id:op.ref}, op.rec);
+    else p = {id:op.ref};
+    if (op.t!=='add' && String(op.ref).indexOf('tmp_')===0){ drop(op); return flush(); }   // its record never reached the sheet
+    S.sending = op;
+    call({add:'add', upd:'update', del:'delete', undel:'restore'}[op.t], p).then(function(r){
+      S.sending = null;
+      if (r.ok){
+        S.queue = S.queue.filter(function(x){ return x!==op; });
+        if (op.t==='add' && r.rec){
+          var tmp = 'tmp_' + op.cid;
+          S.queue.forEach(function(x){ if (x.ref===tmp) x.ref = r.rec.id; });
+          S.recs = S.recs.filter(function(x){ return x.id!==r.rec.id; }).concat([r.rec]);
+        } else if ((op.t==='upd' || op.t==='undel') && r.rec){
+          S.recs = S.recs.filter(function(x){ return x.id!==r.rec.id; }).concat([r.rec]);
+        } else if (op.t==='del'){
+          S.recs = S.recs.filter(function(x){ return x.id!==op.ref; });
+        }
+        saveQueue(); saveCache(); refresh(); flush();
+        return;
+      }
+      if (r.鍵ちがい) return lockOut('合言葉が変わったか、止められています。管理の人に確かめてください。');
+      // the sheet said no (for example the record was already removed by someone): drop it, say so, and look again
+      drop(op); toast('送れませんでした：' + (r.error || '')); reload();
+    }, function(){
+      S.sending = null; status();
+      clearTimeout(S.retry); S.retry = setTimeout(flush, 20000);
+    });
+  }
+  function drop(op){
+    var tmp = op.t==='add' ? 'tmp_' + op.cid : null;
+    S.queue = S.queue.filter(function(x){ return x!==op && !(tmp && x.ref===tmp); });
+    saveQueue(); refresh();
+  }
+  function push(op){ S.queue.push(op); saveQueue(); refresh(); flush(); }
+  function newCid(){ return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 
   /* ---------- toast with 取り消す ---------- */
   var toastTimer = null, toastUndo = null;
@@ -303,34 +557,79 @@ p{margin:0}
   });
 
   /* ---------- screen switch ---------- */
-  var view = 'rec';
+  var view = 'rec', VIEWS = ['key', 'rec', 'list', 'month', 'rank', 'set'];
   function show(v){
     view = v;
-    ['rec', 'list', 'rank'].forEach(function(x){ $('view-'+x).hidden = x!==v; });
+    VIEWS.forEach(function(x){ $('view-'+x).hidden = x!==v; });
+    $('bar').hidden = $('dock').hidden = v==='key';
     document.querySelectorAll('.nav button').forEach(function(b){
       if (b.getAttribute('data-view')===v) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
     });
+    if (v==='rec'){ if (!editing) nowIfUntouched(); renderForm(); }
     if (v==='list') renderList();
+    if (v==='month') renderMonth();
     if (v==='rank') renderRank();
+    if (v==='set') renderSet(true);
     window.scrollTo(0, 0);
   }
   document.querySelectorAll('.nav button').forEach(function(b){
     b.addEventListener('click', function(){ show(b.getAttribute('data-view')); });
   });
+  $('open-set').addEventListener('click', function(){ show('set'); });
+
+  /* ---------- 合言葉 ---------- */
+  function keyFrom(text){
+    var t = String(text || '').trim(), m = /[?&]k=([^&#\s]+)/.exec(t);
+    if (m){ try { return decodeURIComponent(m[1]).trim(); } catch(e){ return m[1]; } }
+    return t.replace(/\s+/g, '');
+  }
+  function lockOut(msg){
+    S.key = ''; S.me = null; S.members = []; S.recs = [];
+    try { localStorage.removeItem(LS_KEY); localStorage.removeItem(LS_CACHE); } catch(e){}
+    $('k-err').textContent = msg || ''; $('k-err').hidden = !msg;
+    show('key');
+  }
+  $('k-go').addEventListener('click', function(){
+    var k = keyFrom($('k-in').value), err = $('k-err');
+    if (!k){ err.textContent = '合言葉を入れてください'; err.hidden = false; return; }
+    var b = $('k-go'); b.disabled = true; b.textContent = 'たしかめ中…'; err.hidden = true;
+    S.key = k;
+    call('all', {}).then(function(r){
+      b.disabled = false; b.textContent = '開く';
+      if (!r.ok){ S.key = ''; err.textContent = r.鍵ちがい ? '合言葉がちがいます（大文字・小文字も見ます）' : (r.error || 'うまくいきませんでした'); err.hidden = false; return; }
+      store(LS_KEY, k);
+      // put it in the address too, so "ホーム画面に追加" from here keeps it (the icon opens with this address)
+      try { var u = new URL(location.href); u.searchParams.set('k', k); history.replaceState(null, '', u.href); } catch(e){}
+      S.me = r.me; S.members = r.members || []; S.recs = r.records || []; S.failed = '';
+      saveCache(); $('k-in').value = '';
+      resetForm(); show('rec'); refresh(); flush();
+    }, function(){
+      S.key = ''; b.disabled = false; b.textContent = '開く';
+      err.textContent = 'つながりません。電波のある所で、もう一度どうぞ。'; err.hidden = false;
+    });
+  });
+  $('k-in').addEventListener('keydown', function(e){ if (e.key==='Enter') $('k-go').click(); });
 
   /* ---------- 記録する ---------- */
   var editing = null;   // id of the record being fixed, or null for a new one
+  var atTouched = false, formBy = '', formPick = '';
   var rate = RATES[load(LS_RATE)] ? load(LS_RATE) : 'toka';
   $('f-rate').innerHTML = Object.keys(RATES).map(function(k){
     return '<input type="radio" name="f-rate" id="fr-'+k+'" value="'+k+'"'+(k===rate ? ' checked' : '')+'><label for="fr-'+k+'">'+esc(RATES[k].label)+'<small>'+esc(RATES[k].sub)+'</small></label>';
   }).join('');
   $('f-rate').addEventListener('change', function(e){ rate = e.target.value; if (!editing) store(LS_RATE, rate); update(); });
 
+  // typed-in machines, newest first, one per name
+  function customMachines(){
+    var seen = {}, out = [];
+    recs().forEach(function(r){ if (!r.m){ var k = mKey(r); if (!seen[k]){ seen[k] = 1; out.push({key:k, label:r.name}); } } });
+    return out;
+  }
   function fillMachines(keep){
     var sel = $('f-machine'), cur = keep!=null ? keep : sel.value, customs = customMachines();
     var h = '<option value="">台を選ぶ</option><optgroup label="台">'
       + MACHINES.map(function(m){ return '<option value="'+esc(m.id)+'">'+esc(m.label)+'</option>'; }).join('') + '</optgroup>';
-    if (customs.length) h += '<optgroup label="自分で入れた台">' + customs.map(function(c){ return '<option value="'+esc(c.key)+'">'+esc(c.label)+'</option>'; }).join('') + '</optgroup>';
+    if (customs.length) h += '<optgroup label="自分たちで入れた台">' + customs.map(function(c){ return '<option value="'+esc(c.key)+'">'+esc(c.label)+'</option>'; }).join('') + '</optgroup>';
     h += '<option value="+">＋ リストにない台を入れる</option>';
     sel.innerHTML = h;
     sel.value = cur;
@@ -359,8 +658,8 @@ p{margin:0}
     var fm = formMachine(), box = $('aim-past');
     if (!fm){ box.hidden = true; return; }
     var by = {}, list = [];
-    recs.forEach(function(r){   // newest first, so the first text seen is the latest way it was written
-      if (mKey(r)!==fm.key) return;
+    recs().forEach(function(r){   // newest first, so the first text seen is the latest way it was written
+      if (mKey(r)!==fm.key || !r.aim) return;
       var k = norm(r.aim);
       if (!by[k]){ by[k] = {key:k, text:r.aim, n:0}; list.push(by[k]); }
       by[k].n++;
@@ -378,8 +677,33 @@ p{margin:0}
     update();
   });
 
+  // the people buttons: the members who can use the app, plus whoever is already on the record being fixed
+  function peopleChips(box, chosen){
+    var names = activeNames();
+    if (chosen && names.indexOf(chosen)<0) names.push(chosen);
+    $(box).innerHTML = names.length ? names.map(function(n){
+      return '<button type="button" class="chip" data-name="'+esc(n)+'" aria-pressed="'+(n===chosen ? 'true' : 'false')+'">'+esc(n)+(S.me && n===S.me.name ? '<small>自分</small>' : '')+'</button>';
+    }).join('') : '<p class="hint">メンバーを読み込むと、ここに名前が出ます。</p>';
+  }
+  $('f-by').addEventListener('click', function(e){ var b = e.target.closest('.chip'); if (!b) return; formBy = b.getAttribute('data-name'); renderForm(); });
+  $('f-pick').addEventListener('click', function(e){ var b = e.target.closest('.chip'); if (!b) return; formPick = b.getAttribute('data-name'); renderForm(); });
+
+  function nowIfUntouched(){ if (!atTouched) $('f-at').value = fmtAt(new Date()).replace(' ', 'T'); }
+  function formAt(){ var v = $('f-at').value; return parseAt(v) ? v.replace('T', ' ').slice(0, 16) : ''; }
+  $('f-at').addEventListener('input', function(){ atTouched = true; update(); });
+  $('f-at').addEventListener('change', function(){ atTouched = true; update(); });
+  $('f-now').addEventListener('click', function(){ atTouched = false; nowIfUntouched(); update(); });
+  setInterval(function(){ if (view==='rec' && !editing && !atTouched && document.activeElement!==$('f-at')) nowIfUntouched(); }, 30000);
+
+  function renderForm(){
+    if (S.me && !editing){ if (!formBy) formBy = S.me.name; if (!formPick) formPick = S.me.name; }
+    peopleChips('f-by', formBy);
+    peopleChips('f-pick', formPick);
+    update();
+  }
+
   function update(){
-    var fm = formMachine(), aim = $('f-aim').value.trim(), cash = num('f-cash'), medal = num('f-medal'), out = num('f-out');
+    var fm = formMachine(), cash = num('f-cash'), medal = num('f-medal'), out = num('f-out');
     $('f-custom').hidden = $('f-machine').value!=='+';
     aimChips();
     var res = $('f-res');
@@ -392,12 +716,17 @@ p{margin:0}
     }
     var miss = [];
     if (!fm) miss.push('台');
-    if (!aim) miss.push('狙い目');
+    if (!formBy) miss.push('打った人');
+    if (!formPick) miss.push('拾った人');
+    if (!formAt()) miss.push('日時');
     if (cash==null && medal==null) miss.push('投資');
     if (out==null) miss.push('回収');
     $('f-need').textContent = miss.length ? 'まだ入っていない：' + miss.join('・') : '';
     $('f-need').hidden = !miss.length;
     $('f-save').disabled = !!miss.length;
+    if (!editing) $('f-when').textContent = atTouched
+      ? '日時は選んだものが入ります。「いまにする」で今にもどせます。'
+      : '日時は「いま」が入っています。あとから入れるときは、押して選び直してください。';
   }
   ['f-machine', 'f-custom', 'f-aim', 'f-cash', 'f-medal', 'f-out'].forEach(function(id){
     $(id).addEventListener('input', update);
@@ -406,100 +735,150 @@ p{margin:0}
   $('f-machine').addEventListener('change', function(){ if ($('f-machine').value==='+') $('f-custom').focus(); });
 
   function setWhen(){
-    if (editing){
-      var r = byId(editing);
-      $('f-when').textContent = r ? '記録した時間：' + dayLabel(new Date(r.at)) + ' ' + timeLabel(new Date(r.at)) + '（直しても変わりません）' : '';
-    } else {
-      $('f-when').textContent = '「記録する」を押した時間も一緒に残ります。';
-    }
+    var r = editing ? byId(editing) : null;
+    if (r) $('f-when').textContent = r.who ? '記録した人：' + r.who + (r.saved ? '（' + shortDay(r.saved) + '）' : '') : '';
   }
   function resetForm(){
-    editing = null;
+    editing = null; atTouched = false;
+    formBy = S.me ? S.me.name : ''; formPick = formBy;
     fillMachines('');
     $('f-custom').value = ''; $('f-aim').value = ''; $('f-cash').value = ''; $('f-medal').value = ''; $('f-out').value = '';
     rate = RATES[load(LS_RATE)] ? load(LS_RATE) : rate;
     var rb = $('fr-'+rate); if (rb) rb.checked = true;
+    nowIfUntouched();
     $('rec-title').textContent = '記録する';
     $('f-save').textContent = '記録する';
     $('f-cancel').hidden = true;
-    setWhen(); update();
+    setWhen(); renderForm();
   }
-  function byId(id){ for (var i=0; i<recs.length; i++) if (recs[i].id===id) return recs[i]; return null; }
 
   $('f-save').addEventListener('click', function(){
-    var fm = formMachine(), aim = $('f-aim').value.trim(), cash = num('f-cash'), medal = num('f-medal'), out = num('f-out');
-    if (!fm || !aim || (cash==null && medal==null) || out==null) return update();
-    var data = {m:fm.m, name:fm.name, aim:aim, rate:rate, cash:cash||0, medal:medal||0, out:out||0};
+    var fm = formMachine(), at = formAt(), cash = num('f-cash'), medal = num('f-medal'), out = num('f-out');
+    if (!fm || !at || !formBy || !formPick || (cash==null && medal==null) || out==null) return update();
+    var data = {at:at, m:fm.m, name:fm.name, aim:$('f-aim').value.trim(), rate:rate, cash:cash||0, medal:medal||0, out:out||0, by:formBy, pick:formPick};
     if (editing){
       var r = byId(editing);
       if (r){
-        var before = JSON.parse(JSON.stringify(r));
-        Object.keys(data).forEach(function(k){ r[k] = data[k]; });
-        persist();
-        toast('直しました', function(){ var x = byId(before.id); if (x){ Object.keys(before).forEach(function(k){ x[k] = before[k]; }); persist(); refresh(); } });
+        var before = {}; Object.keys(data).forEach(function(k){ before[k] = r[k]; });
+        changeRecord(r, data);
+        toast('直しました', function(){ var x = again_(r); if (x) changeRecord(x, before); });
       }
       resetForm(); show('list');
       return;
     }
-    var rec = {id:newId(), at:Date.now()};
-    Object.keys(data).forEach(function(k){ rec[k] = data[k]; });
-    recs.unshift(rec);
-    persist();
-    var c = calc(rec);
-    toast('記録しました（' + timeLabel(new Date(rec.at)) + '・' + signed(c.yen, '円') + '）', function(){
-      recs = recs.filter(function(x){ return x.id!==rec.id; }); persist(); refresh();
-    });
+    var cid = newCid();
+    push({t:'add', cid:cid, rec:data});
+    var c = calc(data);
+    toast('記録しました（' + timeLabel(at) + '・' + signed(c.yen, '円') + '）', function(){ var x = again_({id:'tmp_' + cid, cid:cid}); if (x) removeRecord(x); });
     resetForm();
   });
   $('f-cancel').addEventListener('click', function(){ resetForm(); show('list'); });
 
+  // fix a record: a record not sent yet is fixed inside its own "add"; a sent one gets an "update"
+  function changeRecord(r, data){
+    var add = S.queue.filter(function(op){ return op.t==='add' && 'tmp_'+op.cid===r.id; })[0];
+    if (add && add!==S.sending){ add.rec = Object.assign({}, add.rec, data); saveQueue(); refresh(); return; }
+    var same = S.queue.filter(function(op){ return op.t==='upd' && op.ref===r.id && op!==S.sending; })[0];
+    if (same){ same.rec = Object.assign({}, same.rec, data); saveQueue(); refresh(); flush(); return; }
+    var full = {}; ['at', 'm', 'name', 'aim', 'rate', 'cash', 'medal', 'out', 'by', 'pick'].forEach(function(k){ full[k] = data[k]!==undefined ? data[k] : r[k]; });
+    push({t:'upd', ref:r.id, rec:full});
+  }
+  function removeRecord(r){
+    var add = S.queue.filter(function(op){ return op.t==='add' && 'tmp_'+op.cid===r.id; })[0];
+    if (add && add!==S.sending){ drop(add); return function(){ push(add); }; }
+    var snap = Object.assign({}, r); delete snap.pending;
+    var op = {t:'del', ref:r.id, snap:snap};
+    push(op);
+    return function(){
+      if (S.queue.indexOf(op)>=0 && op!==S.sending){ S.queue = S.queue.filter(function(x){ return x!==op; }); saveQueue(); refresh(); }
+      else push({t:'undel', ref:r.id, snap:snap});
+    };
+  }
+
   function startEdit(id){
-    var r = byId(id); if (!r) return;
-    editing = id;
+    var r = byId(id); if (!r || !canTouch(r)) return;
+    editing = id; atTouched = true;
     fillMachines(r.m ? r.m : mKey(r));
     $('f-custom').value = '';
-    $('f-aim').value = r.aim;
+    $('f-aim').value = r.aim || '';
+    $('f-at').value = r.at.replace(' ', 'T');
     $('f-cash').value = r.cash ? String(r.cash) : (r.medal ? '' : '0');
     $('f-medal').value = r.medal ? String(r.medal) : '';
     $('f-out').value = String(r.out);
+    formBy = r.by; formPick = r.pick;
     rate = RATES[r.rate] ? r.rate : 'toka';
     var rb = $('fr-'+rate); if (rb) rb.checked = true;
     $('rec-title').textContent = '記録を直す';
     $('f-save').textContent = '直して保存';
     $('f-cancel').hidden = false;
-    show('rec'); setWhen(); update();
+    show('rec'); setWhen();
   }
 
+  /* records saved by the first version stayed only on this phone: offer to put them in the shared place */
+  function oldRecords(){
+    if (load(LS_OLD_DONE)) return [];
+    var a = loadJSON(LS_OLD, []);
+    return (Array.isArray(a) ? a : []).filter(function(r){ return r && r.id && typeof r.at==='number' && r.name; });
+  }
+  function renderOld(){
+    var old = oldRecords();
+    $('old-note').hidden = !old.length || !S.me;
+    if (old.length) $('old-text').textContent = '前の版で、このスマホの中だけに入れた記録が ' + old.length + '件あります。みんなの記録に入れますか？（打った人・拾った人は「' + (S.me ? S.me.name : '') + '」で入ります）';
+  }
+  $('old-send').addEventListener('click', function(){
+    var old = oldRecords();
+    old.slice().reverse().forEach(function(r){
+      S.queue.push({t:'add', cid:'o' + String(r.id).replace(/[^A-Za-z0-9]/g, '').slice(0, 30), rec:{
+        at:fmtAt(new Date(r.at)), m:r.m || '', name:r.name, aim:r.aim || '', rate:RATES[r.rate] ? r.rate : 'toka',
+        cash:r.cash||0, medal:r.medal||0, out:r.out||0, by:S.me.name, pick:S.me.name}});
+    });
+    store(LS_OLD_DONE, '1'); saveQueue(); refresh(); flush();
+    toast(old.length + '件を、みんなの記録に入れます');
+  });
+  $('old-skip').addEventListener('click', function(){ store(LS_OLD_DONE, '1'); renderOld(); });
+
   /* ---------- 一覧 ---------- */
-  var confirmId = null;
+  var confirmId = null, listMax = 150;
   function detail(r, c){
     var inv = [];
     if (r.cash) inv.push('現金'+n0(r.cash)+'円（'+n0(c.cashCoins)+'枚）');
     if (r.medal) inv.push('メダル'+n0(r.medal)+'枚');
     return '投資：'+(inv.length ? inv.join('＋') : '0')+'／回収：'+n0(r.out)+'枚';
   }
+  function fillWho(sel, keep){
+    var names = activeNames();
+    recs().forEach(function(r){ if (r.by && names.indexOf(r.by)<0) names.push(r.by); });
+    sel.innerHTML = '<option value="">みんな</option>' + names.map(function(n){ return '<option value="'+esc(n)+'">'+esc(n)+'</option>'; }).join('');
+    sel.value = keep; if (sel.value!==keep) sel.value = '';
+  }
   function renderList(){
-    var el = $('list');
-    $('list-count').textContent = recs.length ? '全部で ' + recs.length + '件' : '';
-    if (!recs.length){ el.innerHTML = '<div class="empty">まだ記録がありません。「記録する」から入れてください。</div>'; return; }
+    var el = $('list'), all = recs();
+    fillWho($('ls-who'), $('ls-who').value);
+    var who = $('ls-who').value, list = all.filter(function(r){ return !who || r.by===who; });
+    $('list-count').textContent = list.length ? '全部で ' + list.length + '件' : '';
+    $('ls-more').hidden = list.length<=listMax;
+    if (!list.length){ el.innerHTML = '<div class="empty">' + (all.length ? 'この人の記録はまだありません。' : 'まだ記録がありません。「記録する」から入れてください。') + '</div>'; return; }
     var h = '', last = '';
-    recs.forEach(function(r){
-      var d = new Date(r.at), k = dayKey(d), c = calc(r), id = esc(r.id);
-      if (k!==last){ h += '<h2 class="day">'+esc(dayLabel(d))+'</h2>'; last = k; }
+    list.slice(0, listMax).forEach(function(r){
+      var k = r.at.slice(0, 10), c = calc(r), id = esc(r.id), mine = canTouch(r);
+      if (k!==last){ h += '<h2 class="day">'+esc(dayLabel(r.at))+'</h2>'; last = k; }
       h += '<div class="item">'
-        + '<div class="it-top"><span class="it-time">'+esc(timeLabel(d))+'</span><span class="it-name">'+esc(r.name)+'</span><span class="tag">'+esc((RATES[r.rate]||RATES.toka).label)+'</span></div>'
-        + '<div class="it-aim">'+esc(r.aim)+'</div>'
+        + '<div class="it-top"><span class="it-time">'+esc(timeLabel(r.at))+'</span><span class="it-name">'+esc(r.name)+'</span><span class="tag">'+esc((RATES[r.rate]||RATES.toka).label)+'</span>'+(r.pending ? '<span class="tag wait">未送信</span>' : '')+'</div>'
+        + (r.aim ? '<div class="it-aim">'+esc(r.aim)+'</div>' : '<div class="it-aim none">狙い目なし</div>')
         + '<div class="it-res"><b class="'+cls(c.yen)+'">'+esc(signed(c.yen, '円'))+'</b><b class="'+cls(c.coins)+'">'+esc(signed(c.coins, '枚'))+'</b>'
-        + (confirmId===r.id ? '' : '<span class="it-act"><button type="button" class="btn sm" data-act="edit" data-id="'+id+'">直す</button><button type="button" class="btn sm" data-act="del" data-id="'+id+'">消す</button></span>')
+        + (confirmId===r.id || !mine ? '' : '<span class="it-act"><button type="button" class="btn sm" data-act="edit" data-id="'+id+'">直す</button><button type="button" class="btn sm" data-act="del" data-id="'+id+'">消す</button></span>')
         + '</div>'
+        + '<div class="it-who"><span><em>打った</em>'+esc(r.by || '—')+'</span><span><em>拾った</em>'+esc(r.pick || '—')+'</span></div>'
         + '<div class="it-sub">'+esc(detail(r, c))+'</div>'
         + (confirmId===r.id
-            ? '<div class="confirm"><span>この記録を消しますか？</span><button type="button" class="btn sm danger" data-act="yes" data-id="'+id+'">消す</button><button type="button" class="btn sm" data-act="no" data-id="'+id+'">やめる</button></div>'
+            ? '<div class="confirm"><span>この記録を消しますか？（みんなの一覧からも消えます）</span><button type="button" class="btn sm danger" data-act="yes" data-id="'+id+'">消す</button><button type="button" class="btn sm" data-act="no" data-id="'+id+'">やめる</button></div>'
             : '')
         + '</div>';
     });
     el.innerHTML = h;
   }
+  $('ls-who').addEventListener('change', function(){ listMax = 150; renderList(); });
+  $('ls-more').addEventListener('click', function(){ listMax += 150; renderList(); });
   $('list').addEventListener('click', function(e){
     var b = e.target.closest('button[data-act]'); if (!b) return;
     var id = b.getAttribute('data-id'), act = b.getAttribute('data-act');
@@ -507,73 +886,227 @@ p{margin:0}
     if (act==='del'){ confirmId = id; return renderList(); }
     if (act==='no'){ confirmId = null; return renderList(); }
     if (act==='yes'){
-      var i = -1; recs.forEach(function(r, j){ if (r.id===id) i = j; });
-      confirmId = null;
-      if (i<0) return renderList();
-      var gone = recs.splice(i, 1)[0];
-      persist(); refresh();
-      toast('消しました', function(){ recs.push(gone); recs.sort(function(a, b){ return b.at - a.at; }); persist(); refresh(); });
+      var r = byId(id); confirmId = null;
+      if (!r || !canTouch(r)) return renderList();
+      var undo = removeRecord(r);
+      toast('消しました', undo);
     }
   });
 
-  /* ---------- ランキング: one row per (台 × 狙い目) ---------- */
-  function groups(){
+  /* ---------- 月の収支: the team total and each person, by 打った人 (or 拾った人) ---------- */
+  var month = fmtAt(new Date()).slice(0, 7);
+  function monthSums(all, m, key, names){
+    var team = {n:0, win:0, yen:0}, by = {}, out = [];
+    (names || []).forEach(function(n){ by[n] = {name:n, n:0, win:0, yen:0, plays:[]}; out.push(by[n]); });
+    all.forEach(function(r){
+      if (r.at.slice(0, 7)!==m) return;
+      var c = calc(r), who = r[key] || '—';
+      if (!by[who]){ by[who] = {name:who, n:0, win:0, yen:0, plays:[]}; out.push(by[who]); }
+      var p = by[who];
+      p.n++; p.yen += c.yen; if (c.yen>0) p.win++;
+      p.plays.push({at:r.at, name:r.name, aim:r.aim, yen:c.yen, other:key==='by' ? r.pick : r.by});
+      team.n++; team.yen += c.yen; if (c.yen>0) team.win++;
+    });
+    out.sort(function(a, b){ return (b.n>0) - (a.n>0) || b.yen - a.yen || b.n - a.n; });
+    return {team:team, people:out};
+  }
+  function renderMonth(){
+    $('mon-label').textContent = monthLabel(month);
+    $('mon-next').disabled = month>=fmtAt(new Date()).slice(0, 7);
+    var key = document.querySelector('input[name="mon-by"]:checked').value, s = monthSums(recs(), month, key, activeNames()), t = s.team;
+    $('mon-sum').innerHTML = '<small>チームの合計</small><b class="'+cls(t.yen)+'">'+esc(signed(t.yen, '円'))+'</b>'
+      + '<span class="sum-meta"><span>'+t.n+'回</span><span>勝ち'+t.win+'回</span>'+(t.n ? '<span>1回あたり '+esc(signed(roundHalfAway(t.yen/t.n), '円'))+'</span>' : '')+'</span>';
+    var max = 1; s.people.forEach(function(p){ max = Math.max(max, Math.abs(p.yen)); });
+    $('mon-people').innerHTML = s.people.length ? s.people.map(function(p){
+      var w = Math.round(Math.abs(p.yen)/max*50), bar = p.yen>0 ? 'left:50%;width:'+w+'%' : 'right:50%;width:'+w+'%';
+      return '<details class="rk pp"><summary>'
+        + '<span class="rk-main"><b>'+esc(p.name)+(S.me && p.name===S.me.name ? '<small style="display:inline;margin-left:6px">自分</small>' : '')+'</b>'
+        + '<span class="rk-meta">'+(p.n ? '<span>'+p.n+'回</span><span>勝ち'+p.win+'回</span>' : '<span>この月の記録なし</span>')+'</span>'
+        + (p.n ? '<span class="pbar" aria-hidden="true"><i class="'+cls(p.yen)+'" style="'+bar+'"></i></span>' : '')+'</span>'
+        + '<span class="rk-val"><b class="'+cls(p.yen)+'">'+(p.n ? esc(signed(p.yen, '円')) : '—')+'</b></span>'
+        + '</summary>'
+        + (p.n ? '<div class="rk-plays">' + p.plays.map(function(x){
+            return '<div class="rk-play"><span>'+esc(shortDay(x.at)+' '+x.name+(x.aim ? '・'+x.aim : '')+(x.other && x.other!==p.name ? '（'+(key==='by' ? '拾った：' : '打った：')+x.other+'）' : ''))+'</span><b class="'+cls(x.yen)+'">'+esc(signed(x.yen, '円'))+'</b></div>';
+          }).join('') + '</div>' : '')
+        + '</details>';
+    }).join('') : '<div class="empty">メンバーを読み込むと、ここに一人ずつ出ます。</div>';
+  }
+  $('mon-prev').addEventListener('click', function(){ month = shiftMonth(month, -1); renderMonth(); });
+  $('mon-next').addEventListener('click', function(){ month = shiftMonth(month, 1); renderMonth(); });
+  document.querySelectorAll('input[name="mon-by"]').forEach(function(x){ x.addEventListener('change', renderMonth); });
+
+  /* ---------- ランキング: one row per (台 × 狙い目), everyone's records ---------- */
+  function groups(all){
     var by = {}, out = [];
-    recs.forEach(function(r){   // newest first
-      var k = mKey(r) + '|' + norm(r.aim);
-      if (!by[k]){ by[k] = {mk:mKey(r), name:r.name, aim:r.aim, n:0, win:0, yen:0, last:r.at, plays:[]}; out.push(by[k]); }
+    all.forEach(function(r){   // newest first
+      var k = mKey(r) + '|' + norm(r.aim || '');
+      if (!by[k]){ by[k] = {mk:mKey(r), name:r.name, aim:r.aim || '', n:0, win:0, yen:0, last:r.at, plays:[]}; out.push(by[k]); }
       var g = by[k], c = calc(r);
       g.n++; g.yen += c.yen; if (c.yen>0) g.win++;
-      g.plays.push({at:r.at, yen:c.yen});
+      g.plays.push({at:r.at, yen:c.yen, by:r.by});
     });
     out.forEach(function(g){ g.avg = roundHalfAway(g.yen / g.n); });
     return out;
   }
-  function fillRankMachines(){
+  function fillRankMachines(all){
     var sel = $('rk-machine'), cur = sel.value, seen = {}, opts = [];
-    recs.forEach(function(r){ seen[mKey(r)] = r.name; });
+    all.forEach(function(r){ seen[mKey(r)] = r.name; });
     MACHINES.forEach(function(m){ if (seen[m.id]){ opts.push({key:m.id, label:m.label}); delete seen[m.id]; } });
     Object.keys(seen).forEach(function(k){ opts.push({key:k, label:seen[k]}); });
     sel.innerHTML = '<option value="">すべての台</option>' + opts.map(function(o){ return '<option value="'+esc(o.key)+'">'+esc(o.label)+'</option>'; }).join('');
     sel.value = cur; if (sel.value!==cur) sel.value = '';
   }
   function renderRank(){
-    fillRankMachines();
+    var all = recs();
+    fillRankMachines(all);
     var only = $('rk-machine').value, sort = document.querySelector('input[name="rk-sort"]:checked').value;
-    var list = groups().filter(function(g){ return !only || g.mk===only; });
+    var list = groups(all).filter(function(g){ return !only || g.mk===only; });
     var el = $('rank');
     if (!list.length){ el.innerHTML = '<div class="empty">まだ記録がありません。記録がたまると、狙い目ごとの順位が出ます。</div>'; return; }
     list.sort(function(a, b){
       var x = sort==='sum' ? b.yen - a.yen : b.avg - a.avg;
-      return x || b.n - a.n || b.last - a.last;
+      return x || b.n - a.n || (a.last<b.last ? 1 : a.last>b.last ? -1 : 0);
     });
     el.innerHTML = list.map(function(g, i){
       var main = sort==='sum' ? g.yen : g.avg, other = sort==='sum' ? '1回あたり '+signed(g.avg, '円') : '合計 '+signed(g.yen, '円');
       return '<details class="rk"><summary>'
         + '<span class="rk-no">'+(i+1)+'</span>'
-        + '<span class="rk-main">'+(only ? '' : '<small>'+esc(g.name)+'</small>')+'<b>'+esc(g.aim)+'</b>'
+        + '<span class="rk-main">'+(only ? '' : '<small>'+esc(g.name)+'</small>')+(g.aim ? '<b>'+esc(g.aim)+'</b>' : '<b class="none">狙い目なし</b>')
         + '<span class="rk-meta"><span>'+g.n+'回</span><span>勝ち'+g.win+'回</span><span>'+esc(other)+'</span></span></span>'
         + '<span class="rk-val"><b class="'+cls(main)+'">'+esc(signed(main, '円'))+'</b><small>'+(sort==='sum' ? '合計' : '1回あたり')+'</small></span>'
         + '</summary><div class="rk-plays">'
-        + g.plays.map(function(p){ var d = new Date(p.at); return '<div class="rk-play"><span>'+esc(dayLabel(d)+' '+timeLabel(d))+'</span><b class="'+cls(p.yen)+'">'+esc(signed(p.yen, '円'))+'</b></div>'; }).join('')
+        + g.plays.map(function(p){ return '<div class="rk-play"><span>'+esc(dayLabel(p.at)+' '+timeLabel(p.at)+(p.by ? '・'+p.by : ''))+'</span><b class="'+cls(p.yen)+'">'+esc(signed(p.yen, '円'))+'</b></div>'; }).join('')
         + '</div></details>';
     }).join('');
   }
   $('rk-machine').addEventListener('change', renderRank);
   document.querySelectorAll('input[name="rk-sort"]').forEach(function(x){ x.addEventListener('change', renderRank); });
 
+  /* ---------- 設定・メンバー (the 管理 person adds members and sets each one's 合言葉) ---------- */
+  var memberRows = null, admOpen = null;
+  function linkFor(key){ return location.origin + location.pathname + '?k=' + encodeURIComponent(key); }
+  function renderSet(fetch){
+    $('set-me').innerHTML = S.me ? 'この端末は <b>' + esc(S.me.name) + '</b> さん' + (S.me.admin ? '（管理）' : '') + 'で使っています。' : '';
+    $('adm').hidden = !(S.me && S.me.admin);
+    if (!(S.me && S.me.admin)) return;
+    if (fetch){
+      $('adm-link').hidden = true; admOpen = null;
+      $('adm-list').innerHTML = '<p class="hint">読み込み中…</p>';
+      call('members', {}).then(function(r){
+        if (r.ok){ memberRows = r.members; renderMembers(); }
+        else $('adm-list').innerHTML = '<p class="err">' + esc(r.error || 'うまくいきませんでした') + '</p>';
+      }, function(){ $('adm-list').innerHTML = '<p class="err">つながりません。電波のある所で、もう一度開いてください。</p>'; });
+    } else renderMembers();
+  }
+  function renderMembers(){
+    if (!memberRows) return;
+    $('adm-list').innerHTML = memberRows.map(function(m){
+      var me = S.me && m.name===S.me.name, n = esc(m.name);
+      return '<div class="mem"><div class="mem-top"><b>'+n+'</b>'+(m.admin ? '<span class="tag">管理</span>' : '')+(m.active ? '' : '<span class="tag wait">止めています</span>')+(me ? '<span class="tag">自分</span>' : '')+'</div>'
+        + '<div class="acts" style="flex-wrap:wrap"><button type="button" class="btn sm" data-mact="link" data-name="'+n+'">リンクを送る</button><button type="button" class="btn sm" data-mact="open" data-name="'+n+'">直す</button></div>'
+        + (admOpen===m.name ? '<div class="mem-edit">'
+            + '<div class="field"><label>名前</label><input class="tin" data-f="name" type="text" maxlength="20" value="'+n+'" autocomplete="off"></div>'
+            + '<div class="field"><label>合言葉<small>6文字以上・空白なし</small></label><input class="tin" data-f="key" type="text" maxlength="40" value="'+esc(m.key || '')+'" autocomplete="off" autocapitalize="off" spellcheck="false"></div>'
+            + (me ? '' : '<label class="chk"><input type="checkbox" data-f="admin"'+(m.admin ? ' checked' : '')+'>管理もできる人にする</label>'
+                       + '<label class="chk"><input type="checkbox" data-f="stop"'+(m.active ? '' : ' checked')+'>止める（この人の合言葉では開けなくする）</label>')
+            + '<p class="err" data-f="err" hidden></p>'
+            + '<div class="acts"><button type="button" class="btn sm" data-mact="close" data-name="'+n+'">やめる</button><button type="button" class="btn sm main" data-mact="save" data-name="'+n+'">保存</button></div>'
+            + '<p class="hint">合言葉を変えると、前のリンクでは開けなくなります。新しいリンクを送り直してください。名前を変えると、前の記録の名前も変わります。</p>'
+          + '</div>' : '')
+        + '</div>';
+    }).join('');
+  }
+  function showLink(name, key){
+    var url = linkFor(key), box = $('adm-link');
+    box.innerHTML = '<b>'+esc(name)+' さんのリンク</b><code>'+esc(url)+'</code>'
+      + '<div class="acts" style="flex-wrap:wrap">'+(navigator.share ? '<button type="button" class="btn sm" id="adm-share">送る</button>' : '')+'<button type="button" class="btn sm" id="adm-copy">コピー</button></div>'
+      + '<p class="hint">このリンクには合言葉が入っています。本人にだけ送ってください。</p>';
+    box.hidden = false;
+    if ($('adm-share')) $('adm-share').addEventListener('click', function(){ navigator.share({title:'狙い目帳', url:url}).catch(function(){}); });
+    $('adm-copy').addEventListener('click', function(){
+      var ok = function(){ toast('コピーしました'); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(ok, function(){ fallbackCopy(url); ok(); });
+      else { fallbackCopy(url); ok(); }
+    });
+    box.scrollIntoView({block:'nearest'});
+  }
+  function fallbackCopy(t){ var a = document.createElement('textarea'); a.value = t; document.body.appendChild(a); a.select(); try { document.execCommand('copy'); } catch(e){} a.remove(); }
+  $('adm-list').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-mact]'); if (!b) return;
+    var name = b.getAttribute('data-name'), act = b.getAttribute('data-mact'), m = (memberRows || []).filter(function(x){ return x.name===name; })[0];
+    if (!m) return;
+    if (act==='link') return showLink(m.name, m.key);
+    if (act==='open'){ admOpen = name; return renderMembers(); }
+    if (act==='close'){ admOpen = null; return renderMembers(); }
+    if (act==='save'){
+      var box = b.closest('.mem-edit'), f = function(k){ return box.querySelector('[data-f="'+k+'"]'); }, p = {target:name};
+      var nn = f('name').value.trim(), nk = f('key').value.trim();
+      if (nn!==m.name) p.newName = nn;
+      if (nk!==m.key) p.newKey = nk;
+      if (f('admin') && f('admin').checked!==m.admin) p.admin = f('admin').checked ? '1' : '0';
+      if (f('stop') && f('stop').checked===m.active) p.active = f('stop').checked ? '0' : '1';
+      if (Object.keys(p).length===1){ admOpen = null; return renderMembers(); }
+      b.disabled = true;
+      call('memberEdit', p).then(function(r){
+        b.disabled = false;
+        if (!r.ok){ f('err').textContent = r.error || 'うまくいきませんでした'; f('err').hidden = false; return; }
+        memberRows = r.members; admOpen = null; renderMembers();
+        toast('保存しました');
+        if (p.newKey) showLink(nn, nk);
+        reload();
+      }, function(){ b.disabled = false; f('err').textContent = 'つながりません。もう一度どうぞ。'; f('err').hidden = false; });
+    }
+  });
+  $('adm-gen').addEventListener('click', function(){
+    var chars = 'abcdefghijkmnpqrstuvwxyz23456789', s = '', a = new Uint32Array(10);
+    (window.crypto || window.msCrypto).getRandomValues(a);
+    for (var i=0; i<a.length; i++) s += chars.charAt(a[i] % chars.length);
+    $('adm-key').value = s;
+  });
+  $('adm-add').addEventListener('click', function(){
+    var name = $('adm-name').value.trim(), key = $('adm-key').value.trim(), err = $('adm-err'), b = $('adm-add');
+    if (!name || !key){ err.textContent = '名前と合言葉を入れてください'; err.hidden = false; return; }
+    b.disabled = true; err.hidden = true;
+    call('memberAdd', {name:name, key:key, admin:$('adm-admin').checked ? '1' : '0'}).then(function(r){
+      b.disabled = false;
+      if (!r.ok){ err.textContent = r.error || 'うまくいきませんでした'; err.hidden = false; return; }
+      memberRows = r.members; renderMembers();
+      $('adm-name').value = ''; $('adm-key').value = ''; $('adm-admin').checked = false;
+      showLink(name, key);
+      reload();
+    }, function(){ b.disabled = false; err.textContent = 'つながりません。もう一度どうぞ。'; err.hidden = false; });
+  });
+  $('set-reload').addEventListener('click', function(){ reload(); renderSet(true); toast('読み込み直しています'); });
+  $('set-switch').addEventListener('click', function(){ lockOut(''); });
+
   function refresh(){
+    status(); renderOld();
     if (!editing) fillMachines();
-    update();
+    if (view==='rec') renderForm();
     if (view==='list') renderList();
+    if (view==='month') renderMonth();
     if (view==='rank') renderRank();
+    if (view==='set') renderSet(false);
   }
 
   // for the tests
-  window.__neraicho = {calc:calc, norm:norm, groups:groups, recs:function(){ return recs; }};
+  window.__neraicho = {calc:calc, norm:norm, groups:groups, monthSums:monthSums, applyQueue:applyQueue, keyFrom:keyFrom, fmtAt:fmtAt, recs:recs};
 
+  /* ---------- start ---------- */
   if (!canStore) $('no-store').hidden = false;
+  (function(){
+    var k = '';
+    try { k = keyFrom(new URL(location.href).searchParams.get('k') ? location.href : ''); } catch(e){}
+    if (k){ if (k!==load(LS_KEY)){ S.me = null; S.members = []; S.recs = []; } store(LS_KEY, k); }
+    S.key = k || load(LS_KEY) || '';
+  })();
+  // a home-screen app comes back from the background without reloading: look again then, and send what is left
+  document.addEventListener('visibilitychange', function(){ if (document.visibilityState==='visible' && S.key){ reload(); } });
+  window.addEventListener('online', function(){ flush(); });
   resetForm();
+  if (!S.key){ show('key'); return; }
+  show('rec');
+  reload();
 })();
 </script>
 <!-- アプリ版だけ（GitHubに置く版）：スマホの中の控えから開く。新しい版が出ていたら、いちばん上に「更新する」を出す -->
@@ -585,7 +1118,7 @@ p{margin:0}
 <script>
 (function(){
   'use strict';
-  var BUILD = 'e640bae9da03', CACHE = 'neraicho-app-v1', lastCheck = 0;
+  var BUILD = '52a3ad15fa11', CACHE = 'neraicho-app-v1', lastCheck = 0;
   if (!('serviceWorker' in navigator)) return;
   var bar = document.getElementById('app-update');
   document.body.insertBefore(bar, document.body.firstChild);   // above the page, so it never covers the machine select or tabs
