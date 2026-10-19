@@ -14,9 +14,10 @@
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 </head><body><style>
 /* 狙い目帳 (2026-10-19): a play log kept apart from 鬣犬. The team has not settled the 狙い目 yet, so each play is
-   written down as 台 + the 狙い目 in free words (or none) + 投資/回収 + 打った人/拾った人 + the date and time, and the
+   written down as 台 + the 狙い目 in free words (or none) + 投資/回収 + 拾った人 (free words) + the date and time, and the
    ranking is per (台 × 狙い目), never per 台 overall. From the second version the five members share one record place
-   (a Google spreadsheet behind a small API); each member opens the app with their own 合言葉.
+   (a Google spreadsheet behind a small API); each member opens the app with their own 合言葉, so the member who
+   records a play is the one who played it (打った人 is not asked: user, 2026-10-20).
    Colors and the money rule are the same as 鬣犬. */
 :root{
   --bg:#F1F2F7; --surface:#FFFFFF; --ink:#151A2D; --muted:#596079; --line:#D8DBE6;
@@ -246,12 +247,12 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
         <p class="hint">同じ狙い目は、同じ書き方で入れてください。書き方が違うと、ランキングで別の狙い目として数えます。</p>
       </div>
       <div class="field">
-        <span class="lbl" id="by-lbl">打った人</span>
-        <div id="f-by" class="chips" role="group" aria-labelledby="by-lbl"></div>
-      </div>
-      <div class="field">
-        <span class="lbl" id="pick-lbl">拾った人</span>
-        <div id="f-pick" class="chips" role="group" aria-labelledby="pick-lbl"></div>
+        <label for="f-pick">拾った人<small>なくても記録できます</small></label>
+        <input id="f-pick" class="tin" type="text" maxlength="20" placeholder="例：台を見つけた人の名前" autocomplete="off">
+        <div id="pick-past" hidden>
+          <p class="chips-h">前に入れた名前（押すと入ります）</p>
+          <div id="pick-chips" class="chips"></div>
+        </div>
       </div>
       <div class="field">
         <label for="f-at">打った日時</label>
@@ -279,7 +280,7 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
   <!-- 一覧 -->
   <section id="view-list" class="view" aria-labelledby="list-title" hidden>
     <header class="top"><div class="brand"><small>みんなの記録</small><h1 id="list-title">一覧</h1></div><span id="list-count" class="count"></span></header>
-    <select id="ls-who" class="sel" aria-label="打った人でしぼる"></select>
+    <select id="ls-who" class="sel" aria-label="記録した人でしぼる"></select>
     <div id="list" class="list"></div>
     <button type="button" id="ls-more" class="btn" hidden>もっと見る</button>
   </section>
@@ -292,11 +293,11 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
       <div id="mon-sum" class="sum" aria-live="polite"></div>
     </div>
     <div class="seg" role="radiogroup" aria-label="分け方">
-      <input type="radio" name="mon-by" id="mon-by-by" value="by" checked><label for="mon-by-by">打った人ごと</label>
+      <input type="radio" name="mon-by" id="mon-by-by" value="by" checked><label for="mon-by-by">メンバーごと</label>
       <input type="radio" name="mon-by" id="mon-by-pick" value="pick"><label for="mon-by-pick">拾った人ごと</label>
     </div>
     <div id="mon-people" class="list"></div>
-    <p class="hint">収支は円で足しています。現金は換金の枚数で数えて、記録ごとの交換率で円にしてから足します。押すと、その月の中身が出ます。</p>
+    <p class="hint">「メンバーごと」は、その人が自分の合言葉で記録した収支です。収支は円で足しています（現金は換金の枚数で数えて、記録ごとの交換率で円にしてから足します）。押すと、その月の中身が出ます。</p>
   </section>
 
   <!-- ランキング -->
@@ -327,7 +328,7 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
       <div id="adm-link" class="link-box" hidden></div>
       <h2>メンバーを足す</h2>
       <div class="field"><label for="adm-name">名前</label><input id="adm-name" class="tin" type="text" maxlength="20" autocomplete="off"></div>
-      <div class="field"><label for="adm-key">合言葉<small>6文字以上・空白なし</small></label>
+      <div class="field"><label for="adm-key">合言葉</label>
         <div class="key-row"><input id="adm-key" class="tin" type="text" maxlength="40" autocomplete="off" autocapitalize="off" spellcheck="false"><button type="button" id="adm-gen" class="btn sm">おまかせで作る</button></div></div>
       <label class="chk"><input type="checkbox" id="adm-admin">管理もできる人にする</label>
       <p id="adm-err" class="err" role="alert" hidden></p>
@@ -416,7 +417,8 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
   function byNewest(a, b){ return a.at<b.at ? 1 : a.at>b.at ? -1 : (a.saved||'')<(b.saved||'') ? 1 : (a.saved||'')>(b.saved||'') ? -1 : 0; }
 
   /* ---------- state ----------
-     A record: {id, at, m, name, aim, rate, cash (円), medal (枚), out (枚), by (打った人), pick (拾った人), who (記録した人), saved, cid}
+     A record: {id, at, m, name, aim, rate, cash (円), medal (枚), out (枚), by (打った人 = the member who recorded it),
+     pick (拾った人, free words, may be empty), who (記録した人), saved, cid}
      S.recs is what the spreadsheet last said; S.queue holds what this phone did and has not sent yet. The screen always
      shows S.recs with the queue laid on top, so a record appears at once even with no signal in the hall. */
   var S = {key:'', me:null, members:[], recs:[], queue:[], sending:null, loading:false, failed:'', retry:null};
@@ -436,7 +438,7 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
     queue.forEach(function(op){
       var i;
       if (op.t==='add'){
-        if (!out.some(function(r){ return r.cid===op.cid; })) out.push(Object.assign({id:'tmp_'+op.cid, cid:op.cid, who:meName || '', saved:'', pending:true}, op.rec));
+        if (!out.some(function(r){ return r.cid===op.cid; })) out.push(Object.assign({id:'tmp_'+op.cid, cid:op.cid, who:meName || '', by:meName || '', saved:'', pending:true}, op.rec));
       } else if (op.t==='upd'){
         i = at(op.ref); if (i>=0) out[i] = Object.assign({}, out[i], op.rec, {pending:true});
       } else if (op.t==='del'){
@@ -491,6 +493,7 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
         return;
       }
       if (r.鍵ちがい) return lockOut('合言葉が変わったか、止められています。管理の人に確かめてください。');
+      if (r.重なり) return lockOut(r.error);
       again(left, r.error || 'とれませんでした');
     }, function(){ S.loading = false; again(left, 'つながりません'); });
   }
@@ -612,7 +615,7 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
 
   /* ---------- 記録する ---------- */
   var editing = null;   // id of the record being fixed, or null for a new one
-  var atTouched = false, formBy = '', formPick = '';
+  var atTouched = false;
   var rate = RATES[load(LS_RATE)] ? load(LS_RATE) : 'toka';
   $('f-rate').innerHTML = Object.keys(RATES).map(function(k){
     return '<input type="radio" name="f-rate" id="fr-'+k+'" value="'+k+'"'+(k===rate ? ' checked' : '')+'><label for="fr-'+k+'">'+esc(RATES[k].label)+'<small>'+esc(RATES[k].sub)+'</small></label>';
@@ -677,16 +680,26 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
     update();
   });
 
-  // the people buttons: the members who can use the app, plus whoever is already on the record being fixed
-  function peopleChips(box, chosen){
-    var names = activeNames();
-    if (chosen && names.indexOf(chosen)<0) names.push(chosen);
-    $(box).innerHTML = names.length ? names.map(function(n){
-      return '<button type="button" class="chip" data-name="'+esc(n)+'" aria-pressed="'+(n===chosen ? 'true' : 'false')+'">'+esc(n)+(S.me && n===S.me.name ? '<small>自分</small>' : '')+'</button>';
-    }).join('') : '<p class="hint">メンバーを読み込むと、ここに名前が出ます。</p>';
+  // 拾った人 is free words; the names written before come back as buttons (most used first), so the same person is written the same way
+  function pickChips(){
+    var by = {}, list = [], cur = norm($('f-pick').value);
+    recs().forEach(function(r){
+      if (!r.pick) return;
+      var k = norm(r.pick);
+      if (!by[k]){ by[k] = {key:k, text:r.pick, n:0}; list.push(by[k]); }
+      by[k].n++;
+    });
+    list.sort(function(a, b){ return b.n - a.n; });
+    $('pick-past').hidden = !list.length;
+    $('pick-chips').innerHTML = list.slice(0, 12).map(function(a){
+      return '<button type="button" class="chip" data-pick="'+esc(a.text)+'" aria-pressed="'+(a.key===cur && cur!=='' ? 'true' : 'false')+'">'+esc(a.text)+'</button>';
+    }).join('');
   }
-  $('f-by').addEventListener('click', function(e){ var b = e.target.closest('.chip'); if (!b) return; formBy = b.getAttribute('data-name'); renderForm(); });
-  $('f-pick').addEventListener('click', function(e){ var b = e.target.closest('.chip'); if (!b) return; formPick = b.getAttribute('data-name'); renderForm(); });
+  $('pick-chips').addEventListener('click', function(e){
+    var b = e.target.closest('.chip'); if (!b) return;
+    $('f-pick').value = b.getAttribute('data-pick');
+    update();
+  });
 
   function nowIfUntouched(){ if (!atTouched) $('f-at').value = fmtAt(new Date()).replace(' ', 'T'); }
   function formAt(){ var v = $('f-at').value; return parseAt(v) ? v.replace('T', ' ').slice(0, 16) : ''; }
@@ -695,17 +708,12 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
   $('f-now').addEventListener('click', function(){ atTouched = false; nowIfUntouched(); update(); });
   setInterval(function(){ if (view==='rec' && !editing && !atTouched && document.activeElement!==$('f-at')) nowIfUntouched(); }, 30000);
 
-  function renderForm(){
-    if (S.me && !editing){ if (!formBy) formBy = S.me.name; if (!formPick) formPick = S.me.name; }
-    peopleChips('f-by', formBy);
-    peopleChips('f-pick', formPick);
-    update();
-  }
+  function renderForm(){ update(); }
 
   function update(){
     var fm = formMachine(), cash = num('f-cash'), medal = num('f-medal'), out = num('f-out');
     $('f-custom').hidden = $('f-machine').value!=='+';
-    aimChips();
+    aimChips(); pickChips();
     var res = $('f-res');
     if (cash==null && medal==null && out==null){
       res.innerHTML = '<span>収支</span><small>投資と回収を入れると、ここに出ます</small>';
@@ -716,8 +724,6 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
     }
     var miss = [];
     if (!fm) miss.push('台');
-    if (!formBy) miss.push('打った人');
-    if (!formPick) miss.push('拾った人');
     if (!formAt()) miss.push('日時');
     if (cash==null && medal==null) miss.push('投資');
     if (out==null) miss.push('回収');
@@ -728,7 +734,7 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
       ? '日時は選んだものが入ります。「いまにする」で今にもどせます。'
       : '日時は「いま」が入っています。あとから入れるときは、押して選び直してください。';
   }
-  ['f-machine', 'f-custom', 'f-aim', 'f-cash', 'f-medal', 'f-out'].forEach(function(id){
+  ['f-machine', 'f-custom', 'f-aim', 'f-pick', 'f-cash', 'f-medal', 'f-out'].forEach(function(id){
     $(id).addEventListener('input', update);
     $(id).addEventListener('change', update);
   });
@@ -740,9 +746,8 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
   }
   function resetForm(){
     editing = null; atTouched = false;
-    formBy = S.me ? S.me.name : ''; formPick = formBy;
     fillMachines('');
-    $('f-custom').value = ''; $('f-aim').value = ''; $('f-cash').value = ''; $('f-medal').value = ''; $('f-out').value = '';
+    $('f-custom').value = ''; $('f-aim').value = ''; $('f-pick').value = ''; $('f-cash').value = ''; $('f-medal').value = ''; $('f-out').value = '';
     rate = RATES[load(LS_RATE)] ? load(LS_RATE) : rate;
     var rb = $('fr-'+rate); if (rb) rb.checked = true;
     nowIfUntouched();
@@ -754,8 +759,8 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
 
   $('f-save').addEventListener('click', function(){
     var fm = formMachine(), at = formAt(), cash = num('f-cash'), medal = num('f-medal'), out = num('f-out');
-    if (!fm || !at || !formBy || !formPick || (cash==null && medal==null) || out==null) return update();
-    var data = {at:at, m:fm.m, name:fm.name, aim:$('f-aim').value.trim(), rate:rate, cash:cash||0, medal:medal||0, out:out||0, by:formBy, pick:formPick};
+    if (!fm || !at || (cash==null && medal==null) || out==null) return update();
+    var data = {at:at, m:fm.m, name:fm.name, aim:$('f-aim').value.trim(), rate:rate, cash:cash||0, medal:medal||0, out:out||0, pick:$('f-pick').value.trim()};
     if (editing){
       var r = byId(editing);
       if (r){
@@ -780,7 +785,7 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
     if (add && add!==S.sending){ add.rec = Object.assign({}, add.rec, data); saveQueue(); refresh(); return; }
     var same = S.queue.filter(function(op){ return op.t==='upd' && op.ref===r.id && op!==S.sending; })[0];
     if (same){ same.rec = Object.assign({}, same.rec, data); saveQueue(); refresh(); flush(); return; }
-    var full = {}; ['at', 'm', 'name', 'aim', 'rate', 'cash', 'medal', 'out', 'by', 'pick'].forEach(function(k){ full[k] = data[k]!==undefined ? data[k] : r[k]; });
+    var full = {}; ['at', 'm', 'name', 'aim', 'rate', 'cash', 'medal', 'out', 'pick'].forEach(function(k){ full[k] = data[k]!==undefined ? data[k] : r[k]; });
     push({t:'upd', ref:r.id, rec:full});
   }
   function removeRecord(r){
@@ -805,7 +810,7 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
     $('f-cash').value = r.cash ? String(r.cash) : (r.medal ? '' : '0');
     $('f-medal').value = r.medal ? String(r.medal) : '';
     $('f-out').value = String(r.out);
-    formBy = r.by; formPick = r.pick;
+    $('f-pick').value = r.pick || '';
     rate = RATES[r.rate] ? r.rate : 'toka';
     var rb = $('fr-'+rate); if (rb) rb.checked = true;
     $('rec-title').textContent = '記録を直す';
@@ -823,14 +828,14 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
   function renderOld(){
     var old = oldRecords();
     $('old-note').hidden = !old.length || !S.me;
-    if (old.length) $('old-text').textContent = '前の版で、このスマホの中だけに入れた記録が ' + old.length + '件あります。みんなの記録に入れますか？（打った人・拾った人は「' + (S.me ? S.me.name : '') + '」で入ります）';
+    if (old.length) $('old-text').textContent = '前の版で、このスマホの中だけに入れた記録が ' + old.length + '件あります。みんなの記録に入れますか？（「' + (S.me ? S.me.name : '') + '」さんの記録として入ります）';
   }
   $('old-send').addEventListener('click', function(){
     var old = oldRecords();
     old.slice().reverse().forEach(function(r){
       S.queue.push({t:'add', cid:'o' + String(r.id).replace(/[^A-Za-z0-9]/g, '').slice(0, 30), rec:{
         at:fmtAt(new Date(r.at)), m:r.m || '', name:r.name, aim:r.aim || '', rate:RATES[r.rate] ? r.rate : 'toka',
-        cash:r.cash||0, medal:r.medal||0, out:r.out||0, by:S.me.name, pick:S.me.name}});
+        cash:r.cash||0, medal:r.medal||0, out:r.out||0, pick:''}});
     });
     store(LS_OLD_DONE, '1'); saveQueue(); refresh(); flush();
     toast(old.length + '件を、みんなの記録に入れます');
@@ -868,7 +873,7 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
         + '<div class="it-res"><b class="'+cls(c.yen)+'">'+esc(signed(c.yen, '円'))+'</b><b class="'+cls(c.coins)+'">'+esc(signed(c.coins, '枚'))+'</b>'
         + (confirmId===r.id || !mine ? '' : '<span class="it-act"><button type="button" class="btn sm" data-act="edit" data-id="'+id+'">直す</button><button type="button" class="btn sm" data-act="del" data-id="'+id+'">消す</button></span>')
         + '</div>'
-        + '<div class="it-who"><span><em>打った</em>'+esc(r.by || '—')+'</span><span><em>拾った</em>'+esc(r.pick || '—')+'</span></div>'
+        + '<div class="it-who"><span>'+esc(r.by || r.who || '—')+'</span>'+(r.pick ? '<span><em>拾った</em>'+esc(r.pick)+'</span>' : '')+'</div>'
         + '<div class="it-sub">'+esc(detail(r, c))+'</div>'
         + (confirmId===r.id
             ? '<div class="confirm"><span>この記録を消しますか？（みんなの一覧からも消えます）</span><button type="button" class="btn sm danger" data-act="yes" data-id="'+id+'">消す</button><button type="button" class="btn sm" data-act="no" data-id="'+id+'">やめる</button></div>'
@@ -893,16 +898,18 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
     }
   });
 
-  /* ---------- 月の収支: the team total and each person, by 打った人 (or 拾った人) ---------- */
+  /* ---------- 月の収支: the team total and each member (the one who recorded = played), or by 拾った人 ---------- */
   var month = fmtAt(new Date()).slice(0, 7);
   function monthSums(all, m, key, names){
     var team = {n:0, win:0, yen:0}, by = {}, out = [];
-    (names || []).forEach(function(n){ by[n] = {name:n, n:0, win:0, yen:0, plays:[]}; out.push(by[n]); });
+    // 拾った人 is free words: the same name written in full/half width or with spaces counts as one
+    var kf = key==='pick' ? function(v){ return norm(v); } : function(v){ return v; };
+    (names || []).forEach(function(n){ by[kf(n)] = {name:n, n:0, win:0, yen:0, plays:[]}; out.push(by[kf(n)]); });
     all.forEach(function(r){
       if (r.at.slice(0, 7)!==m) return;
-      var c = calc(r), who = r[key] || '—';
-      if (!by[who]){ by[who] = {name:who, n:0, win:0, yen:0, plays:[]}; out.push(by[who]); }
-      var p = by[who];
+      var c = calc(r), who = r[key] || (key==='pick' ? '拾った人なし' : '—'), k = kf(who);
+      if (!by[k]){ by[k] = {name:who, n:0, win:0, yen:0, plays:[]}; out.push(by[k]); }
+      var p = by[k];
       p.n++; p.yen += c.yen; if (c.yen>0) p.win++;
       p.plays.push({at:r.at, name:r.name, aim:r.aim, yen:c.yen, other:key==='by' ? r.pick : r.by});
       team.n++; team.yen += c.yen; if (c.yen>0) team.win++;
@@ -913,7 +920,7 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
   function renderMonth(){
     $('mon-label').textContent = monthLabel(month);
     $('mon-next').disabled = month>=fmtAt(new Date()).slice(0, 7);
-    var key = document.querySelector('input[name="mon-by"]:checked').value, s = monthSums(recs(), month, key, activeNames()), t = s.team;
+    var key = document.querySelector('input[name="mon-by"]:checked').value, s = monthSums(recs(), month, key, key==='by' ? activeNames() : []), t = s.team;
     $('mon-sum').innerHTML = '<small>チームの合計</small><b class="'+cls(t.yen)+'">'+esc(signed(t.yen, '円'))+'</b>'
       + '<span class="sum-meta"><span>'+t.n+'回</span><span>勝ち'+t.win+'回</span>'+(t.n ? '<span>1回あたり '+esc(signed(roundHalfAway(t.yen/t.n), '円'))+'</span>' : '')+'</span>';
     var max = 1; s.people.forEach(function(p){ max = Math.max(max, Math.abs(p.yen)); });
@@ -1006,7 +1013,7 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
         + '<div class="acts" style="flex-wrap:wrap"><button type="button" class="btn sm" data-mact="link" data-name="'+n+'">リンクを送る</button><button type="button" class="btn sm" data-mact="open" data-name="'+n+'">直す</button></div>'
         + (admOpen===m.name ? '<div class="mem-edit">'
             + '<div class="field"><label>名前</label><input class="tin" data-f="name" type="text" maxlength="20" value="'+n+'" autocomplete="off"></div>'
-            + '<div class="field"><label>合言葉<small>6文字以上・空白なし</small></label><input class="tin" data-f="key" type="text" maxlength="40" value="'+esc(m.key || '')+'" autocomplete="off" autocapitalize="off" spellcheck="false"></div>'
+            + '<div class="field"><label>合言葉</label><input class="tin" data-f="key" type="text" maxlength="40" value="'+esc(m.key || '')+'" autocomplete="off" autocapitalize="off" spellcheck="false"></div>'
             + (me ? '' : '<label class="chk"><input type="checkbox" data-f="admin"'+(m.admin ? ' checked' : '')+'>管理もできる人にする</label>'
                        + '<label class="chk"><input type="checkbox" data-f="stop"'+(m.active ? '' : ' checked')+'>止める（この人の合言葉では開けなくする）</label>')
             + '<p class="err" data-f="err" hidden></p>'
@@ -1118,7 +1125,7 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
 <script>
 (function(){
   'use strict';
-  var BUILD = '52a3ad15fa11', CACHE = 'neraicho-app-v1', lastCheck = 0;
+  var BUILD = '86c46f084459', CACHE = 'neraicho-app-v1', lastCheck = 0;
   if (!('serviceWorker' in navigator)) return;
   var bar = document.getElementById('app-update');
   document.body.insertBefore(bar, document.body.firstChild);   // above the page, so it never covers the machine select or tabs
