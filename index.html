@@ -1,0 +1,620 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>狙い目帳</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="狙い目帳">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png" sizes="192x192">
+<meta name="theme-color" content="#F1F2F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E1120" media="(prefers-color-scheme: dark)">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head><body><style>
+/* 狙い目帳 (2026-10-19): a play log kept apart from 鬣犬. The team has not settled the 狙い目 yet, so each play is
+   written down as 台 + the 狙い目 in free words + 投資/回収, with the time it was saved, and the ranking is per
+   (台 × 狙い目), never per 台 overall. Colors and the money rule are the same as 鬣犬. */
+:root{
+  --bg:#F1F2F7; --surface:#FFFFFF; --ink:#151A2D; --muted:#596079; --line:#D8DBE6;
+  --accent:#2B45C4; --accent-ink:#FFFFFF; --accent-soft:#E5E9FA;
+  --go:#13784A; --go-soft:#E1F2E8; --skip:#9A2B2B; --skip-soft:#F7E3E3;
+  --font-body:"Hiragino Sans","Hiragino Kaku Gothic ProN","BIZ UDPGothic","Yu Gothic",Meiryo,"Noto Sans JP",system-ui,sans-serif;
+  --font-num:system-ui,-apple-system,"Segoe UI",Roboto,"Hiragino Sans",sans-serif;
+  --r:12px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1120; --surface:#171B2D; --ink:#E6E8F2; --muted:#99A0B8; --line:#2A3049;
+    --accent:#8A9FFF; --accent-ink:#0E1120; --accent-soft:#1D2547;
+    --go:#62CC94; --go-soft:#11301F; --skip:#F09090; --skip-soft:#381718;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1120; --surface:#171B2D; --ink:#E6E8F2; --muted:#99A0B8; --line:#2A3049;
+  --accent:#8A9FFF; --accent-ink:#0E1120; --accent-soft:#1D2547;
+  --go:#62CC94; --go-soft:#11301F; --skip:#F09090; --skip-soft:#381718;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.6;-webkit-text-size-adjust:100%}
+.wrap{max-width:560px;margin:0 auto;padding-inline:16px;padding-block:10px calc(110px + env(safe-area-inset-bottom, 0px));display:flex;flex-direction:column;gap:14px}
+.wrap>*{min-width:0}
+.view{display:flex;flex-direction:column;gap:14px;min-width:0}
+h1,h2,h3{margin:0;line-height:1.3}
+p{margin:0}
+.top{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.brand{display:flex;flex-direction:column}
+.brand small{color:var(--muted);font-size:12px;letter-spacing:.06em}
+.brand h1{font-size:20px}
+.block{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.hint{color:var(--muted);font-size:13px;line-height:1.5}
+.warn{background:var(--skip-soft);color:var(--skip);border-radius:var(--r);padding:10px 14px;font-size:14px;font-weight:700}
+
+/* 記録する */
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field>label,.lbl{font-weight:700;font-size:14px}
+.tin,.sel{font:inherit;font-size:16px;width:100%;min-width:0;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+.tin:focus,.sel:focus{outline:3px solid var(--accent);outline-offset:1px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips-h{font-size:12px;color:var(--muted);font-weight:700}
+.chip{font:inherit;font-size:14px;font-weight:700;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:6px 12px;min-height:38px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;touch-action:manipulation}
+.chip small{font-weight:400;color:var(--muted);margin-left:5px}
+.chip[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.seg.seg3{grid-template-columns:repeat(3,1fr)}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label{text-align:center;padding:4px 6px;border:1px solid var(--line);border-radius:10px;cursor:pointer;font-size:14px;font-weight:700;line-height:1.35;background:var(--bg);user-select:none;min-height:42px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.seg label small{display:block;font-size:11px;font-weight:400;opacity:.8}
+.seg input:checked+label{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+.seg input:focus-visible+label{outline:3px solid var(--accent);outline-offset:2px}
+.mrows{display:flex;flex-direction:column;gap:8px}
+.mrow{display:grid;grid-template-columns:4.6em minmax(0,1fr);gap:8px;align-items:center}
+.mlbl{font-size:14px;font-weight:700;line-height:1.2;display:flex;flex-direction:column}
+.mlbl small{font-size:11px;color:var(--muted)}
+.gbox{display:flex;align-items:center;border:1px solid var(--line);border-radius:10px;background:var(--bg);overflow:hidden}
+.gbox:focus-within{outline:3px solid var(--accent);outline-offset:1px}
+.gbox input{flex:1;min-width:0;border:0;background:transparent;color:var(--ink);font-family:var(--font-num);font-size:22px;font-weight:700;padding:7px 10px;font-variant-numeric:tabular-nums}
+.gbox input:focus{outline:none}
+.gbox input::placeholder{color:var(--muted);opacity:.45}
+.gbox span{padding-right:12px;color:var(--muted);font-weight:700;font-size:14px}
+.mres{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;background:var(--bg);border-radius:10px;padding:8px 10px}
+.mres span{font-size:13px;font-weight:700;color:var(--muted)}
+.mres b{font-family:var(--font-num);font-size:20px;font-variant-numeric:tabular-nums}
+.mres b+b{font-size:15px}
+.mres small{flex-basis:100%;font-size:12px;color:var(--muted)}
+.pos{color:var(--go)} .neg{color:var(--skip)}
+.acts{display:flex;gap:8px}
+.btn{font:inherit;font-size:14px;font-weight:700;min-height:44px;padding:6px 14px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;white-space:nowrap;touch-action:manipulation}
+.btn:disabled{opacity:.45;cursor:default}
+.btn:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.btn.main{flex:1;min-height:52px;font-size:17px;background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.sm{min-height:38px;font-size:13px;padding:4px 12px}
+.btn.danger{background:var(--skip);border-color:var(--skip);color:var(--surface)}
+.need{font-size:13px;color:var(--muted);font-weight:700;text-align:center}
+
+/* 一覧 */
+.list{display:flex;flex-direction:column;gap:8px}
+.day{font-size:13px;font-weight:700;color:var(--muted);padding:6px 2px 0}
+.item{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.it-top{display:flex;align-items:center;gap:8px;min-width:0}
+.it-time{font-family:var(--font-num);font-size:14px;color:var(--muted);flex:none}
+.it-name{font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tag{flex:none;font-size:11px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:0 6px;white-space:nowrap}
+.it-aim{font-size:16px;font-weight:700;overflow-wrap:anywhere}
+.it-res{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.it-res b{font-family:var(--font-num);font-size:20px;font-variant-numeric:tabular-nums}
+.it-res b+b{font-size:15px}
+.it-sub{font-size:12px;color:var(--muted)}
+.it-act{display:flex;gap:6px;margin-left:auto;align-self:center}
+.confirm{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--skip-soft);color:var(--skip);border-radius:10px;padding:8px 10px;font-size:13px;font-weight:700}
+.confirm span{flex:1 1 auto}
+.empty{background:var(--surface);border:1px dashed var(--line);border-radius:var(--r);padding:20px 16px;color:var(--muted);font-size:14px;text-align:center}
+.count{font-size:13px;color:var(--muted);font-weight:700}
+
+/* ランキング */
+.rk-ctl{display:flex;flex-direction:column;gap:10px}
+.rk{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);min-width:0}
+.rk summary{list-style:none;display:grid;grid-template-columns:2em minmax(0,1fr) auto;gap:10px;align-items:center;padding:12px 14px;cursor:pointer}
+.rk summary::-webkit-details-marker{display:none}
+.rk summary:focus-visible{outline:3px solid var(--accent);outline-offset:-3px;border-radius:var(--r)}
+.rk-no{width:2em;height:2em;border-radius:50%;display:grid;place-items:center;font-family:var(--font-num);font-weight:700;font-size:15px;background:var(--bg);color:var(--muted)}
+.rk:nth-child(1) .rk-no,.rk:nth-child(2) .rk-no,.rk:nth-child(3) .rk-no{background:var(--accent);color:var(--accent-ink)}
+.rk-main{display:flex;flex-direction:column;min-width:0}
+.rk-main small{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rk-main b{font-size:16px;overflow-wrap:anywhere;line-height:1.35}
+.rk-meta{font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;column-gap:8px}
+.rk-meta span{white-space:nowrap}
+.rk-val{display:flex;flex-direction:column;align-items:flex-end;text-align:right}
+.rk-val b{font-family:var(--font-num);font-size:19px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.rk-val small{font-size:11px;color:var(--muted);font-weight:700}
+.rk-plays{border-top:1px dashed var(--line);margin:0 14px;padding:8px 0 12px;display:flex;flex-direction:column;gap:4px}
+.rk-play{display:flex;justify-content:space-between;gap:10px;font-size:13px}
+.rk-play span{color:var(--muted)}
+.rk-play b{font-family:var(--font-num);font-variant-numeric:tabular-nums}
+
+/* bottom bar + toast */
+.dock{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);z-index:5}
+.nav{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);padding:0 16px env(safe-area-inset-bottom, 0px)}
+.nav button{font:inherit;font-size:11px;font-weight:700;line-height:1.2;border:0;background:transparent;color:var(--muted);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:54px;padding:6px 4px;touch-action:manipulation}
+.nav button svg{width:24px;height:24px}
+.nav button[aria-current="page"]{color:var(--accent)}
+.nav button:focus-visible{outline:3px solid var(--accent);outline-offset:-3px;border-radius:10px}
+.toast{position:fixed;left:16px;right:16px;bottom:calc(66px + env(safe-area-inset-bottom, 0px));max-width:528px;margin:0 auto;z-index:6;display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--ink);color:var(--bg);border-radius:12px;padding:6px 6px 6px 14px;font-size:14px;font-weight:700}
+.toast button{font:inherit;border:0;border-radius:9px;background:var(--accent);color:var(--accent-ink);padding:9px 14px;cursor:pointer;white-space:nowrap}
+</style>
+
+<div class="wrap">
+  <div id="no-store" class="warn" hidden>この開き方では記録が残りません。ホーム画面のアイコンか、ふつうのブラウザで開いてください。</div>
+
+  <!-- 記録する -->
+  <section id="view-rec" class="view" aria-labelledby="rec-title">
+    <header class="top"><div class="brand"><small>打った台と狙い目</small><h1 id="rec-title">記録する</h1></div></header>
+    <div class="block">
+      <div class="field">
+        <label for="f-machine">台</label>
+        <select id="f-machine" class="sel"></select>
+        <input id="f-custom" class="tin" type="text" maxlength="40" placeholder="台の名前を入れる" autocomplete="off" hidden>
+      </div>
+      <div class="field">
+        <label for="f-aim">狙い目</label>
+        <input id="f-aim" class="tin" type="text" maxlength="80" placeholder="例：CZ間 400G〜／駆け抜け後" autocomplete="off">
+        <div id="aim-past" hidden>
+          <p class="chips-h">この台で前に入れた狙い目（押すと入ります）</p>
+          <div id="aim-chips" class="chips"></div>
+        </div>
+        <p class="hint">同じ狙い目は、同じ書き方で入れてください。書き方が違うと、ランキングで別の狙い目として数えます。</p>
+      </div>
+      <div class="field">
+        <span class="lbl" id="rate-lbl">交換率</span>
+        <div id="f-rate" class="seg seg3" role="radiogroup" aria-labelledby="rate-lbl"></div>
+      </div>
+      <div class="mrows">
+        <div class="mrow"><label class="mlbl" for="f-cash">投資<small>現金</small></label><div class="gbox"><input id="f-cash" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="7" placeholder="0" autocomplete="off"><span>円</span></div></div>
+        <div class="mrow"><label class="mlbl" for="f-medal">投資<small>メダル</small></label><div class="gbox"><input id="f-medal" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="0" autocomplete="off"><span>枚</span></div></div>
+        <div class="mrow"><label class="mlbl" for="f-out">回収<small>メダル</small></label><div class="gbox"><input id="f-out" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="0" autocomplete="off"><span>枚</span></div></div>
+      </div>
+      <div id="f-res" class="mres" aria-live="polite"></div>
+      <p id="f-need" class="need"></p>
+      <div class="acts">
+        <button type="button" id="f-cancel" class="btn" hidden>やめる</button>
+        <button type="button" id="f-save" class="btn main">記録する</button>
+      </div>
+      <p id="f-when" class="hint"></p>
+    </div>
+  </section>
+
+  <!-- 一覧 -->
+  <section id="view-list" class="view" aria-labelledby="list-title" hidden>
+    <header class="top"><div class="brand"><small>記録したもの</small><h1 id="list-title">一覧</h1></div><span id="list-count" class="count"></span></header>
+    <div id="list" class="list"></div>
+  </section>
+
+  <!-- ランキング -->
+  <section id="view-rank" class="view" aria-labelledby="rank-title" hidden>
+    <header class="top"><div class="brand"><small>台の狙い目ごと</small><h1 id="rank-title">ランキング</h1></div></header>
+    <div class="block rk-ctl">
+      <select id="rk-machine" class="sel" aria-label="台をしぼる"></select>
+      <div class="seg" role="radiogroup" aria-label="並べ方">
+        <input type="radio" name="rk-sort" id="rk-avg" value="avg" checked><label for="rk-avg">1回あたりの収支</label>
+        <input type="radio" name="rk-sort" id="rk-sum" value="sum"><label for="rk-sum">合計の収支</label>
+      </div>
+      <p class="hint">同じ台で、同じ書き方の狙い目を1つにまとめて数えます。回数が少ないうちは、たまたまの当たり外れで順位が大きく動きます。</p>
+    </div>
+    <div id="rank" class="list"></div>
+  </section>
+</div>
+
+<div class="dock">
+  <nav class="nav" aria-label="画面の切り替え">
+    <button type="button" data-view="rec" aria-current="page">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M13 7l4 4" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+      <span>記録する</span>
+    </button>
+    <button type="button" data-view="list">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="4.5" cy="6" r="1.5" fill="currentColor"/><circle cx="4.5" cy="12" r="1.5" fill="currentColor"/><circle cx="4.5" cy="18" r="1.5" fill="currentColor"/></svg>
+      <span>一覧</span>
+    </button>
+    <button type="button" data-view="rank">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><rect x="9" y="5" width="6" height="15" rx="1.2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="3" y="11" width="6" height="9" rx="1.2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="15" y="14" width="6" height="6" rx="1.2" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+      <span>ランキング</span>
+    </button>
+  </nav>
+</div>
+<div id="toast" class="toast" role="status" hidden><span></span><button type="button">取り消す</button></div>
+
+<script>
+(function(){
+  'use strict';
+  /* the machines of 鬣犬 (data/picker.json, 50音順). A machine that is not on it can be typed in. */
+  var MACHINES = [{"id":"azurlane","label":"アズールレーン"},{"id":"iza_bancho","label":"いざ！番長"},{"id":"initiald2","label":"頭文字D 2nd"},{"id":"valvrave","label":"ヴァルヴレイヴ（初代）"},{"id":"valvrave2","label":"ヴァルヴレイヴ2"},{"id":"enen2","label":"炎炎ノ消防隊2"},{"id":"kaguya","label":"かぐや様は告らせたい"},{"id":"kanokari","label":"彼女、お借りします"},{"id":"kabaneri_kaimon","label":"カバネリ海門決戦"},{"id":"karakuri","label":"からくりサーカス（初代）"},{"id":"karakuri2","label":"からくりサーカス2"},{"id":"koukaku","label":"攻殻機動隊"},{"id":"god_eater","label":"ゴッドイーター リザレクション"},{"id":"juuou","label":"獣王"},{"id":"zenigata5","label":"主役は銭形5"},{"id":"shinuchi_yoshimune","label":"真打吉宗"},{"id":"street_fighter6","label":"ストリートファイター6"},{"id":"aobuta","label":"青春ブタ野郎"},{"id":"sencolle6","label":"戦国コレクション6"},{"id":"sao2","label":"ソードアート・オンラインⅡ"},{"id":"tokyo_ghoul","label":"東京喰種"},{"id":"basilisk_tenzen","label":"バジリスク絆2 天膳"},{"id":"paripi_koumei","label":"パリピ孔明"},{"id":"hokuto","label":"北斗の拳"},{"id":"magireco","label":"マギアレコード"},{"id":"million_god","label":"ミリオンゴッド 神々の軌跡"},{"id":"monkey_turn5","label":"モンキーターンV"},{"id":"mh_rise","label":"モンスターハンターライズ"},{"id":"yajikita","label":"やじきた道中記参る！"},{"id":"lycoris","label":"リコリス・リコイル"}];
+  /* the team's exchange settings, the same three as 鬣犬: coins for 1000円 (rent) and coins handed in for 1000円 (exch) */
+  var RATES = {
+    super:  {label:'スーパー等価', sub:'1k46・換金46', rent:46, exch:46},
+    toka:   {label:'等価',         sub:'1k52・換金52', rent:52, exch:52},
+    hitoka: {label:'非等価',       sub:'1k46・換金52', rent:46, exch:52}
+  };
+  var LS = 'neraicho.records', LS_RATE = 'neraicho.rate';
+  var $ = function(id){ return document.getElementById(id); };
+  function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function load(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
+  function store(k, v){ try { localStorage.setItem(k, v); return true; } catch(e){ return false; } }
+  var canStore = store('neraicho.t', '1');
+  try { localStorage.removeItem('neraicho.t'); } catch(e){}
+
+  /* ---------- money: the same rule as 鬣犬 (team decision 2026-10-13) ----------
+     The point is the real result, so cash is counted at the EXCHANGE price (換金枚数), never the lending one:
+     現金 → 枚 = 円 × 換金枚数 / 1000, 収支(枚) = 回収 − 投資メダル − 現金の枚数, 収支(円) = 枚 × 1000 / 換金枚数. */
+  function roundHalfAway(x){ x = x<0 ? x-1e-9 : x+1e-9; return x<0 ? -Math.round(-x) : Math.round(x); }
+  function calc(r){
+    var R = RATES[r.rate] || RATES.toka, cashCoins = r.cash*R.exch/1000, coins = r.out - r.medal - cashCoins;
+    return {cashCoins: roundHalfAway(cashCoins), coins: roundHalfAway(coins), yen: roundHalfAway(coins*1000/R.exch)};
+  }
+  function signed(v, unit){ return v===0 ? '±0'+unit : (v>0 ? '+' : '−') + Math.abs(v).toLocaleString('ja-JP') + unit; }
+  function cls(v){ return v>0 ? 'pos' : v<0 ? 'neg' : ''; }
+  function n0(v){ return v.toLocaleString('ja-JP'); }
+
+  /* ---------- records ----------
+     {id, at (ms, when it was saved), m (machine id, '' = typed in), name, aim, rate, cash (円), medal (枚), out (枚)} */
+  var recs = [];
+  (function(){
+    var a = null; try { a = JSON.parse(load(LS) || '[]'); } catch(e){}
+    recs = (Array.isArray(a) ? a : []).filter(function(r){ return r && r.id && typeof r.at==='number' && r.name && r.aim; });
+    recs.sort(function(a, b){ return b.at - a.at; });
+  })();
+  function persist(){ if (!store(LS, JSON.stringify(recs))) $('no-store').hidden = false; }
+  function newId(){ return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+  // what counts as "the same": full/half width, spaces and 〜/～/~ do not matter
+  function norm(s){ return String(s).normalize('NFKC').replace(/[\s　]+/g, '').replace(/[〜~]/g, '~').toLowerCase(); }
+  function mKey(r){ return r.m ? r.m : 'c:' + norm(r.name); }
+  function machineLabel(id){ for (var i=0; i<MACHINES.length; i++) if (MACHINES[i].id===id) return MACHINES[i].label; return null; }
+  // typed-in machines, newest first, one per name
+  function customMachines(){
+    var seen = {}, out = [];
+    recs.forEach(function(r){ if (!r.m){ var k = mKey(r); if (!seen[k]){ seen[k] = 1; out.push({key:k, label:r.name}); } } });
+    return out;
+  }
+  function pad(n){ return (n<10 ? '0' : '') + n; }
+  function timeLabel(d){ return d.getHours() + ':' + pad(d.getMinutes()); }
+  function dayLabel(d){
+    var now = new Date();
+    return (d.getFullYear()!==now.getFullYear() ? d.getFullYear()+'年' : '') + (d.getMonth()+1)+'月'+d.getDate()+'日（'+'日月火水木金土'.charAt(d.getDay())+'）';
+  }
+  function dayKey(d){ return d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate(); }
+  function digits(v){ return String(v).replace(/[０-９]/g, function(c){ return String.fromCharCode(c.charCodeAt(0)-0xFEE0); }).replace(/[^0-9]/g, ''); }
+
+  /* ---------- toast with 取り消す ---------- */
+  var toastTimer = null, toastUndo = null;
+  function toast(msg, undo){
+    var t = $('toast');
+    t.querySelector('span').textContent = msg;
+    t.querySelector('button').hidden = !undo;
+    toastUndo = undo || null;
+    t.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ t.hidden = true; toastUndo = null; }, 6000);
+  }
+  $('toast').querySelector('button').addEventListener('click', function(){
+    var fn = toastUndo; $('toast').hidden = true; toastUndo = null;
+    if (fn) fn();
+  });
+
+  /* ---------- screen switch ---------- */
+  var view = 'rec';
+  function show(v){
+    view = v;
+    ['rec', 'list', 'rank'].forEach(function(x){ $('view-'+x).hidden = x!==v; });
+    document.querySelectorAll('.nav button').forEach(function(b){
+      if (b.getAttribute('data-view')===v) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+    });
+    if (v==='list') renderList();
+    if (v==='rank') renderRank();
+    window.scrollTo(0, 0);
+  }
+  document.querySelectorAll('.nav button').forEach(function(b){
+    b.addEventListener('click', function(){ show(b.getAttribute('data-view')); });
+  });
+
+  /* ---------- 記録する ---------- */
+  var editing = null;   // id of the record being fixed, or null for a new one
+  var rate = RATES[load(LS_RATE)] ? load(LS_RATE) : 'toka';
+  $('f-rate').innerHTML = Object.keys(RATES).map(function(k){
+    return '<input type="radio" name="f-rate" id="fr-'+k+'" value="'+k+'"'+(k===rate ? ' checked' : '')+'><label for="fr-'+k+'">'+esc(RATES[k].label)+'<small>'+esc(RATES[k].sub)+'</small></label>';
+  }).join('');
+  $('f-rate').addEventListener('change', function(e){ rate = e.target.value; if (!editing) store(LS_RATE, rate); update(); });
+
+  function fillMachines(keep){
+    var sel = $('f-machine'), cur = keep!=null ? keep : sel.value, customs = customMachines();
+    var h = '<option value="">台を選ぶ</option><optgroup label="台">'
+      + MACHINES.map(function(m){ return '<option value="'+esc(m.id)+'">'+esc(m.label)+'</option>'; }).join('') + '</optgroup>';
+    if (customs.length) h += '<optgroup label="自分で入れた台">' + customs.map(function(c){ return '<option value="'+esc(c.key)+'">'+esc(c.label)+'</option>'; }).join('') + '</optgroup>';
+    h += '<option value="+">＋ リストにない台を入れる</option>';
+    sel.innerHTML = h;
+    sel.value = cur;
+    if (sel.value!==cur) sel.value = '';
+  }
+  // the machine picked in the form: {m, name, key} or null
+  function formMachine(){
+    var v = $('f-machine').value;
+    if (!v) return null;
+    if (v==='+'){
+      var name = $('f-custom').value.trim();
+      if (!name) return null;
+      // a typed name that is really one of the list counts as that machine
+      for (var i=0; i<MACHINES.length; i++) if (norm(MACHINES[i].label)===norm(name)) return {m:MACHINES[i].id, name:MACHINES[i].label, key:MACHINES[i].id};
+      return {m:'', name:name, key:'c:'+norm(name)};
+    }
+    if (v.indexOf('c:')===0){
+      var c = customMachines().filter(function(x){ return x.key===v; })[0];
+      return c ? {m:'', name:c.label, key:v} : null;
+    }
+    return {m:v, name:machineLabel(v) || v, key:v};
+  }
+  function num(id){ var el = $(id), v = digits(el.value); if (v!==el.value) el.value = v; return v==='' ? null : parseInt(v, 10); }
+
+  function aimChips(){
+    var fm = formMachine(), box = $('aim-past');
+    if (!fm){ box.hidden = true; return; }
+    var by = {}, list = [];
+    recs.forEach(function(r){   // newest first, so the first text seen is the latest way it was written
+      if (mKey(r)!==fm.key) return;
+      var k = norm(r.aim);
+      if (!by[k]){ by[k] = {key:k, text:r.aim, n:0}; list.push(by[k]); }
+      by[k].n++;
+    });
+    if (!list.length){ box.hidden = true; return; }
+    var cur = norm($('f-aim').value);
+    $('aim-chips').innerHTML = list.slice(0, 12).map(function(a){
+      return '<button type="button" class="chip" data-aim="'+esc(a.text)+'" aria-pressed="'+(a.key===cur && cur!=='' ? 'true' : 'false')+'">'+esc(a.text)+'<small>'+a.n+'回</small></button>';
+    }).join('');
+    box.hidden = false;
+  }
+  $('aim-chips').addEventListener('click', function(e){
+    var b = e.target.closest('.chip'); if (!b) return;
+    $('f-aim').value = b.getAttribute('data-aim');
+    update();
+  });
+
+  function update(){
+    var fm = formMachine(), aim = $('f-aim').value.trim(), cash = num('f-cash'), medal = num('f-medal'), out = num('f-out');
+    $('f-custom').hidden = $('f-machine').value!=='+';
+    aimChips();
+    var res = $('f-res');
+    if (cash==null && medal==null && out==null){
+      res.innerHTML = '<span>収支</span><small>投資と回収を入れると、ここに出ます</small>';
+    } else {
+      var c = calc({rate:rate, cash:cash||0, medal:medal||0, out:out||0});
+      res.innerHTML = '<span>収支</span><b class="'+cls(c.coins)+'">'+esc(signed(c.coins, '枚'))+'</b><b class="'+cls(c.yen)+'">'+esc(signed(c.yen, '円'))+'</b>'
+        + (cash ? '<small>現金 '+n0(cash)+'円は '+n0(c.cashCoins)+'枚（換金'+RATES[rate].exch+'枚で数えます）</small>' : '');
+    }
+    var miss = [];
+    if (!fm) miss.push('台');
+    if (!aim) miss.push('狙い目');
+    if (cash==null && medal==null) miss.push('投資');
+    if (out==null) miss.push('回収');
+    $('f-need').textContent = miss.length ? 'まだ入っていない：' + miss.join('・') : '';
+    $('f-need').hidden = !miss.length;
+    $('f-save').disabled = !!miss.length;
+  }
+  ['f-machine', 'f-custom', 'f-aim', 'f-cash', 'f-medal', 'f-out'].forEach(function(id){
+    $(id).addEventListener('input', update);
+    $(id).addEventListener('change', update);
+  });
+  $('f-machine').addEventListener('change', function(){ if ($('f-machine').value==='+') $('f-custom').focus(); });
+
+  function setWhen(){
+    if (editing){
+      var r = byId(editing);
+      $('f-when').textContent = r ? '記録した時間：' + dayLabel(new Date(r.at)) + ' ' + timeLabel(new Date(r.at)) + '（直しても変わりません）' : '';
+    } else {
+      $('f-when').textContent = '「記録する」を押した時間も一緒に残ります。';
+    }
+  }
+  function resetForm(){
+    editing = null;
+    fillMachines('');
+    $('f-custom').value = ''; $('f-aim').value = ''; $('f-cash').value = ''; $('f-medal').value = ''; $('f-out').value = '';
+    rate = RATES[load(LS_RATE)] ? load(LS_RATE) : rate;
+    var rb = $('fr-'+rate); if (rb) rb.checked = true;
+    $('rec-title').textContent = '記録する';
+    $('f-save').textContent = '記録する';
+    $('f-cancel').hidden = true;
+    setWhen(); update();
+  }
+  function byId(id){ for (var i=0; i<recs.length; i++) if (recs[i].id===id) return recs[i]; return null; }
+
+  $('f-save').addEventListener('click', function(){
+    var fm = formMachine(), aim = $('f-aim').value.trim(), cash = num('f-cash'), medal = num('f-medal'), out = num('f-out');
+    if (!fm || !aim || (cash==null && medal==null) || out==null) return update();
+    var data = {m:fm.m, name:fm.name, aim:aim, rate:rate, cash:cash||0, medal:medal||0, out:out||0};
+    if (editing){
+      var r = byId(editing);
+      if (r){
+        var before = JSON.parse(JSON.stringify(r));
+        Object.keys(data).forEach(function(k){ r[k] = data[k]; });
+        persist();
+        toast('直しました', function(){ var x = byId(before.id); if (x){ Object.keys(before).forEach(function(k){ x[k] = before[k]; }); persist(); refresh(); } });
+      }
+      resetForm(); show('list');
+      return;
+    }
+    var rec = {id:newId(), at:Date.now()};
+    Object.keys(data).forEach(function(k){ rec[k] = data[k]; });
+    recs.unshift(rec);
+    persist();
+    var c = calc(rec);
+    toast('記録しました（' + timeLabel(new Date(rec.at)) + '・' + signed(c.yen, '円') + '）', function(){
+      recs = recs.filter(function(x){ return x.id!==rec.id; }); persist(); refresh();
+    });
+    resetForm();
+  });
+  $('f-cancel').addEventListener('click', function(){ resetForm(); show('list'); });
+
+  function startEdit(id){
+    var r = byId(id); if (!r) return;
+    editing = id;
+    fillMachines(r.m ? r.m : mKey(r));
+    $('f-custom').value = '';
+    $('f-aim').value = r.aim;
+    $('f-cash').value = r.cash ? String(r.cash) : (r.medal ? '' : '0');
+    $('f-medal').value = r.medal ? String(r.medal) : '';
+    $('f-out').value = String(r.out);
+    rate = RATES[r.rate] ? r.rate : 'toka';
+    var rb = $('fr-'+rate); if (rb) rb.checked = true;
+    $('rec-title').textContent = '記録を直す';
+    $('f-save').textContent = '直して保存';
+    $('f-cancel').hidden = false;
+    show('rec'); setWhen(); update();
+  }
+
+  /* ---------- 一覧 ---------- */
+  var confirmId = null;
+  function detail(r, c){
+    var inv = [];
+    if (r.cash) inv.push('現金'+n0(r.cash)+'円（'+n0(c.cashCoins)+'枚）');
+    if (r.medal) inv.push('メダル'+n0(r.medal)+'枚');
+    return '投資：'+(inv.length ? inv.join('＋') : '0')+'／回収：'+n0(r.out)+'枚';
+  }
+  function renderList(){
+    var el = $('list');
+    $('list-count').textContent = recs.length ? '全部で ' + recs.length + '件' : '';
+    if (!recs.length){ el.innerHTML = '<div class="empty">まだ記録がありません。「記録する」から入れてください。</div>'; return; }
+    var h = '', last = '';
+    recs.forEach(function(r){
+      var d = new Date(r.at), k = dayKey(d), c = calc(r), id = esc(r.id);
+      if (k!==last){ h += '<h2 class="day">'+esc(dayLabel(d))+'</h2>'; last = k; }
+      h += '<div class="item">'
+        + '<div class="it-top"><span class="it-time">'+esc(timeLabel(d))+'</span><span class="it-name">'+esc(r.name)+'</span><span class="tag">'+esc((RATES[r.rate]||RATES.toka).label)+'</span></div>'
+        + '<div class="it-aim">'+esc(r.aim)+'</div>'
+        + '<div class="it-res"><b class="'+cls(c.yen)+'">'+esc(signed(c.yen, '円'))+'</b><b class="'+cls(c.coins)+'">'+esc(signed(c.coins, '枚'))+'</b>'
+        + (confirmId===r.id ? '' : '<span class="it-act"><button type="button" class="btn sm" data-act="edit" data-id="'+id+'">直す</button><button type="button" class="btn sm" data-act="del" data-id="'+id+'">消す</button></span>')
+        + '</div>'
+        + '<div class="it-sub">'+esc(detail(r, c))+'</div>'
+        + (confirmId===r.id
+            ? '<div class="confirm"><span>この記録を消しますか？</span><button type="button" class="btn sm danger" data-act="yes" data-id="'+id+'">消す</button><button type="button" class="btn sm" data-act="no" data-id="'+id+'">やめる</button></div>'
+            : '')
+        + '</div>';
+    });
+    el.innerHTML = h;
+  }
+  $('list').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-act]'); if (!b) return;
+    var id = b.getAttribute('data-id'), act = b.getAttribute('data-act');
+    if (act==='edit') return startEdit(id);
+    if (act==='del'){ confirmId = id; return renderList(); }
+    if (act==='no'){ confirmId = null; return renderList(); }
+    if (act==='yes'){
+      var i = -1; recs.forEach(function(r, j){ if (r.id===id) i = j; });
+      confirmId = null;
+      if (i<0) return renderList();
+      var gone = recs.splice(i, 1)[0];
+      persist(); refresh();
+      toast('消しました', function(){ recs.push(gone); recs.sort(function(a, b){ return b.at - a.at; }); persist(); refresh(); });
+    }
+  });
+
+  /* ---------- ランキング: one row per (台 × 狙い目) ---------- */
+  function groups(){
+    var by = {}, out = [];
+    recs.forEach(function(r){   // newest first
+      var k = mKey(r) + '|' + norm(r.aim);
+      if (!by[k]){ by[k] = {mk:mKey(r), name:r.name, aim:r.aim, n:0, win:0, yen:0, last:r.at, plays:[]}; out.push(by[k]); }
+      var g = by[k], c = calc(r);
+      g.n++; g.yen += c.yen; if (c.yen>0) g.win++;
+      g.plays.push({at:r.at, yen:c.yen});
+    });
+    out.forEach(function(g){ g.avg = roundHalfAway(g.yen / g.n); });
+    return out;
+  }
+  function fillRankMachines(){
+    var sel = $('rk-machine'), cur = sel.value, seen = {}, opts = [];
+    recs.forEach(function(r){ seen[mKey(r)] = r.name; });
+    MACHINES.forEach(function(m){ if (seen[m.id]){ opts.push({key:m.id, label:m.label}); delete seen[m.id]; } });
+    Object.keys(seen).forEach(function(k){ opts.push({key:k, label:seen[k]}); });
+    sel.innerHTML = '<option value="">すべての台</option>' + opts.map(function(o){ return '<option value="'+esc(o.key)+'">'+esc(o.label)+'</option>'; }).join('');
+    sel.value = cur; if (sel.value!==cur) sel.value = '';
+  }
+  function renderRank(){
+    fillRankMachines();
+    var only = $('rk-machine').value, sort = document.querySelector('input[name="rk-sort"]:checked').value;
+    var list = groups().filter(function(g){ return !only || g.mk===only; });
+    var el = $('rank');
+    if (!list.length){ el.innerHTML = '<div class="empty">まだ記録がありません。記録がたまると、狙い目ごとの順位が出ます。</div>'; return; }
+    list.sort(function(a, b){
+      var x = sort==='sum' ? b.yen - a.yen : b.avg - a.avg;
+      return x || b.n - a.n || b.last - a.last;
+    });
+    el.innerHTML = list.map(function(g, i){
+      var main = sort==='sum' ? g.yen : g.avg, other = sort==='sum' ? '1回あたり '+signed(g.avg, '円') : '合計 '+signed(g.yen, '円');
+      return '<details class="rk"><summary>'
+        + '<span class="rk-no">'+(i+1)+'</span>'
+        + '<span class="rk-main">'+(only ? '' : '<small>'+esc(g.name)+'</small>')+'<b>'+esc(g.aim)+'</b>'
+        + '<span class="rk-meta"><span>'+g.n+'回</span><span>勝ち'+g.win+'回</span><span>'+esc(other)+'</span></span></span>'
+        + '<span class="rk-val"><b class="'+cls(main)+'">'+esc(signed(main, '円'))+'</b><small>'+(sort==='sum' ? '合計' : '1回あたり')+'</small></span>'
+        + '</summary><div class="rk-plays">'
+        + g.plays.map(function(p){ var d = new Date(p.at); return '<div class="rk-play"><span>'+esc(dayLabel(d)+' '+timeLabel(d))+'</span><b class="'+cls(p.yen)+'">'+esc(signed(p.yen, '円'))+'</b></div>'; }).join('')
+        + '</div></details>';
+    }).join('');
+  }
+  $('rk-machine').addEventListener('change', renderRank);
+  document.querySelectorAll('input[name="rk-sort"]').forEach(function(x){ x.addEventListener('change', renderRank); });
+
+  function refresh(){
+    if (!editing) fillMachines();
+    update();
+    if (view==='list') renderList();
+    if (view==='rank') renderRank();
+  }
+
+  // for the tests
+  window.__neraicho = {calc:calc, norm:norm, groups:groups, recs:function(){ return recs; }};
+
+  if (!canStore) $('no-store').hidden = false;
+  resetForm();
+})();
+</script>
+<!-- アプリ版だけ（GitHubに置く版）：スマホの中の控えから開く。新しい版が出ていたら、いちばん上に「更新する」を出す -->
+<div id="app-update" class="app-update" role="status" hidden><span>新しい版があります</span><button type="button" id="app-update-go">更新する</button></div>
+<style>
+.app-update{display:flex;align-items:center;justify-content:space-between;gap:10px;max-width:560px;margin:8px auto 0;width:calc(100% - 32px);background:var(--ink);color:var(--bg);border-radius:12px;padding:6px 6px 6px 14px;font-size:14px;font-weight:700}
+.app-update button{font:inherit;border:0;border-radius:9px;background:var(--accent);color:var(--accent-ink);padding:8px 14px;cursor:pointer;white-space:nowrap}
+</style>
+<script>
+(function(){
+  'use strict';
+  var BUILD = 'e640bae9da03', CACHE = 'neraicho-app-v1', lastCheck = 0;
+  if (!('serviceWorker' in navigator)) return;
+  var bar = document.getElementById('app-update');
+  document.body.insertBefore(bar, document.body.firstChild);   // above the page, so it never covers the machine select or tabs
+  // The app opens from the copy kept on the phone (fast, works without signal). If the server has a newer one, offer it.
+  function check(){
+    if (Date.now() - lastCheck < 60000) return;
+    lastCheck = Date.now();
+    navigator.serviceWorker.getRegistration().then(function(r){ if (r) r.update().catch(function(){}); });
+    fetch('version.json', {cache: 'no-store'}).then(function(r){ return r.ok ? r.json() : null; }).then(function(v){
+      if (v && v.build && v.build !== BUILD) bar.hidden = false;
+    }).catch(function(){});
+  }
+  document.getElementById('app-update-go').addEventListener('click', function(){
+    bar.querySelector('span').textContent = '読み込み中…';
+    var go = function(){ location.reload(); };
+    if (!window.caches) return go();
+    // straight from the server (the copy-keeper lets cache:'reload' through), then keep it as the new copy
+    fetch('./', {cache: 'reload'}).then(function(res){
+      if (!res.ok) throw new Error(res.status);
+      return caches.open(CACHE).then(function(c){ return c.put(new URL('./', location.href).href, res); });
+    }).then(go, go);
+  });
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+    check();
+  });
+  // a home-screen app comes back from the background without reloading: look again then
+  document.addEventListener('visibilitychange', function(){ if (document.visibilityState === 'visible') check(); });
+  window.addEventListener('pageshow', function(e){ if (e.persisted) check(); });
+})();
+</script>
+</body></html>
