@@ -247,12 +247,13 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
         <p class="hint">同じ狙い目は、同じ書き方で入れてください。書き方が違うと、ランキングで別の狙い目として数えます。</p>
       </div>
       <div class="field">
-        <label for="f-pick">拾った人<small>なくても記録できます</small></label>
-        <input id="f-pick" class="tin" type="text" maxlength="20" placeholder="例：台を見つけた人の名前" autocomplete="off">
+        <span class="lbl" id="pick-lbl">拾った人<small>なくても記録できます</small></span>
         <div id="pick-past" hidden>
-          <p class="chips-h">前に入れた名前（押すと入ります）</p>
-          <div id="pick-chips" class="chips"></div>
+          <p class="chips-h">前に入れた名前から選ぶ（みんなで共通・もう一度押すと外れます）</p>
+          <div id="pick-chips" class="chips" role="group" aria-labelledby="pick-lbl"></div>
         </div>
+        <input id="f-pick" class="tin" type="text" maxlength="20" placeholder="新しい名前は、ここに書く" autocomplete="off" aria-label="拾った人の名前">
+        <p id="pick-new" class="hint" hidden></p>
       </div>
       <div class="field">
         <label for="f-at">打った日時</label>
@@ -421,14 +422,14 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
      pick (拾った人, free words, may be empty), who (記録した人), saved, cid}
      S.recs is what the spreadsheet last said; S.queue holds what this phone did and has not sent yet. The screen always
      shows S.recs with the queue laid on top, so a record appears at once even with no signal in the hall. */
-  var S = {key:'', me:null, members:[], recs:[], queue:[], sending:null, loading:false, failed:'', retry:null};
+  var S = {key:'', me:null, members:[], picks:[], recs:[], queue:[], sending:null, loading:false, failed:'', retry:null};
   (function(){
     var c = loadJSON(LS_CACHE, null);
-    if (c && Array.isArray(c.records)){ S.me = c.me || null; S.members = c.members || []; S.recs = c.records; }
+    if (c && Array.isArray(c.records)){ S.me = c.me || null; S.members = c.members || []; S.picks = c.picks || []; S.recs = c.records; }
     var q = loadJSON(LS_QUEUE, []);
     S.queue = Array.isArray(q) ? q : [];
   })();
-  function saveCache(){ store(LS_CACHE, JSON.stringify({me:S.me, members:S.members, records:S.recs})); }
+  function saveCache(){ store(LS_CACHE, JSON.stringify({me:S.me, members:S.members, picks:S.picks, records:S.recs})); }
   function saveQueue(){ if (!store(LS_QUEUE, JSON.stringify(S.queue)) && S.queue.length) $('no-store').hidden = false; }
 
   // the records as this phone should show them: the spreadsheet's, with the unsent changes laid on top
@@ -488,7 +489,7 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
     call('all', {}).then(function(r){
       S.loading = false;
       if (r.ok){
-        S.me = r.me; S.members = r.members || []; S.recs = r.records || []; S.failed = '';
+        S.me = r.me; S.members = r.members || []; S.picks = r.picks || []; S.recs = r.records || []; S.failed = '';
         saveCache(); refresh(); flush();
         return;
       }
@@ -587,7 +588,7 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
     return t.replace(/\s+/g, '');
   }
   function lockOut(msg){
-    S.key = ''; S.me = null; S.members = []; S.recs = [];
+    S.key = ''; S.me = null; S.members = []; S.picks = []; S.recs = [];
     try { localStorage.removeItem(LS_KEY); localStorage.removeItem(LS_CACHE); } catch(e){}
     $('k-err').textContent = msg || ''; $('k-err').hidden = !msg;
     show('key');
@@ -603,7 +604,7 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
       store(LS_KEY, k);
       // put it in the address too, so "ホーム画面に追加" from here keeps it (the icon opens with this address)
       try { var u = new URL(location.href); u.searchParams.set('k', k); history.replaceState(null, '', u.href); } catch(e){}
-      S.me = r.me; S.members = r.members || []; S.recs = r.records || []; S.failed = '';
+      S.me = r.me; S.members = r.members || []; S.picks = r.picks || []; S.recs = r.records || []; S.failed = '';
       saveCache(); $('k-in').value = '';
       resetForm(); show('rec'); refresh(); flush();
     }, function(){
@@ -680,24 +681,32 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
     update();
   });
 
-  // 拾った人 is free words; the names written before come back as buttons (most used first), so the same person is written the same way
+  /* 拾った人 (user, 2026-10-20): a name written once is remembered for everyone. The spreadsheet keeps the list
+     (its 「拾った人」 tab, filled by the API whenever a record brings a new name); names on records not sent yet are
+     added here so they show at once. The same name in full/half width or with spaces is one name, in the list's spelling.
+     Most used first, then the order they were first written. */
+  function pickList(all, saved){
+    var by = {}, list = [];
+    function add(name){ var k = norm(name); if (!k) return null; if (!by[k]){ by[k] = {key:k, text:name, n:0, i:list.length}; list.push(by[k]); } return by[k]; }
+    (saved || []).forEach(add);
+    all.slice().reverse().forEach(function(r){ if (r.pick){ var x = add(r.pick); if (x) x.n++; } });   // oldest first, so a new name goes last
+    return list.sort(function(a, b){ return b.n - a.n || a.i - b.i; });
+  }
+  function knownPick(name){ var k = norm(name), l = pickList(recs(), S.picks); for (var i=0; i<l.length; i++) if (l[i].key===k) return l[i].text; return null; }
   function pickChips(){
-    var by = {}, list = [], cur = norm($('f-pick').value);
-    recs().forEach(function(r){
-      if (!r.pick) return;
-      var k = norm(r.pick);
-      if (!by[k]){ by[k] = {key:k, text:r.pick, n:0}; list.push(by[k]); }
-      by[k].n++;
-    });
-    list.sort(function(a, b){ return b.n - a.n; });
+    var list = pickList(recs(), S.picks), typed = $('f-pick').value.trim(), cur = norm(typed);
     $('pick-past').hidden = !list.length;
-    $('pick-chips').innerHTML = list.slice(0, 12).map(function(a){
-      return '<button type="button" class="chip" data-pick="'+esc(a.text)+'" aria-pressed="'+(a.key===cur && cur!=='' ? 'true' : 'false')+'">'+esc(a.text)+'</button>';
+    $('pick-chips').innerHTML = list.map(function(a){
+      return '<button type="button" class="chip" data-pick="'+esc(a.text)+'" aria-pressed="'+(a.key===cur && cur!=='' ? 'true' : 'false')+'">'+esc(a.text)+(a.n ? '<small>'+a.n+'回</small>' : '')+'</button>';
     }).join('');
+    var isNew = !!cur && !list.some(function(a){ return a.key===cur; });
+    $('pick-new').hidden = !isNew;
+    if (isNew) $('pick-new').textContent = '「' + typed + '」を新しい名前として、みんなの一覧に足します。';
   }
   $('pick-chips').addEventListener('click', function(e){
     var b = e.target.closest('.chip'); if (!b) return;
-    $('f-pick').value = b.getAttribute('data-pick');
+    // pressing the chosen name again takes it off
+    $('f-pick').value = b.getAttribute('aria-pressed')==='true' ? '' : b.getAttribute('data-pick');
     update();
   });
 
@@ -760,7 +769,7 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
   $('f-save').addEventListener('click', function(){
     var fm = formMachine(), at = formAt(), cash = num('f-cash'), medal = num('f-medal'), out = num('f-out');
     if (!fm || !at || (cash==null && medal==null) || out==null) return update();
-    var data = {at:at, m:fm.m, name:fm.name, aim:$('f-aim').value.trim(), rate:rate, cash:cash||0, medal:medal||0, out:out||0, pick:$('f-pick').value.trim()};
+    var data = {at:at, m:fm.m, name:fm.name, aim:$('f-aim').value.trim(), rate:rate, cash:cash||0, medal:medal||0, out:out||0, pick:(function(t){ return t ? (knownPick(t) || t) : ''; })($('f-pick').value.trim())};
     if (editing){
       var r = byId(editing);
       if (r){
@@ -1097,14 +1106,14 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
   }
 
   // for the tests
-  window.__neraicho = {calc:calc, norm:norm, groups:groups, monthSums:monthSums, applyQueue:applyQueue, keyFrom:keyFrom, fmtAt:fmtAt, recs:recs};
+  window.__neraicho = {calc:calc, norm:norm, groups:groups, monthSums:monthSums, applyQueue:applyQueue, keyFrom:keyFrom, fmtAt:fmtAt, pickList:pickList, recs:recs};
 
   /* ---------- start ---------- */
   if (!canStore) $('no-store').hidden = false;
   (function(){
     var k = '';
     try { k = keyFrom(new URL(location.href).searchParams.get('k') ? location.href : ''); } catch(e){}
-    if (k){ if (k!==load(LS_KEY)){ S.me = null; S.members = []; S.recs = []; } store(LS_KEY, k); }
+    if (k){ if (k!==load(LS_KEY)){ S.me = null; S.members = []; S.picks = []; S.recs = []; } store(LS_KEY, k); }
     S.key = k || load(LS_KEY) || '';
   })();
   // a home-screen app comes back from the background without reloading: look again then, and send what is left
@@ -1125,7 +1134,7 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
 <script>
 (function(){
   'use strict';
-  var BUILD = '86c46f084459', CACHE = 'neraicho-app-v1', lastCheck = 0;
+  var BUILD = '193c31649f99', CACHE = 'neraicho-app-v1', lastCheck = 0;
   if (!('serviceWorker' in navigator)) return;
   var bar = document.getElementById('app-update');
   document.body.insertBefore(bar, document.body.firstChild);   // above the page, so it never covers the machine select or tabs
