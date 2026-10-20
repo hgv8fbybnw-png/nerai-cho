@@ -75,7 +75,7 @@ p{margin:0}
 .lbl small,.field>label small{font-weight:400;color:var(--muted);margin-left:4px}
 .tin,.sel{font:inherit;font-size:16px;width:100%;min-width:0;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
 .tin:focus,.sel:focus{outline:3px solid var(--accent);outline-offset:1px}
-input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appearance:none}
+input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-appearance:none;appearance:none}
 .at-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chips-h{font-size:12px;color:var(--muted);font-weight:700}
@@ -256,8 +256,9 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
         <p id="pick-new" class="hint" hidden></p>
       </div>
       <div class="field">
-        <label for="f-at">打った日時</label>
-        <div class="at-row"><input id="f-at" class="tin" type="datetime-local"><button type="button" id="f-now" class="btn sm">いまにする</button></div>
+        <label for="f-at" id="at-lbl">打った日時</label>
+        <div class="at-row"><input id="f-at" class="tin" type="datetime-local"><input id="f-day" class="tin" type="date" aria-labelledby="at-lbl" hidden><button type="button" id="f-now" class="btn sm">いまにする</button></div>
+        <label class="chk"><input type="checkbox" id="f-notime">時間不明（日にちだけ入れる）</label>
       </div>
       <div class="field">
         <span class="lbl" id="rate-lbl">交換率</span>
@@ -336,6 +337,11 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
       <div class="acts"><button type="button" id="adm-add" class="btn main">足す</button></div>
       <p class="hint">足したら、その人専用のリンクが出ます。本人に送って、iPhoneの Safari で開いてもらい、共有ボタン →「ホーム画面に追加」をしてもらってください。合言葉を打たずに開けます。</p>
     </div>
+    <div id="pk" class="block" hidden>
+      <h2>拾った人の名前の整理</h2>
+      <p class="hint">同じ人が別の名前で入っているときに、1つの名前にまとめます。前の記録の名前もまとめた名前に変わります。まとめた名前は、あとで誰かが書いても、まとめた先の名前で入ります。</p>
+      <div id="pk-list" class="list"></div>
+    </div>
   </section>
 </div>
 
@@ -403,15 +409,17 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
   function mKey(r){ return r.m ? r.m : 'c:' + norm(r.name); }
   function machineLabel(id){ for (var i=0; i<MACHINES.length; i++) if (MACHINES[i].id===id) return MACHINES[i].label; return null; }
   function pad(n){ return (n<10 ? '0' : '') + n; }
-  // a play time is kept as text 'YYYY-MM-DD HH:mm' (Japan time, as the phone shows it)
+  // a play time is kept as text 'YYYY-MM-DD HH:mm' (Japan time, as the phone shows it), or just 'YYYY-MM-DD' when the
+  // time is not known (時間不明, user 2026-10-20). Such a play sorts below the timed ones of its day.
   function fmtAt(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+' '+pad(d.getHours())+':'+pad(d.getMinutes()); }
-  function parseAt(s){ var m = /^(\d{4})-(\d\d)-(\d\d)[ T](\d\d):(\d\d)/.exec(s || ''); return m ? new Date(+m[1], m[2]-1, +m[3], +m[4], +m[5]) : null; }
-  function timeLabel(s){ var d = parseAt(s); return d ? d.getHours() + ':' + pad(d.getMinutes()) : ''; }
+  function parseAt(s){ var m = /^(\d{4})-(\d\d)-(\d\d)(?:[ T](\d\d):(\d\d))?/.exec(s || ''); return m ? new Date(+m[1], m[2]-1, +m[3], +(m[4]||0), +(m[5]||0)) : null; }
+  function hasTime(s){ return /^\d{4}-\d\d-\d\d[ T]\d\d:\d\d/.test(s || ''); }
+  function timeLabel(s){ var d = parseAt(s); return !d ? '' : hasTime(s) ? d.getHours() + ':' + pad(d.getMinutes()) : '時間不明'; }
   function dayLabel(s){
     var d = parseAt(s); if (!d) return '';
     return (d.getFullYear()!==new Date().getFullYear() ? d.getFullYear()+'年' : '') + (d.getMonth()+1)+'月'+d.getDate()+'日（'+'日月火水木金土'.charAt(d.getDay())+'）';
   }
-  function shortDay(s){ var d = parseAt(s); return d ? (d.getMonth()+1)+'/'+d.getDate()+' '+d.getHours()+':'+pad(d.getMinutes()) : ''; }
+  function shortDay(s){ var d = parseAt(s); return d ? (d.getMonth()+1)+'/'+d.getDate()+(hasTime(s) ? ' '+d.getHours()+':'+pad(d.getMinutes()) : '') : ''; }
   function monthLabel(m){ var p = m.split('-'); return p[0]+'年'+Number(p[1])+'月'; }
   function shiftMonth(m, k){ var p = m.split('-'), d = new Date(+p[0], p[1]-1+k, 1); return d.getFullYear()+'-'+pad(d.getMonth()+1); }
   function digits(v){ return String(v).replace(/[０-９]/g, function(c){ return String.fromCharCode(c.charCodeAt(0)-0xFEE0); }).replace(/[^0-9]/g, ''); }
@@ -422,14 +430,16 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
      pick (拾った人, free words, may be empty), who (記録した人), saved, cid}
      S.recs is what the spreadsheet last said; S.queue holds what this phone did and has not sent yet. The screen always
      shows S.recs with the queue laid on top, so a record appears at once even with no signal in the hall. */
-  var S = {key:'', me:null, members:[], picks:[], recs:[], queue:[], sending:null, loading:false, failed:'', retry:null};
+  var S = {key:'', me:null, members:[], picks:[], aliases:[], recs:[], queue:[], sending:null, loading:false, failed:'', retry:null};
   (function(){
     var c = loadJSON(LS_CACHE, null);
-    if (c && Array.isArray(c.records)){ S.me = c.me || null; S.members = c.members || []; S.picks = c.picks || []; S.recs = c.records; }
+    if (c && Array.isArray(c.records)){ S.me = c.me || null; S.members = c.members || []; S.picks = c.picks || []; S.aliases = c.aliases || []; S.recs = c.records; }
     var q = loadJSON(LS_QUEUE, []);
     S.queue = Array.isArray(q) ? q : [];
   })();
-  function saveCache(){ store(LS_CACHE, JSON.stringify({me:S.me, members:S.members, picks:S.picks, records:S.recs})); }
+  function saveCache(){ store(LS_CACHE, JSON.stringify({me:S.me, members:S.members, picks:S.picks, aliases:S.aliases, records:S.recs})); }
+  // what the spreadsheet sent back with action "all"
+  function takeAll(r){ S.me = r.me; S.members = r.members || []; S.picks = r.picks || []; S.aliases = r.aliases || []; S.recs = r.records || []; S.failed = ''; }
   function saveQueue(){ if (!store(LS_QUEUE, JSON.stringify(S.queue)) && S.queue.length) $('no-store').hidden = false; }
 
   // the records as this phone should show them: the spreadsheet's, with the unsent changes laid on top
@@ -489,7 +499,7 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
     call('all', {}).then(function(r){
       S.loading = false;
       if (r.ok){
-        S.me = r.me; S.members = r.members || []; S.picks = r.picks || []; S.recs = r.records || []; S.failed = '';
+        takeAll(r);
         saveCache(); refresh(); flush();
         return;
       }
@@ -588,7 +598,7 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
     return t.replace(/\s+/g, '');
   }
   function lockOut(msg){
-    S.key = ''; S.me = null; S.members = []; S.picks = []; S.recs = [];
+    S.key = ''; S.me = null; S.members = []; S.picks = []; S.aliases = []; S.recs = [];
     try { localStorage.removeItem(LS_KEY); localStorage.removeItem(LS_CACHE); } catch(e){}
     $('k-err').textContent = msg || ''; $('k-err').hidden = !msg;
     show('key');
@@ -604,7 +614,7 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
       store(LS_KEY, k);
       // put it in the address too, so "ホーム画面に追加" from here keeps it (the icon opens with this address)
       try { var u = new URL(location.href); u.searchParams.set('k', k); history.replaceState(null, '', u.href); } catch(e){}
-      S.me = r.me; S.members = r.members || []; S.picks = r.picks || []; S.recs = r.records || []; S.failed = '';
+      takeAll(r);
       saveCache(); $('k-in').value = '';
       resetForm(); show('rec'); refresh(); flush();
     }, function(){
@@ -684,24 +694,44 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
   /* 拾った人 (user, 2026-10-20): a name written once is remembered for everyone. The spreadsheet keeps the list
      (its 「拾った人」 tab, filled by the API whenever a record brings a new name); names on records not sent yet are
      added here so they show at once. The same name in full/half width or with spaces is one name, in the list's spelling.
-     Most used first, then the order they were first written. */
-  function pickList(all, saved){
+     Most used first, then the order they were first written.
+     The 管理 person can merge names (設定 → 拾った人の名前の整理); a merged name is kept by the sheet as an alias
+     (S.aliases: [[name, the name it went into], …]) and is written as the name it went into.
+     「自分」 is the one who played (user, 2026-10-20 「自分というのを名前で振り分け」): it is kept as the 打った人's name. */
+  var SELF = {'自分':1, 'じぶん':1};
+  function isSelf(s){ return SELF.hasOwnProperty(norm(s)); }
+  function aliasOf(name, aliases){ var k = norm(name); for (var i=0; i<(aliases || []).length; i++) if (norm(aliases[i][0])===k) return aliases[i][1]; return null; }
+  function pickList(all, saved, aliases){
     var by = {}, list = [];
-    function add(name){ var k = norm(name); if (!k) return null; if (!by[k]){ by[k] = {key:k, text:name, n:0, i:list.length}; list.push(by[k]); } return by[k]; }
+    function add(name){ name = aliasOf(name, aliases) || name; var k = norm(name); if (!k || SELF[k]) return null; if (!by[k]){ by[k] = {key:k, text:name, n:0, i:list.length}; list.push(by[k]); } return by[k]; }
     (saved || []).forEach(add);
     all.slice().reverse().forEach(function(r){ if (r.pick){ var x = add(r.pick); if (x) x.n++; } });   // oldest first, so a new name goes last
     return list.sort(function(a, b){ return b.n - a.n || a.i - b.i; });
   }
-  function knownPick(name){ var k = norm(name), l = pickList(recs(), S.picks); for (var i=0; i<l.length; i++) if (l[i].key===k) return l[i].text; return null; }
+  // the name a written 拾った人 is kept as (the same steps as the sheet): 自分 → the player, a merged name → where it went,
+  // a known name → the list's spelling, anything else as written
+  function resolvePick(text, player, list, aliases){
+    var t = String(text || '').trim();
+    if (isSelf(t)) t = String(player || '').trim();
+    if (!t) return '';
+    t = aliasOf(t, aliases) || t;
+    var k = norm(t);
+    for (var i=0; i<list.length; i++) if (list[i].key===k) return list[i].text;
+    return t;
+  }
+  function formPlayer(){ var r = editing ? byId(editing) : null; return r ? (r.by || r.who) : (S.me ? S.me.name : ''); }
   function pickChips(){
-    var list = pickList(recs(), S.picks), typed = $('f-pick').value.trim(), cur = norm(typed);
+    var list = pickList(recs(), S.picks, S.aliases), typed = $('f-pick').value.trim(), res = resolvePick(typed, formPlayer(), list, S.aliases), cur = norm(res);
     $('pick-past').hidden = !list.length;
     $('pick-chips').innerHTML = list.map(function(a){
       return '<button type="button" class="chip" data-pick="'+esc(a.text)+'" aria-pressed="'+(a.key===cur && cur!=='' ? 'true' : 'false')+'">'+esc(a.text)+(a.n ? '<small>'+a.n+'回</small>' : '')+'</button>';
     }).join('');
-    var isNew = !!cur && !list.some(function(a){ return a.key===cur; });
-    $('pick-new').hidden = !isNew;
-    if (isNew) $('pick-new').textContent = '「' + typed + '」を新しい名前として、みんなの一覧に足します。';
+    var msg = '';
+    if (typed && isSelf(typed)) msg = res ? '「' + typed + '」は、打った人の名前「' + res + '」で記録します。' : '';
+    else if (typed && aliasOf(typed, S.aliases)) msg = '「' + typed + '」は「' + res + '」にまとめてあるので、「' + res + '」で記録します。';
+    else if (cur && !list.some(function(a){ return a.key===cur; })) msg = '「' + typed + '」を新しい名前として、みんなの一覧に足します。';
+    $('pick-new').hidden = !msg;
+    $('pick-new').textContent = msg;
   }
   $('pick-chips').addEventListener('click', function(e){
     var b = e.target.closest('.chip'); if (!b) return;
@@ -710,12 +740,30 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
     update();
   });
 
-  function nowIfUntouched(){ if (!atTouched) $('f-at').value = fmtAt(new Date()).replace(' ', 'T'); }
-  function formAt(){ var v = $('f-at').value; return parseAt(v) ? v.replace('T', ' ').slice(0, 16) : ''; }
-  $('f-at').addEventListener('input', function(){ atTouched = true; update(); });
-  $('f-at').addEventListener('change', function(){ atTouched = true; update(); });
+  /* 打った日時. 時間不明 (user, 2026-10-20) swaps the date-and-time box for a date-only box; the record then keeps only the day. */
+  var timeOff = false;
+  function noTime(){ return timeOff; }
+  function setNoTime(on){
+    var at = $('f-at'), day = $('f-day');
+    if (on && !timeOff) day.value = (at.value || fmtAt(new Date())).slice(0, 10);
+    if (!on && timeOff) at.value = (/^\d{4}-\d\d-\d\d$/.test(day.value) ? day.value : fmtAt(new Date()).slice(0, 10)) + 'T' + (at.value.slice(11, 16) || fmtAt(new Date()).slice(11));
+    timeOff = on; $('f-notime').checked = on;
+    at.hidden = on; day.hidden = !on;
+    $('at-lbl').htmlFor = on ? 'f-day' : 'f-at';
+    $('f-now').textContent = on ? '今日にする' : 'いまにする';
+  }
+  function nowIfUntouched(){ if (!atTouched){ var n = fmtAt(new Date()); $('f-at').value = n.replace(' ', 'T'); $('f-day').value = n.slice(0, 10); } }
+  function formAt(){
+    if (noTime()){ var d = $('f-day').value; return /^\d{4}-\d\d-\d\d$/.test(d) && parseAt(d) ? d : ''; }
+    var v = $('f-at').value; return hasTime(v) ? v.replace('T', ' ').slice(0, 16) : '';
+  }
+  ['f-at', 'f-day'].forEach(function(id){
+    $(id).addEventListener('input', function(){ atTouched = true; update(); });
+    $(id).addEventListener('change', function(){ atTouched = true; update(); });
+  });
+  $('f-notime').addEventListener('change', function(){ setNoTime($('f-notime').checked); update(); });
   $('f-now').addEventListener('click', function(){ atTouched = false; nowIfUntouched(); update(); });
-  setInterval(function(){ if (view==='rec' && !editing && !atTouched && document.activeElement!==$('f-at')) nowIfUntouched(); }, 30000);
+  setInterval(function(){ if (view==='rec' && !editing && !atTouched && document.activeElement!==$('f-at') && document.activeElement!==$('f-day')) nowIfUntouched(); }, 30000);
 
   function renderForm(){ update(); }
 
@@ -739,7 +787,9 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
     $('f-need').textContent = miss.length ? 'まだ入っていない：' + miss.join('・') : '';
     $('f-need').hidden = !miss.length;
     $('f-save').disabled = !!miss.length;
-    if (!editing) $('f-when').textContent = atTouched
+    if (!editing) $('f-when').textContent = noTime()
+      ? '時間不明として、日にちだけ入れます。'
+      : atTouched
       ? '日時は選んだものが入ります。「いまにする」で今にもどせます。'
       : '日時は「いま」が入っています。あとから入れるときは、押して選び直してください。';
   }
@@ -755,6 +805,7 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
   }
   function resetForm(){
     editing = null; atTouched = false;
+    setNoTime(false);
     fillMachines('');
     $('f-custom').value = ''; $('f-aim').value = ''; $('f-pick').value = ''; $('f-cash').value = ''; $('f-medal').value = ''; $('f-out').value = '';
     rate = RATES[load(LS_RATE)] ? load(LS_RATE) : rate;
@@ -769,7 +820,8 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
   $('f-save').addEventListener('click', function(){
     var fm = formMachine(), at = formAt(), cash = num('f-cash'), medal = num('f-medal'), out = num('f-out');
     if (!fm || !at || (cash==null && medal==null) || out==null) return update();
-    var data = {at:at, m:fm.m, name:fm.name, aim:$('f-aim').value.trim(), rate:rate, cash:cash||0, medal:medal||0, out:out||0, pick:(function(t){ return t ? (knownPick(t) || t) : ''; })($('f-pick').value.trim())};
+    var data = {at:at, m:fm.m, name:fm.name, aim:$('f-aim').value.trim(), rate:rate, cash:cash||0, medal:medal||0, out:out||0,
+      pick:resolvePick($('f-pick').value, formPlayer(), pickList(recs(), S.picks, S.aliases), S.aliases)};
     if (editing){
       var r = byId(editing);
       if (r){
@@ -815,7 +867,8 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
     fillMachines(r.m ? r.m : mKey(r));
     $('f-custom').value = '';
     $('f-aim').value = r.aim || '';
-    $('f-at').value = r.at.replace(' ', 'T');
+    if (hasTime(r.at)){ setNoTime(false); $('f-at').value = r.at.replace(' ', 'T'); }
+    else { setNoTime(true); $('f-day').value = r.at.slice(0, 10); }
     $('f-cash').value = r.cash ? String(r.cash) : (r.medal ? '' : '0');
     $('f-medal').value = r.medal ? String(r.medal) : '';
     $('f-out').value = String(r.out);
@@ -1004,6 +1057,7 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
   function renderSet(fetch){
     $('set-me').innerHTML = S.me ? 'この端末は <b>' + esc(S.me.name) + '</b> さん' + (S.me.admin ? '（管理）' : '') + 'で使っています。' : '';
     $('adm').hidden = !(S.me && S.me.admin);
+    renderPicks();
     if (!(S.me && S.me.admin)) return;
     if (fetch){
       $('adm-link').hidden = true; admOpen = null;
@@ -1092,6 +1146,77 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
       reload();
     }, function(){ b.disabled = false; err.textContent = 'つながりません。もう一度どうぞ。'; err.hidden = false; });
   });
+  /* 拾った人の名前の整理 (管理 only, user 2026-10-20 「拾った人の整理をしたい」): put every record of one name under
+     another name (one on the list, or a new one, which renames it). 「自分」 left on old records is split into each
+     record's 打った人. The sheet does the change, so the screen just reads everything again afterwards. */
+  var pkOpen = null;
+  function pickRows(){
+    var all = recs(), self = all.filter(function(r){ return r.pick && isSelf(r.pick); }).length, list = pickList(all, S.picks, S.aliases);
+    return self ? [{key:'自分', text:'自分', n:self, self:true}].concat(list) : list;
+  }
+  function renderPicks(){
+    var box = $('pk'), el = $('pk-list');
+    box.hidden = !(S.me && S.me.admin);
+    if (box.hidden) return;
+    var input = el.querySelector('[data-f="to"]'), keep = input ? input.value : '';
+    var rows = pickRows();
+    if (pkOpen && !rows.some(function(a){ return a.key===pkOpen; })) pkOpen = null;
+    if (!rows.length){ el.innerHTML = '<p class="hint">まだ名前がありません。</p>'; return; }
+    el.innerHTML = rows.map(function(a){
+      var k = esc(a.key), h = '<div class="mem"><div class="mem-top"><b>'+esc(a.text)+'</b><span class="tag">'+a.n+'件</span>'
+        + (pkOpen===a.key ? '' : '<button type="button" class="btn sm" style="margin-left:auto" data-pkact="open" data-key="'+k+'">'+(a.self ? '振り分ける' : 'まとめる')+'</button>') + '</div>';
+      if (pkOpen!==a.key) return h + '</div>';
+      h += '<div class="mem-edit">';
+      if (a.self) h += '<p>「自分」と入っている記録（'+a.n+'件）を、それぞれの打った人の名前にします。</p>';
+      else h += '<p class="chips-h">どの名前にまとめますか（押して選ぶか、下に書く）</p>'
+        + '<div class="chips">' + rows.filter(function(x){ return !x.self && x.key!==a.key; }).map(function(x){
+            return '<button type="button" class="chip" data-pkact="to" data-to="'+esc(x.text)+'" aria-pressed="false">'+esc(x.text)+'</button>';
+          }).join('') + '</div>'
+        + '<input class="tin" data-f="to" type="text" maxlength="20" placeholder="まとめ先の名前（新しい名前でもよい）" autocomplete="off" aria-label="まとめ先の名前">'
+        + '<p class="hint" data-f="say"></p>';
+      return h + '<p class="err" data-f="err" hidden></p>'
+        + '<div class="acts"><button type="button" class="btn sm" data-pkact="close">やめる</button><button type="button" class="btn sm main" data-pkact="go" data-key="'+k+'">'+(a.self ? '振り分ける' : 'まとめる')+'</button></div>'
+        + '</div></div>';
+    }).join('');
+    input = el.querySelector('[data-f="to"]');
+    if (input){ input.value = keep; pickSay(); }
+  }
+  // the line that says what will happen, and which name chip is chosen
+  function pickSay(){
+    var el = $('pk-list'), input = el.querySelector('[data-f="to"]'), a = pickRows().filter(function(x){ return x.key===pkOpen; })[0];
+    if (!input || !a) return;
+    var to = input.value.trim(), list = pickList(recs(), S.picks, S.aliases), res = resolvePick(to, '', list, S.aliases), k = norm(res);
+    el.querySelectorAll('[data-pkact="to"]').forEach(function(b){ b.setAttribute('aria-pressed', k && norm(b.getAttribute('data-to'))===k ? 'true' : 'false'); });
+    var say = el.querySelector('[data-f="say"]'), go = el.querySelector('[data-pkact="go"]');
+    var bad = !to || isSelf(to) || to===a.text;
+    say.textContent = bad ? '' : '「' + a.text + '」の記録' + a.n + '件を「' + res + '」に変えます。' + (list.some(function(x){ return x.key===k; }) ? '' : '（「' + res + '」は新しい名前です）');
+    go.disabled = bad;
+  }
+  $('pk-list').addEventListener('input', function(e){ if (e.target.getAttribute('data-f')==='to') pickSay(); });
+  $('pk-list').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-pkact]'); if (!b) return;
+    var act = b.getAttribute('data-pkact'), el = $('pk-list');
+    if (act==='open'){
+      pkOpen = b.getAttribute('data-key'); var old = el.querySelector('[data-f="to"]'); if (old) old.value = '';
+      renderPicks(); var i = el.querySelector('[data-f="to"]'); if (i) i.focus();
+      return;
+    }
+    if (act==='close'){ pkOpen = null; return renderPicks(); }
+    if (act==='to'){ el.querySelector('[data-f="to"]').value = b.getAttribute('data-to'); return pickSay(); }
+    if (act==='go'){
+      var a = pickRows().filter(function(x){ return x.key===pkOpen; })[0], input = el.querySelector('[data-f="to"]'), err = el.querySelector('[data-f="err"]');
+      if (!a) return;
+      b.disabled = true; err.hidden = true;
+      call('pickMerge', {from:a.text, to:a.self ? '' : input.value.trim()}).then(function(r){
+        b.disabled = false;
+        if (!r.ok){ err.textContent = r.error || 'うまくいきませんでした'; err.hidden = false; return; }
+        pkOpen = null; renderPicks();
+        toast(a.self ? '「自分」を打った人の名前に振り分けました（' + r.件数 + '件）' : '「' + a.text + '」を「' + r.to + '」にまとめました（' + r.件数 + '件）');
+        reload();
+      }, function(){ b.disabled = false; err.textContent = 'つながりません。もう一度どうぞ。'; err.hidden = false; });
+    }
+  });
+
   $('set-reload').addEventListener('click', function(){ reload(); renderSet(true); toast('読み込み直しています'); });
   $('set-switch').addEventListener('click', function(){ lockOut(''); });
 
@@ -1106,14 +1231,15 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
   }
 
   // for the tests
-  window.__neraicho = {calc:calc, norm:norm, groups:groups, monthSums:monthSums, applyQueue:applyQueue, keyFrom:keyFrom, fmtAt:fmtAt, pickList:pickList, recs:recs};
+  window.__neraicho = {calc:calc, norm:norm, groups:groups, monthSums:monthSums, applyQueue:applyQueue, keyFrom:keyFrom, fmtAt:fmtAt, pickList:pickList, recs:recs,
+    resolvePick:resolvePick, timeLabel:timeLabel, shortDay:shortDay, hasTime:hasTime, byNewest:byNewest};
 
   /* ---------- start ---------- */
   if (!canStore) $('no-store').hidden = false;
   (function(){
     var k = '';
     try { k = keyFrom(new URL(location.href).searchParams.get('k') ? location.href : ''); } catch(e){}
-    if (k){ if (k!==load(LS_KEY)){ S.me = null; S.members = []; S.picks = []; S.recs = []; } store(LS_KEY, k); }
+    if (k){ if (k!==load(LS_KEY)){ S.me = null; S.members = []; S.picks = []; S.aliases = []; S.recs = []; } store(LS_KEY, k); }
     S.key = k || load(LS_KEY) || '';
   })();
   // a home-screen app comes back from the background without reloading: look again then, and send what is left
@@ -1134,7 +1260,7 @@ input[type="datetime-local"].tin{min-height:46px;-webkit-appearance:none;appeara
 <script>
 (function(){
   'use strict';
-  var BUILD = '193c31649f99', CACHE = 'neraicho-app-v1', lastCheck = 0;
+  var BUILD = '1009f2b049e9', CACHE = 'neraicho-app-v1', lastCheck = 0;
   if (!('serviceWorker' in navigator)) return;
   var bar = document.getElementById('app-update');
   document.body.insertBefore(bar, document.body.firstChild);   // above the page, so it never covers the machine select or tabs
