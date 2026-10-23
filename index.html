@@ -18,6 +18,8 @@
    ranking is per (台 × 狙い目), never per 台 overall. From the second version the five members share one record place
    (a Google spreadsheet behind a small API); each member opens the app with their own 合言葉, so the member who
    records a play is the one who played it (打った人 is not asked: user, 2026-10-20).
+   From 2026-10-23 the 狙い目 is a name kept per 台 in a shared list (like 拾った人), and the numbers that differ from play
+   to play (G数, pt, スルー回数 …) go in their own boxes; the ranking is per 台 × 狙い目 name, opened by those numbers.
    Colors and the money rule are the same as 鬣犬. */
 :root{
   --bg:#F1F2F7; --surface:#FFFFFF; --ink:#151A2D; --muted:#596079; --line:#D8DBE6;
@@ -100,6 +102,19 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
 .gbox input:focus{outline:none}
 .gbox input::placeholder{color:var(--muted);opacity:.45}
 .gbox span{padding-right:12px;color:var(--muted);font-weight:700;font-size:14px}
+.vals{display:flex;flex-direction:column;gap:8px;background:var(--bg);border-radius:10px;padding:10px}
+.vrow{display:grid;grid-template-columns:5.6em minmax(0,1fr);gap:8px;align-items:center}
+.vrow .gbox,.vrow .chip{background:var(--surface)}
+.vrow .gbox input{font-size:19px;padding:5px 10px}
+.fe-box{display:flex;flex-direction:column;gap:8px}
+.fe-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}
+.fe-head b{font-size:14px}
+.fe-head .btn{margin-left:auto}
+.fe{display:flex;flex-direction:column;gap:8px;background:var(--bg);border-radius:10px;padding:10px}
+.fe .tin,.fe .sel{background:var(--surface);padding:8px 10px}
+.fe-row{display:grid;grid-template-columns:minmax(0,1fr) 5.8em auto;gap:6px;align-items:center}
+.fe-row .fe-opts{grid-column:1 / -1}
+.fe>.btn{align-self:flex-start}
 .mres{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;background:var(--bg);border-radius:10px;padding:8px 10px}
 .mres span{font-size:13px;font-weight:700;color:var(--muted)}
 .mres b{font-family:var(--font-num);font-size:20px;font-variant-numeric:tabular-nums}
@@ -127,6 +142,7 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
 .tag.wait{color:var(--skip);border-color:var(--skip)}
 .it-aim{font-size:16px;font-weight:700;overflow-wrap:anywhere}
 .it-aim.none{color:var(--muted);font-weight:400;font-size:14px}
+.it-det{font-size:13px;color:var(--muted);overflow-wrap:anywhere;margin-top:-2px}
 .it-res{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
 .it-res b{font-family:var(--font-num);font-size:20px;font-variant-numeric:tabular-nums}
 .it-res b+b{font-size:15px}
@@ -176,6 +192,13 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
 .rk-play{display:flex;justify-content:space-between;gap:10px;font-size:13px}
 .rk-play span{color:var(--muted);min-width:0;overflow-wrap:anywhere}
 .rk-play b{font-family:var(--font-num);font-variant-numeric:tabular-nums;white-space:nowrap}
+.rk-subs{border-top:1px dashed var(--line);margin:0 14px;padding:10px 0 12px;display:flex;flex-direction:column;gap:6px}
+.rk-subs>.chips-h{margin-bottom:2px}
+.rk-sub{background:var(--bg);border-radius:10px;min-width:0}
+.rk .rk-sub summary{grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:8px 10px}
+.rk-sub .rk-main b{font-size:14px}
+.rk-sub .rk-val b{font-size:16px}
+.rk-sub .rk-plays{margin:0 10px}
 
 /* 設定・メンバー */
 .mem{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);padding-top:12px}
@@ -235,16 +258,27 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
       <div class="field">
         <label for="f-machine">台</label>
         <select id="f-machine" class="sel"></select>
-        <input id="f-custom" class="tin" type="text" maxlength="40" placeholder="台の名前を入れる" autocomplete="off" hidden>
+        <div id="f-new-machine" class="mem-edit" hidden>
+          <input id="f-custom" class="tin" type="text" maxlength="40" placeholder="台の名前" autocomplete="off" aria-label="新しい台の名前">
+          <input id="f-yomi" class="tin" type="text" maxlength="40" placeholder="よみ（ひらがな）" autocomplete="off" aria-label="台の名前のよみ">
+          <p id="f-machine-say" class="hint">入れた台は、みんなの台の一覧に入ります。よみを入れると、一覧の50音の順の所に入ります。</p>
+        </div>
       </div>
       <div class="field">
-        <label for="f-aim">狙い目<small>なくても記録できます</small></label>
-        <input id="f-aim" class="tin" type="text" maxlength="80" placeholder="例：CZ間 400G〜／駆け抜け後" autocomplete="off">
+        <span class="lbl" id="aim-lbl">狙い目<small>なくても記録できます</small></span>
+        <p id="aim-nomachine" class="hint">台を選ぶと、その台の狙い目が出ます。</p>
         <div id="aim-past" hidden>
-          <p class="chips-h">この台で前に入れた狙い目（押すと入ります）</p>
-          <div id="aim-chips" class="chips"></div>
+          <p class="chips-h">この台の狙い目から選ぶ（みんなで共通・もう一度押すと外れます）</p>
+          <div id="aim-chips" class="chips" role="group" aria-labelledby="aim-lbl"></div>
         </div>
-        <p class="hint">同じ狙い目は、同じ書き方で入れてください。書き方が違うと、ランキングで別の狙い目として数えます。</p>
+        <input id="f-aim" class="tin" type="text" maxlength="80" placeholder="新しい狙い目は、ここに書く" autocomplete="off" aria-label="狙い目の名前">
+        <p id="aim-say" class="hint" hidden></p>
+        <div id="aim-fe-box" class="fe-box" hidden>
+          <div class="fe-head"><span class="chips-h">この狙い目で入れる数</span><b id="aim-fe-sum"></b><button type="button" id="aim-fe-open" class="btn sm">変える</button></div>
+          <div id="aim-fe" class="fe" hidden></div>
+        </div>
+        <div id="aim-vals" class="vals" hidden></div>
+        <p class="hint">G数などの数は、狙い目の名前に入れずに、数の欄に入れてください（分かるものだけでよい）。ランキングでは、同じ狙い目の中で、数が同じものごとの成績が見られます。</p>
       </div>
       <div class="field">
         <span class="lbl" id="pick-lbl">拾った人<small>なくても記録できます</small></span>
@@ -311,7 +345,7 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
         <input type="radio" name="rk-sort" id="rk-avg" value="avg" checked><label for="rk-avg">1回あたりの収支</label>
         <input type="radio" name="rk-sort" id="rk-sum" value="sum"><label for="rk-sum">合計の収支</label>
       </div>
-      <p class="hint">同じ台で、同じ書き方の狙い目を1つにまとめて数えます。狙い目を書かなかった記録は「狙い目なし」にまとめます。回数が少ないうちは、たまたまの当たり外れで順位が大きく動きます。</p>
+      <p class="hint">同じ台の同じ狙い目を1つにまとめて順位をつけます（G数などの数では分けません）。押すと、G数などの数が同じものごとの成績が出ます。狙い目を入れなかった記録は「狙い目なし」にまとめます。回数が少ないうちは、たまたまの当たり外れで順位が大きく動きます。</p>
     </div>
     <div id="rank" class="list"></div>
   </section>
@@ -342,6 +376,12 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
       <p class="hint">同じ人が別の名前で入っているときに、1つの名前にまとめます。前の記録の名前もまとめた名前に変わります。まとめた名前は、あとで誰かが書いても、まとめた先の名前で入ります。</p>
       <div id="pk-list" class="list"></div>
     </div>
+    <div id="am" class="block" hidden>
+      <h2>狙い目の整理</h2>
+      <p class="hint">台ごとに、同じ狙い目をまとめたり、記録のときに入れる数（G数など）を決めたりします。まとめると、前の記録の狙い目もまとめた先に変わります（G数などの数はそのまま）。まとめた狙い目は、あとで誰かが書いても、まとめた先で入ります。</p>
+      <select id="am-machine" class="sel" aria-label="整理する台"></select>
+      <div id="am-list" class="list"></div>
+    </div>
   </section>
 </div>
 
@@ -370,8 +410,9 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
 <script>
 (function(){
   'use strict';
-  /* the machines of 鬣犬 (data/picker.json, 50音順). A machine that is not on it can be typed in. */
-  var MACHINES = [{"id":"azurlane","label":"アズールレーン"},{"id":"iza_bancho","label":"いざ！番長"},{"id":"initiald2","label":"頭文字D 2nd"},{"id":"valvrave","label":"ヴァルヴレイヴ（初代）"},{"id":"valvrave2","label":"ヴァルヴレイヴ2"},{"id":"enen2","label":"炎炎ノ消防隊2"},{"id":"kaguya","label":"かぐや様は告らせたい"},{"id":"kanokari","label":"彼女、お借りします"},{"id":"kabaneri_kaimon","label":"カバネリ海門決戦"},{"id":"karakuri","label":"からくりサーカス（初代）"},{"id":"karakuri2","label":"からくりサーカス2"},{"id":"koukaku","label":"攻殻機動隊"},{"id":"god_eater","label":"ゴッドイーター リザレクション"},{"id":"juuou","label":"獣王"},{"id":"zenigata5","label":"主役は銭形5"},{"id":"shinuchi_yoshimune","label":"真打吉宗"},{"id":"street_fighter6","label":"ストリートファイター6"},{"id":"aobuta","label":"青春ブタ野郎"},{"id":"sencolle6","label":"戦国コレクション6"},{"id":"sao2","label":"ソードアート・オンラインⅡ"},{"id":"tokyo_ghoul","label":"東京喰種"},{"id":"basilisk_tenzen","label":"バジリスク絆2 天膳"},{"id":"paripi_koumei","label":"パリピ孔明"},{"id":"hokuto","label":"北斗の拳"},{"id":"magireco","label":"マギアレコード"},{"id":"million_god","label":"ミリオンゴッド 神々の軌跡"},{"id":"monkey_turn5","label":"モンキーターンV"},{"id":"mh_rise","label":"モンスターハンターライズ"},{"id":"yajikita","label":"やじきた道中記参る！"},{"id":"lycoris","label":"リコリス・リコイル"}];
+  /* the machines of 鬣犬 (data/picker.json, 50音順, with よみ). A machine that is not on it can be typed in; it then joins
+     the same list for everyone (the sheet's 「台」 tab keeps its よみ), in 50音順 (user 2026-10-23: no separate group). */
+  var MACHINES = [{"id":"azurlane","label":"アズールレーン","yomi":"あずーるれーん"},{"id":"iza_bancho","label":"いざ！番長","yomi":"いざばんちょう"},{"id":"initiald2","label":"頭文字D 2nd","yomi":"いにしゃるでぃー2"},{"id":"valvrave","label":"ヴァルヴレイヴ（初代）","yomi":"ゔぁるゔれいゔ1"},{"id":"valvrave2","label":"ヴァルヴレイヴ2","yomi":"ゔぁるゔれいゔ2"},{"id":"enen2","label":"炎炎ノ消防隊2","yomi":"えんえんのしょうぼうたい2"},{"id":"kaguya","label":"かぐや様は告らせたい","yomi":"かぐやさまはこくらせたい"},{"id":"kanokari","label":"彼女、お借りします","yomi":"かのじょおかりします"},{"id":"kabaneri_kaimon","label":"カバネリ海門決戦","yomi":"かばねりうなとけっせん"},{"id":"karakuri","label":"からくりサーカス（初代）","yomi":"からくりさーかす1"},{"id":"karakuri2","label":"からくりサーカス2","yomi":"からくりさーかす2"},{"id":"koukaku","label":"攻殻機動隊","yomi":"こうかくきどうたい"},{"id":"god_eater","label":"ゴッドイーター リザレクション","yomi":"ごっどいーたーりざれくしょん"},{"id":"juuou","label":"獣王","yomi":"じゅうおう"},{"id":"zenigata5","label":"主役は銭形5","yomi":"しゅやくはぜにがた5"},{"id":"shinuchi_yoshimune","label":"真打吉宗","yomi":"しんうちよしむね"},{"id":"street_fighter6","label":"ストリートファイター6","yomi":"すとりーとふぁいたー6"},{"id":"aobuta","label":"青春ブタ野郎","yomi":"せいしゅんぶたやろう"},{"id":"sencolle6","label":"戦国コレクション6","yomi":"せんごくこれくしょん6"},{"id":"sao2","label":"ソードアート・オンラインⅡ","yomi":"そーどあーとおんらいん2"},{"id":"tokyo_ghoul","label":"東京喰種","yomi":"とうきょうぐーる"},{"id":"basilisk_tenzen","label":"バジリスク絆2 天膳","yomi":"ばじりすくきずな2てんぜん"},{"id":"paripi_koumei","label":"パリピ孔明","yomi":"ぱりぴこうめい"},{"id":"hokuto","label":"北斗の拳","yomi":"ほくとのけん"},{"id":"magireco","label":"マギアレコード","yomi":"まぎあれこーど"},{"id":"million_god","label":"ミリオンゴッド 神々の軌跡","yomi":"みりおんごっど"},{"id":"monkey_turn5","label":"モンキーターンV","yomi":"もんきーたーん5"},{"id":"mh_rise","label":"モンスターハンターライズ","yomi":"もんすたーはんたーらいず"},{"id":"yajikita","label":"やじきた道中記参る！","yomi":"やじきたどうちゅうきまいる"},{"id":"lycoris","label":"リコリス・リコイル","yomi":"りこりすりこいる"}];
   /* where the five members' records are kept (an Apps Script in front of the team spreadsheet) */
   var API = 'https://script.google.com/macros/s/AKfycbwpscWKcnidJbAb8TLqmOJsbwcSBb1Qok8Ma4UqY7dUZBGY6yvc6Vbft71lsjD5P_VEcA/exec';
   /* the team's exchange settings, the same three as 鬣犬: coins for 1000円 (rent) and coins handed in for 1000円 (exch) */
@@ -407,7 +448,6 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
   // what counts as "the same": full/half width, spaces and 〜/～/~ do not matter
   function norm(s){ return String(s).normalize('NFKC').replace(/[\s　]+/g, '').replace(/[〜~]/g, '~').toLowerCase(); }
   function mKey(r){ return r.m ? r.m : 'c:' + norm(r.name); }
-  function machineLabel(id){ for (var i=0; i<MACHINES.length; i++) if (MACHINES[i].id===id) return MACHINES[i].label; return null; }
   function pad(n){ return (n<10 ? '0' : '') + n; }
   // a play time is kept as text 'YYYY-MM-DD HH:mm' (Japan time, as the phone shows it), or just 'YYYY-MM-DD' when the
   // time is not known (時間不明, user 2026-10-20). Such a play sorts below the timed ones of its day.
@@ -427,19 +467,21 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
 
   /* ---------- state ----------
      A record: {id, at, m, name, aim, rate, cash (円), medal (枚), out (枚), by (打った人 = the member who recorded it),
-     pick (拾った人, free words, may be empty), who (記録した人), saved, cid}
+     pick (拾った人, free words, may be empty), who (記録した人), saved, cid, det (the 狙い目's numbers: 'G数:580／スルー回数:2')}
+     S.aims is the sheet's 狙い目 list: [{k (台 key = mKey), m, name, aim, f (入れる数), to (where a merged 狙い目 went)}];
+     S.machines the typed-in 台 with their よみ: [{name, yomi}].
      S.recs is what the spreadsheet last said; S.queue holds what this phone did and has not sent yet. The screen always
      shows S.recs with the queue laid on top, so a record appears at once even with no signal in the hall. */
-  var S = {key:'', me:null, members:[], picks:[], aliases:[], recs:[], queue:[], sending:null, loading:false, failed:'', retry:null};
+  var S = {key:'', me:null, members:[], picks:[], aliases:[], aims:[], machines:[], recs:[], queue:[], sending:null, loading:false, failed:'', retry:null};
   (function(){
     var c = loadJSON(LS_CACHE, null);
-    if (c && Array.isArray(c.records)){ S.me = c.me || null; S.members = c.members || []; S.picks = c.picks || []; S.aliases = c.aliases || []; S.recs = c.records; }
+    if (c && Array.isArray(c.records)){ S.me = c.me || null; S.members = c.members || []; S.picks = c.picks || []; S.aliases = c.aliases || []; S.aims = c.aims || []; S.machines = c.machines || []; S.recs = c.records; }
     var q = loadJSON(LS_QUEUE, []);
     S.queue = Array.isArray(q) ? q : [];
   })();
-  function saveCache(){ store(LS_CACHE, JSON.stringify({me:S.me, members:S.members, picks:S.picks, aliases:S.aliases, records:S.recs})); }
+  function saveCache(){ store(LS_CACHE, JSON.stringify({me:S.me, members:S.members, picks:S.picks, aliases:S.aliases, aims:S.aims, machines:S.machines, records:S.recs})); }
   // what the spreadsheet sent back with action "all"
-  function takeAll(r){ S.me = r.me; S.members = r.members || []; S.picks = r.picks || []; S.aliases = r.aliases || []; S.recs = r.records || []; S.failed = ''; }
+  function takeAll(r){ S.me = r.me; S.members = r.members || []; S.picks = r.picks || []; S.aliases = r.aliases || []; S.aims = r.aims || []; S.machines = r.machines || []; S.recs = r.records || []; S.failed = ''; }
   function saveQueue(){ if (!store(LS_QUEUE, JSON.stringify(S.queue)) && S.queue.length) $('no-store').hidden = false; }
 
   // the records as this phone should show them: the spreadsheet's, with the unsent changes laid on top
@@ -598,7 +640,7 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
     return t.replace(/\s+/g, '');
   }
   function lockOut(msg){
-    S.key = ''; S.me = null; S.members = []; S.picks = []; S.aliases = []; S.recs = [];
+    S.key = ''; S.me = null; S.members = []; S.picks = []; S.aliases = []; S.aims = []; S.machines = []; S.recs = [];
     try { localStorage.removeItem(LS_KEY); localStorage.removeItem(LS_CACHE); } catch(e){}
     $('k-err').textContent = msg || ''; $('k-err').hidden = !msg;
     show('key');
@@ -633,63 +675,214 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
   }).join('');
   $('f-rate').addEventListener('change', function(e){ rate = e.target.value; if (!editing) store(LS_RATE, rate); update(); });
 
-  // typed-in machines, newest first, one per name
-  function customMachines(){
+  /* 50音順: the same rule as 鬣犬's build (濁点・小さい字・のばす音を外したひらがなで比べ、同じなら元の読みで) */
+  function hira(s){ return String(s || '').normalize('NFKC').toLowerCase().replace(/[\u30A1-\u30F6]/g, function(c){ return String.fromCharCode(c.charCodeAt(0)-0x60); }); }
+  var SMALL = {'ぁ':'あ','ぃ':'い','ぅ':'う','ぇ':'え','ぉ':'お','っ':'つ','ゃ':'や','ゅ':'ゆ','ょ':'よ','ゎ':'わ'};
+  function yomiKey(y){
+    var h = hira(y).replace(/\s+/g, '');
+    return [h.normalize('NFD').replace(/[\u3099\u309a]/g, '').replace(/[ぁぃぅぇぉっゃゅょゎ]/g, function(c){ return SMALL[c]; }).replace(/ー/g, ''), h];
+  }
+  function byYomi(a, b){ var x = yomiKey(a.yomi), y = yomiKey(b.yomi); return x[0]<y[0] ? -1 : x[0]>y[0] ? 1 : x[1]<y[1] ? -1 : x[1]>y[1] ? 1 : 0; }
+  // every machine in one list: 鬣犬's, the team's typed-in ones (sheet), and any only seen on records; a machine without よみ
+  // is placed by its name
+  function allMachines(){
     var seen = {}, out = [];
-    recs().forEach(function(r){ if (!r.m){ var k = mKey(r); if (!seen[k]){ seen[k] = 1; out.push({key:k, label:r.name}); } } });
-    return out;
+    MACHINES.forEach(function(m){ seen[m.id] = 1; out.push({key:m.id, m:m.id, label:m.label, yomi:m.yomi}); });
+    (S.machines || []).forEach(function(x){ var k = 'c:' + norm(x.name); if (!seen[k]){ seen[k] = 1; out.push({key:k, m:'', label:x.name, yomi:x.yomi || x.name}); } });
+    recs().forEach(function(r){ var k = mKey(r); if (!seen[k]){ seen[k] = 1; out.push({key:k, m:r.m || '', label:r.name, yomi:r.yomi || r.name}); } });
+    return out.sort(byYomi);
   }
   function fillMachines(keep){
-    var sel = $('f-machine'), cur = keep!=null ? keep : sel.value, customs = customMachines();
-    var h = '<option value="">台を選ぶ</option><optgroup label="台">'
-      + MACHINES.map(function(m){ return '<option value="'+esc(m.id)+'">'+esc(m.label)+'</option>'; }).join('') + '</optgroup>';
-    if (customs.length) h += '<optgroup label="自分たちで入れた台">' + customs.map(function(c){ return '<option value="'+esc(c.key)+'">'+esc(c.label)+'</option>'; }).join('') + '</optgroup>';
-    h += '<option value="+">＋ リストにない台を入れる</option>';
-    sel.innerHTML = h;
+    var sel = $('f-machine'), cur = keep!=null ? keep : sel.value;
+    sel.innerHTML = '<option value="">台を選ぶ</option>'
+      + allMachines().map(function(m){ return '<option value="'+esc(m.key)+'">'+esc(m.label)+'</option>'; }).join('')
+      + '<option value="+">＋ リストにない台を入れる</option>';
     sel.value = cur;
     if (sel.value!==cur) sel.value = '';
   }
-  // the machine picked in the form: {m, name, key} or null
+  // the machine picked in the form: {m, name, key, isNew} or null
   function formMachine(){
-    var v = $('f-machine').value;
+    var v = $('f-machine').value, all = allMachines(), i;
     if (!v) return null;
     if (v==='+'){
       var name = $('f-custom').value.trim();
       if (!name) return null;
-      // a typed name that is really one of the list counts as that machine
-      for (var i=0; i<MACHINES.length; i++) if (norm(MACHINES[i].label)===norm(name)) return {m:MACHINES[i].id, name:MACHINES[i].label, key:MACHINES[i].id};
-      return {m:'', name:name, key:'c:'+norm(name)};
+      // a typed name that is already in the list (any width or spacing) counts as that machine
+      for (i=0; i<all.length; i++) if (norm(all[i].label)===norm(name)) return {m:all[i].m, name:all[i].label, key:all[i].key, known:true};
+      return {m:'', name:name, key:'c:'+norm(name), isNew:true};
     }
-    if (v.indexOf('c:')===0){
-      var c = customMachines().filter(function(x){ return x.key===v; })[0];
-      return c ? {m:'', name:c.label, key:v} : null;
-    }
-    return {m:v, name:machineLabel(v) || v, key:v};
+    for (i=0; i<all.length; i++) if (all[i].key===v) return {m:all[i].m, name:all[i].label, key:v};
+    return null;
   }
+  // the よみ sent with a new machine: what was typed, or the name itself when it is written in kana
+  function formYomi(name){ var y = $('f-yomi').value.trim(); return y ? hira(y).replace(/\s+/g, '') : /[\u3400-\u9FFF]/.test(name) ? '' : hira(name).replace(/\s+/g, ''); }
   function num(id){ var el = $(id), v = digits(el.value); if (v!==el.value) el.value = v; return v==='' ? null : parseInt(v, 10); }
 
-  function aimChips(){
-    var fm = formMachine(), box = $('aim-past');
-    if (!fm){ box.hidden = true; return; }
-    var by = {}, list = [];
-    recs().forEach(function(r){   // newest first, so the first text seen is the latest way it was written
-      if (mKey(r)!==fm.key || !r.aim) return;
-      var k = norm(r.aim);
-      if (!by[k]){ by[k] = {key:k, text:r.aim, n:0}; list.push(by[k]); }
-      by[k].n++;
+  /* 狙い目 (user 2026-10-23 「台の狙い目って大体同じで、打ち始めるタイミングのG数とかが違うから、そこを入力できるように」
+     「狙い目に関しては拾った人と同じ感じで」). A 狙い目 is a name remembered per 台 for everyone (the sheet's 狙い目 tab);
+     each one says which numbers are asked when it is played (入れる数, 'G数' unless set otherwise), and the record keeps
+     those numbers apart from the name. The 管理 person can merge 狙い目 and change their 入れる数 (設定 → 狙い目の整理).
+     入れる数 is written 'pt数、駆け抜け[あり/なし]' (a [..] item is chosen from its list); the numbers 'pt数:10／駆け抜け:あり'. */
+  var DEF_FIELDS = 'G数';
+  function cleanPart(s, n){ return String(s || '').replace(/[\s　]+/g, ' ').trim().replace(/[:：／、,\[\]\/]/g, '').slice(0, n); }
+  function parseFields(text){
+    var out = [], seen = {};
+    String(text || '').split(/[、,]/).forEach(function(x){
+      var m = /^([^\[\]]*?)\s*(?:\[([^\]]*)\])?$/.exec(x.replace(/[\s　]+/g, ' ').trim());
+      if (!m) return;
+      var name = cleanPart(m[1], 12);
+      if (!name || seen[norm(name)]) return;
+      seen[norm(name)] = 1;
+      var opts = String(m[2] || '').split('/').map(function(o){ return cleanPart(o, 10); }).filter(function(o, i, a){ return o && a.indexOf(o)===i; }).slice(0, 8);
+      out.push({name:name, opts:opts});
     });
-    if (!list.length){ box.hidden = true; return; }
-    var cur = norm($('f-aim').value);
-    $('aim-chips').innerHTML = list.slice(0, 12).map(function(a){
-      return '<button type="button" class="chip" data-aim="'+esc(a.text)+'" aria-pressed="'+(a.key===cur && cur!=='' ? 'true' : 'false')+'">'+esc(a.text)+'<small>'+a.n+'回</small></button>';
-    }).join('');
-    box.hidden = false;
+    return out.slice(0, 8);
   }
+  function fieldsText(fields){ return fields.map(function(f){ return f.name + (f.opts.length ? '[' + f.opts.join('/') + ']' : ''); }).join('、'); }
+  function parseDet(text){ var out = []; String(text || '').split('／').forEach(function(x){ var i = x.indexOf(':'); if (i>0 && x.slice(i+1)) out.push([x.slice(0, i), x.slice(i+1)]); }); return out; }
+  function detText(pairs){ return pairs.map(function(p){ return [cleanPart(p[0], 12), cleanPart(p[1], 12)]; }).filter(function(p){ return p[0] && p[1]; }).map(function(p){ return p[0] + ':' + p[1]; }).join('／'); }
+  // how the numbers read: 「G数 580・スルー回数 2」; a chosen value that already says what it is (「15pt」 for pt) stands alone
+  function detLabel(text){ return parseDet(text).map(function(p){ return norm(p[1]).indexOf(norm(p[0]))>=0 ? p[1] : p[0] + ' ' + p[1]; }).join('・'); }
+  // the same numbers in any order or width are the same
+  function detKey(text){ return parseDet(text).map(function(p){ return norm(p[0]) + ':' + norm(p[1]); }).sort().join('|'); }
+  function aimAliasOf(key, aim, aims){ var k = norm(aim); for (var i=0; i<(aims || []).length; i++){ var a = aims[i]; if (a.k===key && a.to && norm(a.aim)===k) return a.to; } return null; }
+  // the 狙い目 of one 台: the sheet's list and the records' (a merged one counts as where it went); most played first
+  function aimList(key, all, aims){
+    var by = {}, list = [];
+    function add(aim){ aim = aimAliasOf(key, aim, aims) || aim; var k = norm(aim); if (!k) return null; if (!by[k]){ by[k] = {key:k, text:aim, n:0, i:list.length}; list.push(by[k]); } return by[k]; }
+    (aims || []).forEach(function(a){ if (a.k===key && !a.to) add(a.aim); });
+    all.slice().reverse().forEach(function(r){ if (r.aim && mKey(r)===key){ var x = add(r.aim); if (x) x.n++; } });
+    return list.sort(function(a, b){ return b.n - a.n || a.i - b.i; });
+  }
+  // the name a written 狙い目 is kept as (the same steps as the sheet): a merged one → where it went, a known one → the list's spelling
+  function resolveAim(text, key, list, aims){
+    var t = String(text || '').trim();
+    if (!t) return '';
+    t = aimAliasOf(key, t, aims) || t;
+    for (var i=0; i<list.length; i++) if (list[i].key===norm(t)) return list[i].text;
+    return t;
+  }
+  // the numbers asked for a 狙い目: the sheet's 入れる数; for one made on this phone and not sent yet, what it was made with
+  function aimFields(key, aim, aims, queue){
+    var k = norm(aim), i;
+    for (i=0; i<(aims || []).length; i++) if (aims[i].k===key && !aims[i].to && norm(aims[i].aim)===k) return parseFields(aims[i].f);
+    for (i=0; i<(queue || []).length; i++){ var r = queue[i].rec; if (r && r.fields!=null && norm(r.aim || '')===k && (r.m || 'c:' + norm(r.name || ''))===key) return parseFields(r.fields); }
+    return parseFields(DEF_FIELDS);
+  }
+
+  /* the 入れる数 editor (a new 狙い目 in the form, and the 管理 screen): one row per number, typed (数字) or chosen from a list (選ぶ) */
+  function feRow(f){
+    var opt = f.opts.length>0;
+    return '<div class="fe-row"><input class="tin" data-fe="name" type="text" maxlength="12" value="'+esc(f.name)+'" placeholder="項目（例：G数）" autocomplete="off" aria-label="項目の名前">'
+      + '<select class="sel" data-fe="kind" aria-label="入れ方"><option value="num"'+(opt ? '' : ' selected')+'>数字</option><option value="opt"'+(opt ? ' selected' : '')+'>選ぶ</option></select>'
+      + '<button type="button" class="btn sm" data-fe="del" aria-label="この項目を消す">×</button>'
+      + '<input class="tin fe-opts" data-fe="opts" type="text" maxlength="60" value="'+esc(f.opts.join('/'))+'" placeholder="選ぶもの（例：あり/なし）" autocomplete="off" aria-label="選ぶもの"'+(opt ? '' : ' hidden')+'></div>';
+  }
+  function feRender(box, fields){ box.innerHTML = fields.map(feRow).join('') + '<button type="button" class="btn sm" data-fe="add">＋ 項目を足す</button>'; }
+  function feRead(box){
+    var out = [];
+    box.querySelectorAll('.fe-row').forEach(function(row){
+      var name = cleanPart(row.querySelector('[data-fe="name"]').value, 12), opt = row.querySelector('[data-fe="kind"]').value==='opt';
+      if (name) out.push(name + (opt ? '[' + row.querySelector('[data-fe="opts"]').value.replace(/[、,，・\s　]+/g, '/') + ']' : ''));
+    });
+    return parseFields(out.join('、'));
+  }
+  function feBind(box, onChange){
+    box.addEventListener('input', function(){ onChange(feRead(box)); });
+    box.addEventListener('change', function(e){
+      if (e.target.getAttribute('data-fe')==='kind'){
+        var o = e.target.closest('.fe-row').querySelector('[data-fe="opts"]');
+        o.hidden = e.target.value!=='opt';
+        if (!o.hidden) o.focus();
+      }
+      onChange(feRead(box));
+    });
+    box.addEventListener('click', function(e){
+      var b = e.target.closest('button[data-fe]'); if (!b) return;
+      if (b.getAttribute('data-fe')==='del') b.closest('.fe-row').remove();
+      else if (box.querySelectorAll('.fe-row').length<8){
+        var t = document.createElement('div'); t.innerHTML = feRow({name:'', opts:[]});
+        var row = t.firstChild; box.insertBefore(row, b); row.querySelector('input').focus();
+      }
+      onChange(feRead(box));
+    });
+  }
+
+  /* the 狙い目 part of the form. detVals keeps the numbers typed (by item name, so they stay when the 狙い目 changes);
+     newFields is the 入れる数 chosen for a new 狙い目; editExtra the items of a record being fixed that its 狙い目 no longer asks */
+  var detVals = {}, newFields = null, feOpen = false, valsSig = '', editExtra = [];
+  function formAim(){
+    var fm = formMachine();
+    if (!fm) return {fm:null, list:[], typed:'', aim:'', isNew:false};
+    var list = aimList(fm.key, recs(), S.aims), typed = $('f-aim').value.trim(), aim = resolveAim(typed, fm.key, list, S.aims);
+    return {fm:fm, list:list, typed:typed, aim:aim, isNew:!!aim && !list.some(function(a){ return a.key===norm(aim); })};
+  }
+  function formFields(fa){
+    if (!fa.fm || !fa.aim) return [];
+    var f = fa.isNew ? (newFields || parseFields(DEF_FIELDS)) : aimFields(fa.fm.key, fa.aim, S.aims, S.queue), has = {};
+    f.forEach(function(x){ has[norm(x.name)] = 1; });
+    return f.concat(editExtra.filter(function(n){ return !has[norm(n)]; }).map(function(n){ return {name:n, opts:[], extra:true}; }));
+  }
+  function formDet(fa){ return detText(formFields(fa).map(function(f){ return [f.name, String(detVals[f.name] || '').trim()]; })); }
+  function renderAim(){
+    var fa = formAim(), cur = norm(fa.aim);
+    $('aim-nomachine').hidden = !!fa.fm;
+    $('aim-past').hidden = !fa.list.length;
+    $('aim-chips').innerHTML = fa.list.map(function(a){
+      return '<button type="button" class="chip" data-aim="'+esc(a.text)+'" aria-pressed="'+(a.key===cur && cur ? 'true' : 'false')+'">'+esc(a.text)+(a.n ? '<small>'+a.n+'回</small>' : '')+'</button>';
+    }).join('');
+    var msg = '';
+    if (fa.fm && fa.typed && aimAliasOf(fa.fm.key, fa.typed, S.aims)) msg = '「' + fa.typed + '」は「' + fa.aim + '」にまとめてあるので、「' + fa.aim + '」で記録します。';
+    else if (fa.isNew) msg = '「' + fa.typed + '」を、この台の新しい狙い目として、みんなの一覧に足します。'
+      + (/[0-9０-９]\s*[gGｇＧ]/.test(fa.typed) ? 'G数は名前に入れずに、数の欄に入れてください。' : '');
+    $('aim-say').textContent = msg; $('aim-say').hidden = !msg;
+    $('aim-fe-box').hidden = !fa.isNew;
+    if (fa.isNew){
+      var nf = newFields || parseFields(DEF_FIELDS);
+      $('aim-fe-sum').textContent = nf.length ? nf.map(function(f){ return f.name; }).join('・') : 'なし';
+      $('aim-fe-open').textContent = feOpen ? 'とじる' : '変える';
+      $('aim-fe').hidden = !feOpen;
+      if (feOpen && !$('aim-fe').firstChild) feRender($('aim-fe'), nf);
+    } else { feOpen = false; $('aim-fe').innerHTML = ''; $('aim-fe').hidden = true; }
+    renderVals(formFields(fa));
+  }
+  // the boxes for the numbers; drawn again only when the items change, so typing is never interrupted
+  function renderVals(fields){
+    var box = $('aim-vals'), sig = fieldsText(fields) + fields.map(function(f){ return f.extra ? '*' : ''; }).join('');
+    box.hidden = !fields.length;
+    if (sig===valsSig){ syncValChips(); return; }
+    valsSig = sig;
+    box.innerHTML = '<p class="chips-h">数（分かるものだけ。選ぶものは、もう一度押すと外れます）</p>' + fields.map(function(f, i){
+      var v = detVals[f.name] || '', id = 'fv-' + i;
+      if (f.opts.length) return '<div class="vrow"><span class="mlbl" id="'+id+'">'+esc(f.name)+'</span><div class="chips" role="group" aria-labelledby="'+id+'">'
+        + f.opts.map(function(o){ return '<button type="button" class="chip" data-vname="'+esc(f.name)+'" data-v="'+esc(o)+'" aria-pressed="'+(v===o ? 'true' : 'false')+'">'+esc(o)+'</button>'; }).join('') + '</div></div>';
+      return '<div class="vrow"><label class="mlbl" for="'+id+'">'+esc(f.name)+'</label><div class="gbox"><input id="'+id+'" data-vname="'+esc(f.name)+'"'
+        + (f.extra ? ' data-extra="1" type="text" maxlength="12"' : ' type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6"') + ' value="'+esc(v)+'" placeholder="—" autocomplete="off"></div></div>';
+    }).join('');
+  }
+  function syncValChips(){
+    $('aim-vals').querySelectorAll('.chip[data-vname]').forEach(function(b){ b.setAttribute('aria-pressed', detVals[b.getAttribute('data-vname')]===b.getAttribute('data-v') ? 'true' : 'false'); });
+  }
+  $('aim-vals').addEventListener('input', function(e){
+    var n = e.target.getAttribute('data-vname'); if (!n) return;
+    var v = e.target.getAttribute('data-extra') ? e.target.value : digits(e.target.value);
+    if (v!==e.target.value) e.target.value = v;
+    detVals[n] = v;
+  });
+  $('aim-vals').addEventListener('click', function(e){
+    var b = e.target.closest('.chip[data-vname]'); if (!b) return;
+    var n = b.getAttribute('data-vname'), v = b.getAttribute('data-v');
+    detVals[n] = detVals[n]===v ? '' : v;
+    syncValChips();
+  });
   $('aim-chips').addEventListener('click', function(e){
     var b = e.target.closest('.chip'); if (!b) return;
-    $('f-aim').value = b.getAttribute('data-aim');
+    // pressing the chosen 狙い目 again takes it off
+    $('f-aim').value = b.getAttribute('aria-pressed')==='true' ? '' : b.getAttribute('data-aim');
     update();
   });
+  $('aim-fe-open').addEventListener('click', function(){ feOpen = !feOpen; renderAim(); if (feOpen){ var i = $('aim-fe').querySelector('input'); if (i) i.focus(); } });
+  feBind($('aim-fe'), function(f){ newFields = f; renderAim(); });
 
   /* 拾った人 (user, 2026-10-20): a name written once is remembered for everyone. The spreadsheet keeps the list
      (its 「拾った人」 tab, filled by the API whenever a record brings a new name); names on records not sent yet are
@@ -769,8 +962,10 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
 
   function update(){
     var fm = formMachine(), cash = num('f-cash'), medal = num('f-medal'), out = num('f-out');
-    $('f-custom').hidden = $('f-machine').value!=='+';
-    aimChips(); pickChips();
+    $('f-new-machine').hidden = $('f-machine').value!=='+';
+    $('f-machine-say').textContent = fm && fm.known ? '「' + fm.name + '」は台の一覧にあります。その台として記録します。'
+      : '入れた台は、みんなの台の一覧に入ります。よみを入れると、一覧の50音の順の所に入ります。';
+    renderAim(); pickChips();
     var res = $('f-res');
     if (cash==null && medal==null && out==null){
       res.innerHTML = '<span>収支</span><small>投資と回収を入れると、ここに出ます</small>';
@@ -793,7 +988,7 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
       ? '日時は選んだものが入ります。「いまにする」で今にもどせます。'
       : '日時は「いま」が入っています。あとから入れるときは、押して選び直してください。';
   }
-  ['f-machine', 'f-custom', 'f-aim', 'f-pick', 'f-cash', 'f-medal', 'f-out'].forEach(function(id){
+  ['f-machine', 'f-custom', 'f-yomi', 'f-aim', 'f-pick', 'f-cash', 'f-medal', 'f-out'].forEach(function(id){
     $(id).addEventListener('input', update);
     $(id).addEventListener('change', update);
   });
@@ -807,7 +1002,8 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
     editing = null; atTouched = false;
     setNoTime(false);
     fillMachines('');
-    $('f-custom').value = ''; $('f-aim').value = ''; $('f-pick').value = ''; $('f-cash').value = ''; $('f-medal').value = ''; $('f-out').value = '';
+    $('f-custom').value = ''; $('f-yomi').value = ''; $('f-aim').value = ''; $('f-pick').value = ''; $('f-cash').value = ''; $('f-medal').value = ''; $('f-out').value = '';
+    detVals = {}; newFields = null; feOpen = false; valsSig = ''; editExtra = []; $('aim-fe').innerHTML = '';
     rate = RATES[load(LS_RATE)] ? load(LS_RATE) : rate;
     var rb = $('fr-'+rate); if (rb) rb.checked = true;
     nowIfUntouched();
@@ -820,8 +1016,11 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
   $('f-save').addEventListener('click', function(){
     var fm = formMachine(), at = formAt(), cash = num('f-cash'), medal = num('f-medal'), out = num('f-out');
     if (!fm || !at || (cash==null && medal==null) || out==null) return update();
-    var data = {at:at, m:fm.m, name:fm.name, aim:$('f-aim').value.trim(), rate:rate, cash:cash||0, medal:medal||0, out:out||0,
+    var fa = formAim();
+    var data = {at:at, m:fm.m, name:fm.name, aim:fa.aim, det:fa.aim ? formDet(fa) : '', rate:rate, cash:cash||0, medal:medal||0, out:out||0,
       pick:resolvePick($('f-pick').value, formPlayer(), pickList(recs(), S.picks, S.aliases), S.aliases)};
+    if (fa.isNew) data.fields = fieldsText(newFields || parseFields(DEF_FIELDS));   // a new 狙い目 goes to the list with these
+    if (fm.isNew) data.yomi = formYomi(fm.name);
     if (editing){
       var r = byId(editing);
       if (r){
@@ -846,7 +1045,9 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
     if (add && add!==S.sending){ add.rec = Object.assign({}, add.rec, data); saveQueue(); refresh(); return; }
     var same = S.queue.filter(function(op){ return op.t==='upd' && op.ref===r.id && op!==S.sending; })[0];
     if (same){ same.rec = Object.assign({}, same.rec, data); saveQueue(); refresh(); flush(); return; }
-    var full = {}; ['at', 'm', 'name', 'aim', 'rate', 'cash', 'medal', 'out', 'pick'].forEach(function(k){ full[k] = data[k]!==undefined ? data[k] : r[k]; });
+    var full = {}; ['at', 'm', 'name', 'aim', 'det', 'rate', 'cash', 'medal', 'out', 'pick'].forEach(function(k){ full[k] = data[k]!==undefined ? data[k] : k==='det' ? (r.det || '') : r[k]; });
+    if (data.fields!=null) full.fields = data.fields;
+    if (data.yomi) full.yomi = data.yomi;
     push({t:'upd', ref:r.id, rec:full});
   }
   function removeRecord(r){
@@ -865,8 +1066,10 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
     var r = byId(id); if (!r || !canTouch(r)) return;
     editing = id; atTouched = true;
     fillMachines(r.m ? r.m : mKey(r));
-    $('f-custom').value = '';
+    $('f-custom').value = ''; $('f-yomi').value = '';
     $('f-aim').value = r.aim || '';
+    detVals = {}; editExtra = []; newFields = null; feOpen = false; valsSig = ''; $('aim-fe').innerHTML = '';
+    parseDet(r.det).forEach(function(p){ detVals[p[0]] = p[1]; editExtra.push(p[0]); });
     if (hasTime(r.at)){ setNoTime(false); $('f-at').value = r.at.replace(' ', 'T'); }
     else { setNoTime(true); $('f-day').value = r.at.slice(0, 10); }
     $('f-cash').value = r.cash ? String(r.cash) : (r.medal ? '' : '0');
@@ -931,7 +1134,7 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
       if (k!==last){ h += '<h2 class="day">'+esc(dayLabel(r.at))+'</h2>'; last = k; }
       h += '<div class="item">'
         + '<div class="it-top"><span class="it-time">'+esc(timeLabel(r.at))+'</span><span class="it-name">'+esc(r.name)+'</span><span class="tag">'+esc((RATES[r.rate]||RATES.toka).label)+'</span>'+(r.pending ? '<span class="tag wait">未送信</span>' : '')+'</div>'
-        + (r.aim ? '<div class="it-aim">'+esc(r.aim)+'</div>' : '<div class="it-aim none">狙い目なし</div>')
+        + (r.aim ? '<div class="it-aim">'+esc(r.aim)+'</div>'+(r.det ? '<div class="it-det">'+esc(detLabel(r.det))+'</div>' : '') : '<div class="it-aim none">狙い目なし</div>')
         + '<div class="it-res"><b class="'+cls(c.yen)+'">'+esc(signed(c.yen, '円'))+'</b><b class="'+cls(c.coins)+'">'+esc(signed(c.coins, '枚'))+'</b>'
         + (confirmId===r.id || !mine ? '' : '<span class="it-act"><button type="button" class="btn sm" data-act="edit" data-id="'+id+'">直す</button><button type="button" class="btn sm" data-act="del" data-id="'+id+'">消す</button></span>')
         + '</div>'
@@ -973,7 +1176,7 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
       if (!by[k]){ by[k] = {name:who, n:0, win:0, yen:0, plays:[]}; out.push(by[k]); }
       var p = by[k];
       p.n++; p.yen += c.yen; if (c.yen>0) p.win++;
-      p.plays.push({at:r.at, name:r.name, aim:r.aim, yen:c.yen, other:key==='by' ? r.pick : r.by});
+      p.plays.push({at:r.at, name:r.name, aim:r.aim, det:r.det, yen:c.yen, other:key==='by' ? r.pick : r.by});
       team.n++; team.yen += c.yen; if (c.yen>0) team.win++;
     });
     out.sort(function(a, b){ return (b.n>0) - (a.n>0) || b.yen - a.yen || b.n - a.n; });
@@ -995,7 +1198,7 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
         + '<span class="rk-val"><b class="'+cls(p.yen)+'">'+(p.n ? esc(signed(p.yen, '円')) : '—')+'</b></span>'
         + '</summary>'
         + (p.n ? '<div class="rk-plays">' + p.plays.map(function(x){
-            return '<div class="rk-play"><span>'+esc(shortDay(x.at)+' '+x.name+(x.aim ? '・'+x.aim : '')+(x.other && x.other!==p.name ? '（'+(key==='by' ? '拾った：' : '打った：')+x.other+'）' : ''))+'</span><b class="'+cls(x.yen)+'">'+esc(signed(x.yen, '円'))+'</b></div>';
+            return '<div class="rk-play"><span>'+esc(shortDay(x.at)+' '+x.name+(x.aim ? '・'+x.aim+(x.det ? '（'+detLabel(x.det)+'）' : '') : '')+(x.other && x.other!==p.name ? '（'+(key==='by' ? '拾った：' : '打った：')+x.other+'）' : ''))+'</span><b class="'+cls(x.yen)+'">'+esc(signed(x.yen, '円'))+'</b></div>';
           }).join('') + '</div>' : '')
         + '</details>';
     }).join('') : '<div class="empty">メンバーを読み込むと、ここに一人ずつ出ます。</div>';
@@ -1004,24 +1207,29 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
   $('mon-next').addEventListener('click', function(){ month = shiftMonth(month, 1); renderMonth(); });
   document.querySelectorAll('input[name="mon-by"]').forEach(function(x){ x.addEventListener('change', renderMonth); });
 
-  /* ---------- ランキング: one row per (台 × 狙い目), everyone's records ---------- */
-  function groups(all){
+  /* ---------- ランキング: one row per (台 × 狙い目 name), everyone's records (user 2026-10-23 「G数とかなしの狙い目でつけて」);
+     inside it, the records with the same numbers are put together (「G数とか同じものは同じにして詳細見えるように」) ---------- */
+  function addPlay(g, r, c){ g.n++; g.yen += c.yen; if (c.yen>0) g.win++; g.plays.push({at:r.at, yen:c.yen, by:r.by}); }
+  function groups(all, aims){
     var by = {}, out = [];
     all.forEach(function(r){   // newest first
-      var k = mKey(r) + '|' + norm(r.aim || '');
-      if (!by[k]){ by[k] = {mk:mKey(r), name:r.name, aim:r.aim || '', n:0, win:0, yen:0, last:r.at, plays:[]}; out.push(by[k]); }
-      var g = by[k], c = calc(r);
-      g.n++; g.yen += c.yen; if (c.yen>0) g.win++;
-      g.plays.push({at:r.at, yen:c.yen, by:r.by});
+      var mk = mKey(r), aim = r.aim ? (aimAliasOf(mk, r.aim, aims) || r.aim) : '', k = mk + '|' + norm(aim), c = calc(r);
+      if (!by[k]){ by[k] = {mk:mk, name:r.name, aim:aim, n:0, win:0, yen:0, last:r.at, plays:[], subs:[], sby:{}}; out.push(by[k]); }
+      var g = by[k], dk = aim ? detKey(r.det) : '';
+      addPlay(g, r, c);
+      if (!g.sby[dk]){ g.sby[dk] = {key:dk, det:dk ? r.det : '', n:0, win:0, yen:0, plays:[]}; g.subs.push(g.sby[dk]); }
+      addPlay(g.sby[dk], r, c);
     });
-    out.forEach(function(g){ g.avg = roundHalfAway(g.yen / g.n); });
+    out.forEach(function(g){ g.avg = roundHalfAway(g.yen / g.n); g.subs.forEach(function(x){ x.avg = roundHalfAway(x.yen / x.n); }); delete g.sby; });
     return out;
   }
+  function playsHTML(plays){
+    return '<div class="rk-plays">' + plays.map(function(p){ return '<div class="rk-play"><span>'+esc(dayLabel(p.at)+' '+timeLabel(p.at)+(p.by ? '・'+p.by : ''))+'</span><b class="'+cls(p.yen)+'">'+esc(signed(p.yen, '円'))+'</b></div>'; }).join('') + '</div>';
+  }
   function fillRankMachines(all){
-    var sel = $('rk-machine'), cur = sel.value, seen = {}, opts = [];
-    all.forEach(function(r){ seen[mKey(r)] = r.name; });
-    MACHINES.forEach(function(m){ if (seen[m.id]){ opts.push({key:m.id, label:m.label}); delete seen[m.id]; } });
-    Object.keys(seen).forEach(function(k){ opts.push({key:k, label:seen[k]}); });
+    var sel = $('rk-machine'), cur = sel.value, has = {};
+    all.forEach(function(r){ has[mKey(r)] = 1; });
+    var opts = allMachines().filter(function(m){ return has[m.key]; });
     sel.innerHTML = '<option value="">すべての台</option>' + opts.map(function(o){ return '<option value="'+esc(o.key)+'">'+esc(o.label)+'</option>'; }).join('');
     sel.value = cur; if (sel.value!==cur) sel.value = '';
   }
@@ -1029,23 +1237,32 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
     var all = recs();
     fillRankMachines(all);
     var only = $('rk-machine').value, sort = document.querySelector('input[name="rk-sort"]:checked').value;
-    var list = groups(all).filter(function(g){ return !only || g.mk===only; });
+    var list = groups(all, S.aims).filter(function(g){ return !only || g.mk===only; });
     var el = $('rank');
     if (!list.length){ el.innerHTML = '<div class="empty">まだ記録がありません。記録がたまると、狙い目ごとの順位が出ます。</div>'; return; }
     list.sort(function(a, b){
       var x = sort==='sum' ? b.yen - a.yen : b.avg - a.avg;
       return x || b.n - a.n || (a.last<b.last ? 1 : a.last>b.last ? -1 : 0);
     });
+    function val(x){ return sort==='sum' ? x.yen : x.avg; }
+    function other(x){ return sort==='sum' ? '1回あたり '+signed(x.avg, '円') : '合計 '+signed(x.yen, '円'); }
     el.innerHTML = list.map(function(g, i){
-      var main = sort==='sum' ? g.yen : g.avg, other = sort==='sum' ? '1回あたり '+signed(g.avg, '円') : '合計 '+signed(g.yen, '円');
+      var main = val(g), inner;
+      if (g.aim){
+        // the numbers' groups, in the same order as the ranking; records without numbers last
+        var subs = g.subs.slice().sort(function(a, b){ return (!a.key) - (!b.key) || val(b) - val(a) || b.n - a.n; });
+        inner = '<div class="rk-subs"><p class="chips-h">G数などの数ごと（押すと記録が出ます）</p>' + subs.map(function(x){
+          return '<details class="rk-sub"><summary><span class="rk-main">'+(x.key ? '<b>'+esc(detLabel(x.det))+'</b>' : '<b class="none">数の記録なし</b>')
+            + '<span class="rk-meta"><span>'+x.n+'回</span><span>勝ち'+x.win+'回</span><span>'+esc(other(x))+'</span></span></span>'
+            + '<span class="rk-val"><b class="'+cls(val(x))+'">'+esc(signed(val(x), '円'))+'</b></span></summary>' + playsHTML(x.plays) + '</details>';
+        }).join('') + '</div>';
+      } else inner = playsHTML(g.plays);
       return '<details class="rk"><summary>'
         + '<span class="rk-no">'+(i+1)+'</span>'
         + '<span class="rk-main">'+(only ? '' : '<small>'+esc(g.name)+'</small>')+(g.aim ? '<b>'+esc(g.aim)+'</b>' : '<b class="none">狙い目なし</b>')
-        + '<span class="rk-meta"><span>'+g.n+'回</span><span>勝ち'+g.win+'回</span><span>'+esc(other)+'</span></span></span>'
+        + '<span class="rk-meta"><span>'+g.n+'回</span><span>勝ち'+g.win+'回</span><span>'+esc(other(g))+'</span></span></span>'
         + '<span class="rk-val"><b class="'+cls(main)+'">'+esc(signed(main, '円'))+'</b><small>'+(sort==='sum' ? '合計' : '1回あたり')+'</small></span>'
-        + '</summary><div class="rk-plays">'
-        + g.plays.map(function(p){ return '<div class="rk-play"><span>'+esc(dayLabel(p.at)+' '+timeLabel(p.at)+(p.by ? '・'+p.by : ''))+'</span><b class="'+cls(p.yen)+'">'+esc(signed(p.yen, '円'))+'</b></div>'; }).join('')
-        + '</div></details>';
+        + '</summary>' + inner + '</details>';
     }).join('');
   }
   $('rk-machine').addEventListener('change', renderRank);
@@ -1057,7 +1274,7 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
   function renderSet(fetch){
     $('set-me').innerHTML = S.me ? 'この端末は <b>' + esc(S.me.name) + '</b> さん' + (S.me.admin ? '（管理）' : '') + 'で使っています。' : '';
     $('adm').hidden = !(S.me && S.me.admin);
-    renderPicks();
+    renderPicks(); renderAims();
     if (!(S.me && S.me.admin)) return;
     if (fetch){
       $('adm-link').hidden = true; admOpen = null;
@@ -1217,6 +1434,87 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
     }
   });
 
+  /* 狙い目の整理 (管理 only, user 2026-10-23 「現在あるものも整理して」): per 台, merge a 狙い目 into another (or rename it)
+     and change the numbers asked for it. The sheet does the change; the screen reads everything again afterwards. */
+  var amOpen = null;   // {key, mode:'merge'|'fields', fields}
+  function amMachines(){
+    var has = {};
+    S.aims.forEach(function(a){ if (!a.to) has[a.k] = 1; });
+    recs().forEach(function(r){ if (r.aim) has[mKey(r)] = 1; });
+    return allMachines().filter(function(m){ return has[m.key]; });
+  }
+  function renderAims(){
+    var box = $('am'); box.hidden = !(S.me && S.me.admin);
+    if (box.hidden) return;
+    var sel = $('am-machine'), cur = sel.value;
+    sel.innerHTML = '<option value="">台を選ぶ</option>' + amMachines().map(function(m){ return '<option value="'+esc(m.key)+'">'+esc(m.label)+'</option>'; }).join('');
+    sel.value = cur; if (sel.value!==cur) sel.value = '';
+    var el = $('am-list'), key = sel.value, input = el.querySelector('[data-f="to"]'), keep = input ? input.value : '';
+    if (!key){ el.innerHTML = ''; amOpen = null; return; }
+    var list = aimList(key, recs(), S.aims);
+    if (amOpen && !list.some(function(a){ return a.key===amOpen.key; })) amOpen = null;
+    if (!list.length){ el.innerHTML = '<p class="hint">この台の狙い目はまだありません。</p>'; return; }
+    el.innerHTML = list.map(function(a){
+      var f = aimFields(key, a.text, S.aims, S.queue), k = esc(a.key), open = amOpen && amOpen.key===a.key;
+      var h = '<div class="mem"><div class="mem-top"><b>'+esc(a.text)+'</b><span class="tag">'+a.n+'件</span></div>'
+        + '<p class="hint">入れる数：'+esc(f.length ? f.map(function(x){ return x.name + (x.opts.length ? '（' + x.opts.join('/') + '）' : ''); }).join('・') : 'なし')+'</p>';
+      if (!open) return h + '<div class="acts" style="flex-wrap:wrap"><button type="button" class="btn sm" data-amact="merge" data-key="'+k+'">まとめる</button><button type="button" class="btn sm" data-amact="fields" data-key="'+k+'">入れる数を変える</button></div></div>';
+      h += '<div class="mem-edit">';
+      if (amOpen.mode==='merge') h += '<p class="chips-h">どの狙い目にまとめますか（押して選ぶか、下に書く）</p><div class="chips">'
+        + list.filter(function(x){ return x.key!==a.key; }).map(function(x){ return '<button type="button" class="chip" data-amact="to" data-to="'+esc(x.text)+'" aria-pressed="false">'+esc(x.text)+'</button>'; }).join('') + '</div>'
+        + '<input class="tin" data-f="to" type="text" maxlength="80" placeholder="まとめ先の狙い目（新しい名前でもよい）" autocomplete="off" aria-label="まとめ先の狙い目"><p class="hint" data-f="say"></p>';
+      else h += '<div class="fe" data-f="fe"></div><p class="hint">記録のときに入れる数です。変えても、前の記録の数はそのまま残ります。</p>';
+      return h + '<p class="err" data-f="err" hidden></p>'
+        + '<div class="acts"><button type="button" class="btn sm" data-amact="close">やめる</button><button type="button" class="btn sm main" data-amact="go">'+(amOpen.mode==='merge' ? 'まとめる' : '保存')+'</button></div></div></div>';
+    }).join('');
+    input = el.querySelector('[data-f="to"]');
+    if (input){ input.value = keep; amSay(); }
+    var fe = el.querySelector('[data-f="fe"]');
+    if (fe){ feRender(fe, amOpen.fields); feBind(fe, function(f){ amOpen.fields = f; }); }
+  }
+  function amSay(){
+    var el = $('am-list'), input = el.querySelector('[data-f="to"]'), key = $('am-machine').value;
+    if (!input || !amOpen) return;
+    var list = aimList(key, recs(), S.aims), a = list.filter(function(x){ return x.key===amOpen.key; })[0];
+    if (!a) return;
+    var to = input.value.trim(), res = resolveAim(to, key, list, S.aims), k = norm(res), bad = !to || to===a.text;
+    el.querySelectorAll('[data-amact="to"]').forEach(function(b){ b.setAttribute('aria-pressed', k && norm(b.getAttribute('data-to'))===k ? 'true' : 'false'); });
+    el.querySelector('[data-f="say"]').textContent = bad ? '' : '「' + a.text + '」の記録' + a.n + '件を「' + res + '」に変えます（G数などの数はそのまま）。'
+      + (list.some(function(x){ return x.key===k; }) ? '' : '（「' + res + '」は新しい名前です）');
+    el.querySelector('[data-amact="go"]').disabled = bad;
+  }
+  $('am-machine').addEventListener('change', function(){ amOpen = null; renderAims(); });
+  $('am-list').addEventListener('input', function(e){ if (e.target.getAttribute('data-f')==='to') amSay(); });
+  $('am-list').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-amact]'); if (!b) return;
+    var act = b.getAttribute('data-amact'), el = $('am-list'), key = $('am-machine').value, list = aimList(key, recs(), S.aims);
+    if (act==='merge' || act==='fields'){
+      var a = list.filter(function(x){ return x.key===b.getAttribute('data-key'); })[0]; if (!a) return;
+      var old = el.querySelector('[data-f="to"]'); if (old) old.value = '';
+      amOpen = {key:a.key, mode:act, fields:aimFields(key, a.text, S.aims, S.queue)};
+      renderAims();
+      var i = el.querySelector('[data-f="to"]') || el.querySelector('[data-fe="name"]'); if (i) i.focus();
+      return;
+    }
+    if (act==='close'){ amOpen = null; return renderAims(); }
+    if (act==='to'){ el.querySelector('[data-f="to"]').value = b.getAttribute('data-to'); return amSay(); }
+    if (act==='go' && amOpen){
+      var a2 = list.filter(function(x){ return x.key===amOpen.key; })[0], m = allMachines().filter(function(x){ return x.key===key; })[0], err = el.querySelector('[data-f="err"]');
+      if (!a2 || !m) return;
+      var mode = amOpen.mode, p = {m:m.m, name:m.label};
+      if (mode==='merge'){ p.from = a2.text; p.to = el.querySelector('[data-f="to"]').value.trim(); }
+      else { p.aim = a2.text; p.fields = fieldsText(amOpen.fields); }
+      b.disabled = true; err.hidden = true;
+      call(mode==='merge' ? 'aimMerge' : 'aimFields', p).then(function(r){
+        b.disabled = false;
+        if (!r.ok){ err.textContent = r.error || 'うまくいきませんでした'; err.hidden = false; return; }
+        amOpen = null; renderAims();
+        toast(mode==='merge' ? '「' + a2.text + '」を「' + r.to + '」にまとめました（' + r.件数 + '件）' : '「' + r.aim + '」の入れる数を変えました');
+        reload();
+      }, function(){ b.disabled = false; err.textContent = 'つながりません。もう一度どうぞ。'; err.hidden = false; });
+    }
+  });
+
   $('set-reload').addEventListener('click', function(){ reload(); renderSet(true); toast('読み込み直しています'); });
   $('set-switch').addEventListener('click', function(){ lockOut(''); });
 
@@ -1232,14 +1530,16 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
 
   // for the tests
   window.__neraicho = {calc:calc, norm:norm, groups:groups, monthSums:monthSums, applyQueue:applyQueue, keyFrom:keyFrom, fmtAt:fmtAt, pickList:pickList, recs:recs,
-    resolvePick:resolvePick, timeLabel:timeLabel, shortDay:shortDay, hasTime:hasTime, byNewest:byNewest};
+    resolvePick:resolvePick, timeLabel:timeLabel, shortDay:shortDay, hasTime:hasTime, byNewest:byNewest,
+    parseFields:parseFields, fieldsText:fieldsText, detText:detText, detLabel:detLabel, detKey:detKey, aimList:aimList, resolveAim:resolveAim,
+    aimFields:aimFields, yomiKey:yomiKey, byYomi:byYomi, allMachines:allMachines};
 
   /* ---------- start ---------- */
   if (!canStore) $('no-store').hidden = false;
   (function(){
     var k = '';
     try { k = keyFrom(new URL(location.href).searchParams.get('k') ? location.href : ''); } catch(e){}
-    if (k){ if (k!==load(LS_KEY)){ S.me = null; S.members = []; S.picks = []; S.aliases = []; S.recs = []; } store(LS_KEY, k); }
+    if (k){ if (k!==load(LS_KEY)){ S.me = null; S.members = []; S.picks = []; S.aliases = []; S.aims = []; S.machines = []; S.recs = []; } store(LS_KEY, k); }
     S.key = k || load(LS_KEY) || '';
   })();
   // a home-screen app comes back from the background without reloading: look again then, and send what is left
@@ -1260,7 +1560,7 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
 <script>
 (function(){
   'use strict';
-  var BUILD = '1009f2b049e9', CACHE = 'neraicho-app-v1', lastCheck = 0;
+  var BUILD = '675adf302f67', CACHE = 'neraicho-app-v1', lastCheck = 0;
   if (!('serviceWorker' in navigator)) return;
   var bar = document.getElementById('app-update');
   document.body.insertBefore(bar, document.body.firstChild);   // above the page, so it never covers the machine select or tabs
