@@ -244,7 +244,7 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
 
 /* bottom bar + toast */
 .dock{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);z-index:5}
-.nav{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);padding:0 8px env(safe-area-inset-bottom, 0px)}
+.nav{max-width:560px;margin:0 auto;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);padding:0 8px env(safe-area-inset-bottom, 0px)}
 .nav button{font:inherit;font-size:11px;font-weight:700;line-height:1.2;border:0;background:transparent;color:var(--muted);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:54px;padding:6px 2px;touch-action:manipulation}
 .nav button svg{width:24px;height:24px}
 .nav button[aria-current="page"]{color:var(--accent)}
@@ -352,7 +352,7 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
 
   <!-- 月の収支 -->
   <section id="view-month" class="view" aria-labelledby="mon-title" hidden>
-    <header class="top"><div class="brand"><small>チームと一人ずつ</small><h1 id="mon-title">月の収支</h1></div></header>
+    <header class="top"><div class="brand"><small id="mon-sub">チームと一人ずつ</small><h1 id="mon-title">月の収支</h1></div></header>
     <div class="block">
       <div class="mon-nav"><button type="button" id="mon-prev" class="btn" aria-label="前の月">‹</button><b id="mon-label"></b><button type="button" id="mon-next" class="btn" aria-label="次の月">›</button></div>
       <div id="mon-sum" class="sum" aria-live="polite"></div>
@@ -439,6 +439,10 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
     <button type="button" data-view="month">
       <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3.5 10h17M8 3v4M16 3v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       <span>月の収支</span>
+    </button>
+    <button type="button" data-view="month2" id="nav-month2" hidden>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3.5 10h17M8 3v4M16 3v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M9 13.5l6 4M15 13.5l-6 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <span id="nav-month2-label">抜きの収支</span>
     </button>
     <button type="button" data-view="rank">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><rect x="9" y="5" width="6" height="15" rx="1.2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="3" y="11" width="6" height="9" rx="1.2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="15" y="14" width="6" height="6" rx="1.2" fill="none" stroke="currentColor" stroke-width="2"/></svg>
@@ -572,6 +576,17 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
     else if (S.failed && !S.recs.length){ t = S.failed; bad = true; }
     e.textContent = t; e.className = 'sync' + (bad ? ' bad' : '');
     if (S.me) $('bar-me').innerHTML = esc(S.me.name) + (S.me.admin ? '<small>管理</small>' : '');
+    var o = ownerName();
+    $('nav-month2').hidden = !o;
+    $('nav-month2-label').textContent = o + '抜き';
+  }
+  // the owner = the 管理 person on the members tab's top row (row 2 is the owner's slot, set up for the user himself);
+  // the name comes from the sheet, never from this code
+  function ownerName(){
+    var m = S.members[0];
+    if (m && m.admin) return m.name;
+    var a = S.members.filter(function(x){ return x.admin; })[0];
+    return a ? a.name : '';
   }
 
   // fetch everything; Apps Script sometimes takes 10 s or fails, so try again quietly — the screen already shows the last copy
@@ -654,17 +669,20 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
   });
 
   /* ---------- screen switch ---------- */
+  // 'month2' is the same 月の収支 screen without the owner's own plays (user 2026-10-24 「今の画面そのままで僕1人だけ外した収支の画面を別タブに」)
   var view = 'rec', VIEWS = ['key', 'rec', 'list', 'month', 'rank', 'set'];
   function show(v){
+    if (v==='month2' && !ownerName()) v = 'month';
     view = v;
-    VIEWS.forEach(function(x){ $('view-'+x).hidden = x!==v; });
+    var sec = v==='month2' ? 'month' : v;
+    VIEWS.forEach(function(x){ $('view-'+x).hidden = x!==sec; });
     $('bar').hidden = $('dock').hidden = v==='key';
     document.querySelectorAll('.nav button').forEach(function(b){
       if (b.getAttribute('data-view')===v) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
     });
     if (v==='rec'){ if (!editing) nowIfUntouched(); renderForm(); }
     if (v==='list') renderList();
-    if (v==='month') renderMonth();
+    if (sec==='month') renderMonth();
     if (v==='rank') renderRank();
     if (v==='set') renderSet(true);
     window.scrollTo(0, 0);
@@ -1246,11 +1264,18 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
     var a = Math.abs(v), t = a<10000 ? String(a) : a<100000 ? String(Math.round(a/1000)/10).replace(/\.0$/, '') + '万' : Math.round(a/10000) + '万';
     return (v>0 ? '+' : '−') + t;
   }
+  // in the 'month2' tab, the owner's own plays (打った人 = the owner) and the owner himself are left out of everything below
+  function monthEx(){ return view==='month2' ? ownerName() : ''; }
+  function monthRecs(){ var ex = monthEx(), all = recs(); return ex ? all.filter(function(r){ return r.by!==ex; }) : all; }
+  function monthNames(){ var ex = monthEx(); return activeNames().filter(function(n){ return n!==ex; }); }
   function renderMonth(){
+    var ex = monthEx();
+    $('mon-sub').textContent = ex ? ex + 'を除いたチームと一人ずつ' : 'チームと一人ずつ';
+    $('mon-title').textContent = ex ? ex + '抜きの収支' : '月の収支';
     $('mon-label').textContent = monthLabel(month);
     $('mon-next').disabled = month>=fmtAt(new Date()).slice(0, 7);
-    var all = recs(), key = document.querySelector('input[name="mon-by"]:checked').value, s = monthSums(all, month, key, key==='by' ? activeNames() : []), t = s.team;
-    var members = activeNames().length, sh = shareOf(t.yen, members);
+    var all = monthRecs(), key = document.querySelector('input[name="mon-by"]:checked').value, s = monthSums(all, month, key, key==='by' ? monthNames() : []), t = s.team;
+    var members = monthNames().length, sh = shareOf(t.yen, members);
     $('mon-sum').innerHTML = '<small>チームの合計</small><b class="'+cls(t.yen)+'">'+esc(signed(t.yen, '円'))+'</b>'
       + '<div class="share"><span>合計の40%</span><b class="'+cls(sh.share)+'">'+esc(signed(sh.share, '円'))+'</b>'
       + (sh.each!=null ? '<span>1人あたり（÷'+members+'人）</span><b class="'+cls(sh.each)+'">'+esc(signed(sh.each, '円'))+'</b>' : '') + '</div>'
@@ -1274,7 +1299,7 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
   /* 日ごとの収支: a month calendar for everyone or one member (user 2026-10-24 「日毎の利益＝1人ずつと全体カレンダー式」) */
   var calWho = '', calDay = '';
   function renderCal(all){
-    var names = activeNames();
+    var names = monthNames();
     all.forEach(function(r){ if (r.by && r.at.slice(0, 7)===month && names.indexOf(r.by)<0) names.push(r.by); });
     if (calWho && names.indexOf(calWho)<0) calWho = '';
     $('cal-who').innerHTML = [''].concat(names).map(function(n){ return '<button type="button" class="chip" data-who="'+esc(n)+'" aria-pressed="'+(n===calWho ? 'true' : 'false')+'">'+esc(n || 'みんな')+'</button>'; }).join('');
@@ -1313,7 +1338,7 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
   $('cal').addEventListener('click', function(e){ var b = e.target.closest('.cal-d'); if (!b || b.disabled) return; var k = b.getAttribute('data-day'); calDay = calDay===k ? '' : k; renderMonth(); });
   /* 稼働日数と打った台 for each member (user 2026-10-24 「稼働日数と台の数を可視化したい」): two bar columns, each on its own scale */
   function renderWork(all){
-    var order = activeNames(), ppl = monthSums(all, month, 'by', order).people, md = 0, mn = 0;
+    var order = monthNames(), ppl = monthSums(all, month, 'by', order).people, md = 0, mn = 0;
     ppl.sort(function(a, b){ var i = order.indexOf(a.name), j = order.indexOf(b.name); return (i<0 ? 99 : i) - (j<0 ? 99 : j); });
     ppl.forEach(function(p){ md = Math.max(md, p.days); mn = Math.max(mn, p.n); });
     function bar(v, max, label){ return '<span class="wk-bar'+(v ? '' : ' none')+'">'+(v ? '<i style="width:calc((100% - 3.4em) * '+(v / max).toFixed(3)+')"></i>' : '')+'<span>'+label+'</span></span>'; }
@@ -1641,7 +1666,7 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
     if (!editing) fillMachines();
     if (view==='rec') renderForm();
     if (view==='list') renderList();
-    if (view==='month') renderMonth();
+    if (view==='month' || view==='month2') renderMonth();
     if (view==='rank') renderRank();
     if (view==='set') renderSet(false);
   }
@@ -1678,7 +1703,7 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
 <script>
 (function(){
   'use strict';
-  var BUILD = '141481ee6c93', CACHE = 'neraicho-app-v1', lastCheck = 0;
+  var BUILD = '8cdbb20eca57', CACHE = 'neraicho-app-v1', lastCheck = 0;
   if (!('serviceWorker' in navigator)) return;
   var bar = document.getElementById('app-update');
   document.body.insertBefore(bar, document.body.firstChild);   // above the page, so it never covers the machine select or tabs
