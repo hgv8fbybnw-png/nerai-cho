@@ -445,7 +445,6 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
     <div id="if-pick" class="view">
       <div class="block">
         <input id="if-q" class="tin" type="search" autocomplete="off" placeholder="台の名前で探す（ひらがなでも）" aria-label="台の名前で探す">
-        <p class="hint">押すと、その台の天井（リセットや、上位CZに失敗したときなどに短くなる天井も）と、狙い目ごとの打ち始めの線（ゾーン・pt も）が出ます。中身はチームのノートを土台にしたものです。</p>
       </div>
       <p id="if-state" class="empty" hidden></p>
       <div id="if-list" class="if-list"></div>
@@ -1759,7 +1758,6 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
     if (!k) return list;
     return list.filter(function(m){ return norm(hira(m.name)).indexOf(k)>=0 || norm(hira(m.short)).indexOf(k)>=0 || norm(hira(m.yomi)).indexOf(k)>=0; });
   }
-  function srcTag(s){ return s ? '<span class="src">' + esc(s) + '</span>' : ''; }
   function infoMachine(id){
     var ms = S.info ? S.info.machines : [];
     for (var i=0; i<ms.length; i++) if (ms[i].id===id) return ms[i];
@@ -1786,46 +1784,37 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
     });
     list.innerHTML = h;
   }
+  /* 2026-10-24 ユーザー「なるべく簡潔にみやすくしたいから、天井の情報に加えて書いてくれている細かい文字全部いらない」：
+     出すのは 天井（名前と値）・ほかに天井が変わるとき・狙い目ごとの打ち始めの線（と、やめる所・朝）だけ。
+     説明・ノートの書き方・出どころの印・ほかの狙い目・やめどき・言葉は出さない（中身は受け口にそのまま残してある）。
+     推測のものだけは、事実に見えないように小さく「推測」を付ける */
+  function guessTag(s){ return /推測/.test(s || '') ? '<span class="src">推測</span>' : ''; }
   function renderInfoMachine(m){
-    var h = '<div class="if-top"><button type="button" class="btn" id="if-back">‹ 台の一覧</button><h2>' + esc(m.short) + '</h2>'
-      + (m.name!==m.short ? '<small>' + esc(m.name) + '</small>' : '') + '</div>';
+    var h = '<div class="if-top"><button type="button" class="btn" id="if-back">‹ 台の一覧</button><h2>' + esc(m.short) + '</h2></div>';
     // 1. 天井（リセット・上位CZ失敗などで変わる天井も）
     h += '<div class="block"><h2>天井</h2><div class="list">' + m.ceil.map(function(c){
-      return '<div class="ce"><div class="ce-n">' + esc(c[0]) + srcTag(c[4]) + '</div><div class="ce-v">' + esc(c[1]) + (c[2] ? ' <small>→ ' + esc(c[2]) + '</small>' : '') + '</div>'
-        + (c[3] ? '<div class="ce-s">' + esc(c[3]) + '</div>' : '') + '</div>';
+      return '<div class="ce"><div class="ce-n">' + esc(c[0]) + guessTag(c[4]) + '</div><div class="ce-v">' + esc(c[1]) + '</div></div>';
     }).join('') + '</div>';
     if (m.cond.length) h += '<div class="cd"><h3>ほかに天井が変わるとき</h3>' + m.cond.map(function(c){
-      return '<div class="cd-r"><b>' + esc(c[0]) + srcTag(c[2]) + '</b><span>' + esc(c[1]) + '</span></div>';
+      return '<div class="cd-r"><b>' + esc(c[0]) + guessTag(c[2]) + '</b><span>' + esc(c[1]) + '</span></div>';
     }).join('') + '</div>';
     h += '</div>';
     // 2. 狙い目ごとの打ち始め（ノートの線）
-    h += '<div class="block"><h2>狙い目と打ち始め</h2>';
-    if (!m.groups.length) h += '<p class="hint">この台は、ノートに打ち始めの線がありません。下の「ほかの狙い目」と「やめどき」を見てください。</p>';
-    else h += '<p class="hint">現金＝非等価の線、持ちメダル＝等価の線です。数字は「ここから打てる」G数（ptなどの台はその数）です。</p>';
-    m.groups.forEach(function(g){
-      h += '<div class="ig"><div class="ig-h">' + esc(g.t) + srcTag(g.src) + '</div>' + (g.u ? '<div class="ig-u">' + esc(g.u) + '</div>' : '');
-      g.rows.forEach(function(r){
-        var v = r.x ? '<span></span><b class="none">説明を見る</b>'
-          : '<span>現金</span>' + (r.c==null ? '<b class="none">線なし</b>' : '<b>' + esc(infoLine(r.c, r.n)) + '</b>')
-          + '<span>持ちメダル</span>' + (r.m==null ? '<b class="none">線なし</b>' : '<b>' + esc(infoLine(r.m, r.n)) + '</b>');
-        h += '<div class="ir"><div class="ir-top"><div class="ir-l">' + esc(r.l) + (r.am ? '<span class="tag">朝</span>' : '') + srcTag(r.src) + '</div><div class="ir-v">' + v + '</div></div>'
-          + (r.e ? '<div class="ir-e">' + esc(r.e) + '</div>' : '')
-          + (r.see ? '<div class="ir-see">' + esc(r.see) + '</div>' : '')
-          + (r.memo ? '<details><summary>ノートの書き方など</summary><p>' + esc(r.memo) + '</p></details>' : '')
-          + '</div>';
+    if (m.groups.length){
+      h += '<div class="block"><h2>狙い目と打ち始め</h2>';
+      m.groups.forEach(function(g){
+        h += '<div class="ig"><div class="ig-h">' + esc(g.t) + '</div>';
+        g.rows.forEach(function(r){
+          var v = r.x ? ''
+            : '<span>現金</span>' + (r.c==null ? '<b class="none">線なし</b>' : '<b>' + esc(infoLine(r.c, r.n)) + '</b>')
+            + '<span>持ちメダル</span>' + (r.m==null ? '<b class="none">線なし</b>' : '<b>' + esc(infoLine(r.m, r.n)) + '</b>');
+          h += '<div class="ir"><div class="ir-top"><div class="ir-l">' + esc(r.l) + (r.am ? '<span class="tag">朝</span>' : '') + guessTag(r.src) + '</div><div class="ir-v">' + v + '</div></div>'
+            + (r.e ? '<div class="ir-e">' + esc(r.e) + '</div>' : '') + '</div>';
+        });
+        h += '</div>';
       });
       h += '</div>';
-    });
-    h += '</div>';
-    // 3. 線のない狙い目
-    if (m.others.length) h += '<div class="block"><h2>ほかの狙い目</h2><div class="list">' + m.others.map(function(o){
-      return '<div class="io"><b>' + esc(o[0]) + srcTag(o[2]) + '</b><span>' + esc(o[1]) + '</span></div>';
-    }).join('') + '</div></div>';
-    if (m.yame) h += '<details class="if-more"><summary>やめどき</summary><div><p>' + esc(m.yame) + '</p></div></details>';
-    if (m.terms.length) h += '<details class="if-more"><summary>この台の言葉</summary><div><dl>' + m.terms.map(function(w){
-      return '<dt>' + esc(w[0]) + '</dt><dd>' + esc(w[1]) + '</dd>';
-    }).join('') + '</dl></div></details>';
-    h += '<p class="hint">しるしの意味：ノート＝チームのノート、解析＝台の解析、チーム＝チームで確かめたこと、推測＝ノートにも解析にもなく考えたもの（確かめ中）。</p>';
+    }
     $('if-view').innerHTML = h;
   }
   $('if-list').addEventListener('click', function(e){
@@ -1883,7 +1872,7 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
 <script>
 (function(){
   'use strict';
-  var BUILD = 'b61671e3ed16', CACHE = 'neraicho-app-v1', lastCheck = 0;
+  var BUILD = 'c85ebfa0cf59', CACHE = 'neraicho-app-v1', lastCheck = 0;
   if (!('serviceWorker' in navigator)) return;
   var bar = document.getElementById('app-update');
   document.body.insertBefore(bar, document.body.firstChild);   // above the page, so it never covers the machine select or tabs
