@@ -264,6 +264,22 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
 .cd h3+.cd-r{border-top:0;padding-top:0}
 .cd-r b{font-size:13px}
 .cd-r span{overflow-wrap:anywhere}
+.aim{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:12px}
+.block>h2+.aim{border-top:0;padding-top:0}
+.aim-h{display:flex;align-items:baseline;gap:4px 10px;flex-wrap:wrap}
+.aim-h b{font-size:17px;overflow-wrap:anywhere}
+.aim-h span{font-family:var(--font-num);font-size:19px;font-weight:700;color:var(--accent);overflow-wrap:anywhere}
+.aim-n{font-size:14px;line-height:1.5;overflow-wrap:anywhere}
+.aim-n b{font-weight:700;margin-right:2px}
+.bd{display:grid;grid-template-columns:minmax(0,1fr) auto auto;column-gap:12px;align-items:baseline;background:var(--bg);border-radius:10px;padding:8px 10px;margin-top:2px}
+.bd>*{padding:7px 0;border-top:1px dashed var(--line)}
+.bd>.bd-h{font-size:11px;font-weight:700;color:var(--muted);border-top:0;padding:0 0 3px}
+.bd>.bd-h~.bd-h{text-align:right}
+.bd-l{font-size:14px;font-weight:700;line-height:1.4;overflow-wrap:anywhere}
+.bd-l .tag{display:inline-block;margin-left:5px;color:var(--accent);border-color:var(--accent);vertical-align:1px}
+.bd-l i{display:block;font-style:normal;font-size:12px;color:var(--accent)}
+.bd>b{font-family:var(--font-num);font-size:16px;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.bd>b.none{font-size:12px;font-weight:400;color:var(--muted)}
 .ig{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);padding-top:12px}
 .ig:first-of-type{border-top:0;padding-top:0}
 .ig-h{font-size:15px;font-weight:700;overflow-wrap:anywhere}
@@ -1784,37 +1800,33 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
     });
     list.innerHTML = h;
   }
-  /* 2026-10-24 ユーザー「なるべく簡潔にみやすくしたいから、天井の情報に加えて書いてくれている細かい文字全部いらない」：
-     出すのは 天井（名前と値）・ほかに天井が変わるとき・狙い目ごとの打ち始めの線（と、やめる所・朝）だけ。
-     説明・ノートの書き方・出どころの印・ほかの狙い目・やめどき・言葉は出さない（中身は受け口にそのまま残してある）。
-     推測のものだけは、事実に見えないように小さく「推測」を付ける */
+  /* 2026-10-24 ユーザー「狙い目っていうのは天井1000gとか100ゾーンとかCZ7スルーとかグールpt9-12ptとかそれが狙い目で、
+     今狙い目で書いてくれているのは狙い目に対してのボーダーね」「その狙い目を見ながら徘徊して考えながらエナできるように」
+     「短くなる時▶︎リセット時、上位AT後、浮世絵雨以上 こんな感じでまとめて」「他に天井が変わる時の情報をなくして」：
+     台の画面は「狙い目」の並び。狙い目ごとに 値・ひとこと（見出し▶︎文）・ボーダー（現金／持ちメダル）。
+     その前の「細かい文字全部いらない」も守る（説明・出どころの印は出さない。推測の線だけ小さく「推測」） */
   function guessTag(s){ return /推測/.test(s || '') ? '<span class="src">推測</span>' : ''; }
+  // the borders of one 狙い目 as a small table: name | 現金 | 持ちメダル, one line each (many fit on a phone in the hall)
+  function borderTable(rows){
+    function cell(v, n){ return v==null ? '<b class="none">線なし</b>' : '<b>' + esc(infoLine(v, n)) + '</b>'; }
+    return '<div class="bd"><span class="bd-h">ボーダー</span><span class="bd-h">現金</span><span class="bd-h">持ちメダル</span>'
+      + rows.map(function(r){
+        return '<span class="bd-l">' + esc(r.l) + (r.am ? '<span class="tag">朝</span>' : '') + guessTag(r.src) + (r.e ? '<i>' + esc(r.e) + '</i>' : '') + '</span>'
+          + (r.x ? '<b class="none">—</b><b class="none">—</b>' : cell(r.c, r.n) + cell(r.m, r.n));
+      }).join('') + '</div>';
+  }
   function renderInfoMachine(m){
     var h = '<div class="if-top"><button type="button" class="btn" id="if-back">‹ 台の一覧</button><h2>' + esc(m.short) + '</h2></div>';
-    // 1. 天井（リセット・上位CZ失敗などで変わる天井も）
-    h += '<div class="block"><h2>天井</h2><div class="list">' + m.ceil.map(function(c){
-      return '<div class="ce"><div class="ce-n">' + esc(c[0]) + guessTag(c[4]) + '</div><div class="ce-v">' + esc(c[1]) + '</div></div>';
-    }).join('') + '</div>';
-    if (m.cond.length) h += '<div class="cd"><h3>ほかに天井が変わるとき</h3>' + m.cond.map(function(c){
-      return '<div class="cd-r"><b>' + esc(c[0]) + guessTag(c[2]) + '</b><span>' + esc(c[1]) + '</span></div>';
-    }).join('') + '</div>';
-    h += '</div>';
-    // 2. 狙い目ごとの打ち始め（ノートの線）
-    if (m.groups.length){
-      h += '<div class="block"><h2>狙い目と打ち始め</h2>';
-      m.groups.forEach(function(g){
-        h += '<div class="ig"><div class="ig-h">' + esc(g.t) + '</div>';
-        g.rows.forEach(function(r){
-          var v = r.x ? ''
-            : '<span>現金</span>' + (r.c==null ? '<b class="none">線なし</b>' : '<b>' + esc(infoLine(r.c, r.n)) + '</b>')
-            + '<span>持ちメダル</span>' + (r.m==null ? '<b class="none">線なし</b>' : '<b>' + esc(infoLine(r.m, r.n)) + '</b>');
-          h += '<div class="ir"><div class="ir-top"><div class="ir-l">' + esc(r.l) + (r.am ? '<span class="tag">朝</span>' : '') + guessTag(r.src) + '</div><div class="ir-v">' + v + '</div></div>'
-            + (r.e ? '<div class="ir-e">' + esc(r.e) + '</div>' : '') + '</div>';
-        });
-        h += '</div>';
-      });
-      h += '</div>';
+    if (!m.nerai){   // the phone still holds the content of the version before the 狙い目 rewrite
+      $('if-view').innerHTML = h + '<p class="empty">新しい中身を読みこみ中です。電波のある所で開き直してください。</p>';
+      return;
     }
+    h += '<div class="block"><h2>狙い目</h2>' + m.nerai.map(function(a){
+      return '<div class="aim"><div class="aim-h"><b>' + esc(a.name) + '</b>' + (a.val ? '<span>' + esc(a.val) + '</span>' : '') + '</div>'
+        + a.notes.map(function(n){ return '<p class="aim-n"><b>' + esc(n[0]) + '▶︎</b>' + esc(n[1]) + '</p>'; }).join('')
+        + (a.rows.length ? borderTable(a.rows) : '')
+        + '</div>';
+    }).join('') + '</div>';
     $('if-view').innerHTML = h;
   }
   $('if-list').addEventListener('click', function(e){
@@ -1872,7 +1884,7 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
 <script>
 (function(){
   'use strict';
-  var BUILD = 'c85ebfa0cf59', CACHE = 'neraicho-app-v1', lastCheck = 0;
+  var BUILD = '846d13df1ce9', CACHE = 'neraicho-app-v1', lastCheck = 0;
   if (!('serviceWorker' in navigator)) return;
   var bar = document.getElementById('app-update');
   document.body.insertBefore(bar, document.body.firstChild);   // above the page, so it never covers the machine select or tabs
