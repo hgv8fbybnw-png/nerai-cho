@@ -242,9 +242,57 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
 .link-box{display:flex;flex-direction:column;gap:8px;background:var(--go-soft);border-radius:10px;padding:12px;font-size:14px}
 .link-box code{font-family:var(--font-num);font-size:12px;overflow-wrap:anywhere;color:var(--muted)}
 
+/* 狙い目（台ごとの天井・打ち始めの線） */
+.if-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.if-kana{grid-column:1/-1;font-size:12px;font-weight:700;color:var(--muted);padding:6px 2px 0}
+.if-m{font:inherit;font-size:14px;font-weight:700;line-height:1.35;text-align:left;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-height:48px;cursor:pointer;overflow-wrap:anywhere;touch-action:manipulation}
+.if-m:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.if-top{display:flex;flex-direction:column;gap:6px}
+.if-top .btn{align-self:flex-start}
+.if-top h2{font-size:19px;overflow-wrap:anywhere}
+.if-top small{font-size:12px;color:var(--muted)}
+.src{display:inline-block;font-size:10.5px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:0 5px;margin-left:6px;line-height:1.5;vertical-align:1px;white-space:nowrap}
+.ce{display:flex;flex-direction:column;gap:2px;border-top:1px dashed var(--line);padding-top:10px}
+.ce:first-child{border-top:0;padding-top:0}
+.ce-n{font-size:13px;font-weight:700;color:var(--muted)}
+.ce-v{font-size:17px;font-weight:700;overflow-wrap:anywhere}
+.ce-v small{font-size:13px;color:var(--muted);margin-left:2px}
+.ce-s{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+.cd{display:flex;flex-direction:column;gap:6px;background:var(--bg);border-radius:10px;padding:10px}
+.cd h3{font-size:13px;color:var(--muted)}
+.cd-r{display:flex;flex-direction:column;font-size:14px;border-top:1px dashed var(--line);padding-top:6px}
+.cd h3+.cd-r{border-top:0;padding-top:0}
+.cd-r b{font-size:13px}
+.cd-r span{overflow-wrap:anywhere}
+.ig{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);padding-top:12px}
+.ig:first-of-type{border-top:0;padding-top:0}
+.ig-h{font-size:15px;font-weight:700;overflow-wrap:anywhere}
+.ig-u{font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.ir{background:var(--bg);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.ir-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.ir-l{font-size:14px;font-weight:700;min-width:0;overflow-wrap:anywhere}
+.ir-l .tag{display:inline-block;margin-left:6px;color:var(--accent);border-color:var(--accent);vertical-align:1px}
+.ir-v{flex:none;display:grid;grid-template-columns:auto auto;column-gap:6px;align-items:baseline;justify-items:end}
+.ir-v span{font-size:11px;font-weight:700;color:var(--muted)}
+.ir-v b{font-family:var(--font-num);font-size:17px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ir-v b.none{font-size:13px;color:var(--muted);font-weight:400}
+.ir-e{font-size:12px;font-weight:700;color:var(--accent)}
+.ir-see{font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.ir details summary,.if-more summary{font-size:12px;font-weight:700;color:var(--accent);cursor:pointer;padding:2px 0}
+.ir details p{font-size:12px;color:var(--muted);overflow-wrap:anywhere;margin-top:2px}
+.io{display:flex;flex-direction:column;gap:2px;border-top:1px dashed var(--line);padding-top:8px;font-size:14px}
+.io:first-of-type{border-top:0;padding-top:0}
+.io b{font-size:14px;overflow-wrap:anywhere}
+.io span{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+.if-more{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px 14px}
+.if-more summary{font-size:14px;color:var(--ink)}
+.if-more>div{display:flex;flex-direction:column;gap:6px;padding-top:8px;font-size:14px}
+.if-more dt{font-weight:700}
+.if-more dd{margin:0 0 6px;color:var(--muted);font-size:13px}
+
 /* bottom bar + toast */
 .dock{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);z-index:5}
-.nav{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);padding:0 8px env(safe-area-inset-bottom, 0px)}
+.nav{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);padding:0 6px env(safe-area-inset-bottom, 0px)}
 .nav button{font:inherit;font-size:11px;font-weight:700;line-height:1.2;border:0;background:transparent;color:var(--muted);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:54px;padding:6px 2px;touch-action:manipulation}
 .nav button svg{width:24px;height:24px}
 .nav button[aria-current="page"]{color:var(--accent)}
@@ -391,6 +439,20 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
     <div id="rank" class="list"></div>
   </section>
 
+  <!-- 狙い目（台ごとの天井・打ち始めの線） -->
+  <section id="view-info" class="view" aria-labelledby="info-title" hidden>
+    <header class="top"><div class="brand"><small>台ごとの天井・ゾーン・pt</small><h1 id="info-title">狙い目</h1></div></header>
+    <div id="if-pick" class="view">
+      <div class="block">
+        <input id="if-q" class="tin" type="search" autocomplete="off" placeholder="台の名前で探す（ひらがなでも）" aria-label="台の名前で探す">
+        <p class="hint">押すと、その台の天井（リセットや、上位CZに失敗したときなどに短くなる天井も）と、狙い目ごとの打ち始めの線（ゾーン・pt も）が出ます。中身はチームのノートを土台にしたものです。</p>
+      </div>
+      <p id="if-state" class="empty" hidden></p>
+      <div id="if-list" class="if-list"></div>
+    </div>
+    <div id="if-view" class="view" hidden></div>
+  </section>
+
   <!-- 設定 -->
   <section id="view-set" class="view" aria-labelledby="set-title" hidden>
     <header class="top"><div class="brand"><small>この端末と、メンバー</small><h1 id="set-title">設定</h1></div></header>
@@ -444,6 +506,10 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><rect x="9" y="5" width="6" height="15" rx="1.2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="3" y="11" width="6" height="9" rx="1.2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="15" y="14" width="6" height="6" rx="1.2" fill="none" stroke="currentColor" stroke-width="2"/></svg>
       <span>ランキング</span>
     </button>
+    <button type="button" data-view="info">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 1.5v4M12 18.5v4M1.5 12h4M18.5 12h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <span>狙い目</span>
+    </button>
   </nav>
 </div>
 <div id="toast" class="toast" role="status" hidden><span></span><button type="button">取り消す</button></div>
@@ -463,7 +529,7 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
     hitoka: {label:'非等価',       sub:'1k46・換金52', rent:46, exch:52}
   };
   var LS_KEY = 'neraicho.key', LS_CACHE = 'neraicho.cache', LS_QUEUE = 'neraicho.queue', LS_RATE = 'neraicho.rate',
-      LS_OLD = 'neraicho.records', LS_OLD_DONE = 'neraicho.oldDone';
+      LS_OLD = 'neraicho.records', LS_OLD_DONE = 'neraicho.oldDone', LS_INFO = 'neraicho.info', LS_INFO_M = 'neraicho.infoMachine';
   var $ = function(id){ return document.getElementById(id); };
   function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
   function load(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
@@ -513,16 +579,19 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
      S.machines the typed-in 台 with their よみ: [{name, yomi}].
      S.recs is what the spreadsheet last said; S.queue holds what this phone did and has not sent yet. The screen always
      shows S.recs with the queue laid on top, so a record appears at once even with no signal in the hall. */
-  var S = {key:'', me:null, members:[], picks:[], aliases:[], aims:[], machines:[], recs:[], queue:[], sending:null, loading:false, failed:'', retry:null};
+  var S = {key:'', me:null, members:[], picks:[], aliases:[], aims:[], machines:[], recs:[], queue:[], sending:null, loading:false, failed:'', retry:null,
+           info:null, infoVer:''};
   (function(){
     var c = loadJSON(LS_CACHE, null);
-    if (c && Array.isArray(c.records)){ S.me = c.me || null; S.members = c.members || []; S.picks = c.picks || []; S.aliases = c.aliases || []; S.aims = c.aims || []; S.machines = c.machines || []; S.recs = c.records; }
+    if (c && Array.isArray(c.records)){ S.me = c.me || null; S.members = c.members || []; S.picks = c.picks || []; S.aliases = c.aliases || []; S.aims = c.aims || []; S.machines = c.machines || []; S.recs = c.records; S.infoVer = c.infoVer || ''; }
+    var inf = loadJSON(LS_INFO, null);
+    if (inf && inf.ver && Array.isArray(inf.machines)) S.info = inf;
     var q = loadJSON(LS_QUEUE, []);
     S.queue = Array.isArray(q) ? q : [];
   })();
-  function saveCache(){ store(LS_CACHE, JSON.stringify({me:S.me, members:S.members, picks:S.picks, aliases:S.aliases, aims:S.aims, machines:S.machines, records:S.recs})); }
+  function saveCache(){ store(LS_CACHE, JSON.stringify({me:S.me, members:S.members, picks:S.picks, aliases:S.aliases, aims:S.aims, machines:S.machines, records:S.recs, infoVer:S.infoVer})); }
   // what the spreadsheet sent back with action "all"
-  function takeAll(r){ S.me = r.me; S.members = r.members || []; S.picks = r.picks || []; S.aliases = r.aliases || []; S.aims = r.aims || []; S.machines = r.machines || []; S.recs = r.records || []; S.failed = ''; }
+  function takeAll(r){ S.me = r.me; S.members = r.members || []; S.picks = r.picks || []; S.aliases = r.aliases || []; S.aims = r.aims || []; S.machines = r.machines || []; S.recs = r.records || []; S.infoVer = r.infoVer || ''; S.failed = ''; }
   function saveQueue(){ if (!store(LS_QUEUE, JSON.stringify(S.queue)) && S.queue.length) $('no-store').hidden = false; }
 
   // the records as this phone should show them: the spreadsheet's, with the unsent changes laid on top
@@ -551,10 +620,10 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
 
   /* ---------- talking to the spreadsheet (JSONP, the same way as 収支帳: a <script> tag is never stopped by CORS) ---------- */
   var seq = 0;
-  function call(action, params){
+  function call(action, params, ms){
     return new Promise(function(resolve, reject){
       var cb = '__nc' + (seq++) + '_' + Math.floor(Math.random()*1e6), s = document.createElement('script');
-      var timer = setTimeout(function(){ done(); reject(new Error('timeout')); }, 25000);
+      var timer = setTimeout(function(){ done(); reject(new Error('timeout')); }, ms || 25000);
       function done(){ clearTimeout(timer); try { delete window[cb]; } catch(e){ window[cb] = undefined; } if (s.parentNode) s.parentNode.removeChild(s); }
       window[cb] = function(d){ done(); resolve(d || {}); };
       s.onerror = function(){ done(); reject(new Error('network')); };
@@ -583,7 +652,7 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
       S.loading = false;
       if (r.ok){
         takeAll(r);
-        saveCache(); refresh(); flush();
+        saveCache(); refresh(); flush(); loadInfo();
         return;
       }
       if (r.鍵ちがい) return lockOut('合言葉が変わったか、止められています。管理の人に確かめてください。');
@@ -654,7 +723,7 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
   });
 
   /* ---------- screen switch ---------- */
-  var view = 'rec', VIEWS = ['key', 'rec', 'list', 'month', 'rank', 'set'];
+  var view = 'rec', VIEWS = ['key', 'rec', 'list', 'month', 'rank', 'info', 'set'];
   function show(v){
     view = v;
     VIEWS.forEach(function(x){ $('view-'+x).hidden = x!==v; });
@@ -666,6 +735,7 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
     if (v==='list') renderList();
     if (v==='month') renderMonth();
     if (v==='rank') renderRank();
+    if (v==='info') renderInfo();
     if (v==='set') renderSet(true);
     window.scrollTo(0, 0);
   }
@@ -681,8 +751,8 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
     return t.replace(/\s+/g, '');
   }
   function lockOut(msg){
-    S.key = ''; S.me = null; S.members = []; S.picks = []; S.aliases = []; S.aims = []; S.machines = []; S.recs = [];
-    try { localStorage.removeItem(LS_KEY); localStorage.removeItem(LS_CACHE); } catch(e){}
+    S.key = ''; S.me = null; S.members = []; S.picks = []; S.aliases = []; S.aims = []; S.machines = []; S.recs = []; S.info = null; S.infoVer = '';
+    try { localStorage.removeItem(LS_KEY); localStorage.removeItem(LS_CACHE); localStorage.removeItem(LS_INFO); } catch(e){}
     $('k-err').textContent = msg || ''; $('k-err').hidden = !msg;
     show('key');
   }
@@ -1649,6 +1719,126 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
   $('set-reload').addEventListener('click', function(){ reload(); renderSet(true); toast('読み込み直しています'); });
   $('set-switch').addEventListener('click', function(){ lockOut(''); });
 
+  /* ---------- 狙い目（2026-10-24 ユーザー「この記録ツールに狙い目タブの追加をしたい。狙い目は台ごとの天井情報（リセット、
+     上位CZ失敗などの特殊天井短縮条件含む）ゾーン狙い pt狙い」） ----------
+     The content is 鬣犬's per-machine data (built from the team's notes), so it is NOT in this public page: the sheet
+     hands it only to a member (action "info"), and "all" carries just its version (infoVer). The phone keeps a copy
+     (LS_INFO, so it also opens with no signal in the hall) and fetches it again only when the version changes.
+     A machine: {id, name, short, yomi, ceil:[[name, val, gets, sub, src]], cond:[[when, ceil, src]],
+     groups:[{t, u, src, rows:[{l, c (現金・非等価の線), m (持ちメダル・等価の線), n (unit when not G), e (やめる所), x (no number),
+     see, memo, src, am (朝)}]}], others:[[name, text, src]], yame, terms:[[word, meaning]]} — made by make_info.py */
+  var infoBusy = false, infoErr = '', infoSel = load(LS_INFO_M) || '';
+  function loadInfo(){
+    if (infoBusy || !S.key || !S.infoVer || (S.info && S.info.ver===S.infoVer)) return;
+    infoBusy = true; infoErr = '';
+    if (view==='info') renderInfo();
+    call('info', {}, 60000).then(function(r){
+      infoBusy = false;
+      if (r.ok && Array.isArray(r.machines)){
+        S.info = {ver:r.ver, machines:r.machines};
+        store(LS_INFO, JSON.stringify(S.info));
+      } else if (r.鍵ちがい){
+        return lockOut('合言葉が変わったか、止められています。管理の人に確かめてください。');
+      } else infoErr = r.error || 'とれませんでした';
+      if (view==='info') renderInfo();
+    }, function(){ infoBusy = false; infoErr = 'つながりません'; if (view==='info') renderInfo(); });
+  }
+  // the opening line, as the notes write it: 231G〜 / 9pt〜; no line = —
+  function infoLine(v, n){ return v==null ? '' : v + (n==null ? 'G' : n) + '〜'; }
+  // the 50音 row a machine is listed under (its よみ without dakuten): あ, か, さ … or その他
+  var KANA_ROWS = ['あいうえお', 'かきくけこ', 'さしすせそ', 'たちつてと', 'なにぬねの', 'はひふへほ', 'まみむめも', 'やゆよ', 'らりるれろ', 'わをん'];
+  function kanaRow(yomi){
+    var c = yomiKey(yomi)[0].charAt(0);
+    for (var i=0; i<KANA_ROWS.length; i++) if (KANA_ROWS[i].indexOf(c)>=0) return KANA_ROWS[i].charAt(0) + '行';
+    return 'その他';
+  }
+  // search by the name as written or by its reading; katakana and hiragana, full and half width all match
+  function infoFind(list, q){
+    var k = norm(hira(q));
+    if (!k) return list;
+    return list.filter(function(m){ return norm(hira(m.name)).indexOf(k)>=0 || norm(hira(m.short)).indexOf(k)>=0 || norm(hira(m.yomi)).indexOf(k)>=0; });
+  }
+  function srcTag(s){ return s ? '<span class="src">' + esc(s) + '</span>' : ''; }
+  function infoMachine(id){
+    var ms = S.info ? S.info.machines : [];
+    for (var i=0; i<ms.length; i++) if (ms[i].id===id) return ms[i];
+    return null;
+  }
+  function renderInfo(){
+    var m = infoMachine(infoSel);
+    $('if-pick').hidden = !!m; $('if-view').hidden = !m;
+    if (m) return renderInfoMachine(m);
+    var st = $('if-state'), list = $('if-list');
+    if (!S.info){
+      st.hidden = false; list.innerHTML = '';
+      st.textContent = infoBusy ? '読みこみ中です（はじめてのときは少しかかります）'
+        : !S.infoVer ? (S.loading ? '読みこみ中です' : '狙い目の中身がまだありません。電波のある所で開き直してください')
+        : '狙い目の中身がとれませんでした（' + (infoErr || 'つながりません') + '）。電波のある所で開き直してください';
+      return;
+    }
+    var found = infoFind(S.info.machines, $('if-q').value), row = '', h = '';
+    st.hidden = found.length>0; st.textContent = 'その名前の台は入っていません';
+    found.forEach(function(x){
+      var r = kanaRow(x.yomi);
+      if (r!==row){ row = r; h += '<div class="if-kana">' + esc(r) + '</div>'; }
+      h += '<button type="button" class="if-m" data-im="' + esc(x.id) + '">' + esc(x.short) + '</button>';
+    });
+    list.innerHTML = h;
+  }
+  function renderInfoMachine(m){
+    var h = '<div class="if-top"><button type="button" class="btn" id="if-back">‹ 台の一覧</button><h2>' + esc(m.short) + '</h2>'
+      + (m.name!==m.short ? '<small>' + esc(m.name) + '</small>' : '') + '</div>';
+    // 1. 天井（リセット・上位CZ失敗などで変わる天井も）
+    h += '<div class="block"><h2>天井</h2><div class="list">' + m.ceil.map(function(c){
+      return '<div class="ce"><div class="ce-n">' + esc(c[0]) + srcTag(c[4]) + '</div><div class="ce-v">' + esc(c[1]) + (c[2] ? ' <small>→ ' + esc(c[2]) + '</small>' : '') + '</div>'
+        + (c[3] ? '<div class="ce-s">' + esc(c[3]) + '</div>' : '') + '</div>';
+    }).join('') + '</div>';
+    if (m.cond.length) h += '<div class="cd"><h3>ほかに天井が変わるとき</h3>' + m.cond.map(function(c){
+      return '<div class="cd-r"><b>' + esc(c[0]) + srcTag(c[2]) + '</b><span>' + esc(c[1]) + '</span></div>';
+    }).join('') + '</div>';
+    h += '</div>';
+    // 2. 狙い目ごとの打ち始め（ノートの線）
+    h += '<div class="block"><h2>狙い目と打ち始め</h2>';
+    if (!m.groups.length) h += '<p class="hint">この台は、ノートに打ち始めの線がありません。下の「ほかの狙い目」と「やめどき」を見てください。</p>';
+    else h += '<p class="hint">現金＝非等価の線、持ちメダル＝等価の線です。数字は「ここから打てる」G数（ptなどの台はその数）です。</p>';
+    m.groups.forEach(function(g){
+      h += '<div class="ig"><div class="ig-h">' + esc(g.t) + srcTag(g.src) + '</div>' + (g.u ? '<div class="ig-u">' + esc(g.u) + '</div>' : '');
+      g.rows.forEach(function(r){
+        var v = r.x ? '<span></span><b class="none">説明を見る</b>'
+          : '<span>現金</span>' + (r.c==null ? '<b class="none">線なし</b>' : '<b>' + esc(infoLine(r.c, r.n)) + '</b>')
+          + '<span>持ちメダル</span>' + (r.m==null ? '<b class="none">線なし</b>' : '<b>' + esc(infoLine(r.m, r.n)) + '</b>');
+        h += '<div class="ir"><div class="ir-top"><div class="ir-l">' + esc(r.l) + (r.am ? '<span class="tag">朝</span>' : '') + srcTag(r.src) + '</div><div class="ir-v">' + v + '</div></div>'
+          + (r.e ? '<div class="ir-e">' + esc(r.e) + '</div>' : '')
+          + (r.see ? '<div class="ir-see">' + esc(r.see) + '</div>' : '')
+          + (r.memo ? '<details><summary>ノートの書き方など</summary><p>' + esc(r.memo) + '</p></details>' : '')
+          + '</div>';
+      });
+      h += '</div>';
+    });
+    h += '</div>';
+    // 3. 線のない狙い目
+    if (m.others.length) h += '<div class="block"><h2>ほかの狙い目</h2><div class="list">' + m.others.map(function(o){
+      return '<div class="io"><b>' + esc(o[0]) + srcTag(o[2]) + '</b><span>' + esc(o[1]) + '</span></div>';
+    }).join('') + '</div></div>';
+    if (m.yame) h += '<details class="if-more"><summary>やめどき</summary><div><p>' + esc(m.yame) + '</p></div></details>';
+    if (m.terms.length) h += '<details class="if-more"><summary>この台の言葉</summary><div><dl>' + m.terms.map(function(w){
+      return '<dt>' + esc(w[0]) + '</dt><dd>' + esc(w[1]) + '</dd>';
+    }).join('') + '</dl></div></details>';
+    h += '<p class="hint">しるしの意味：ノート＝チームのノート、解析＝台の解析、チーム＝チームで確かめたこと、推測＝ノートにも解析にもなく考えたもの（確かめ中）。</p>';
+    $('if-view').innerHTML = h;
+  }
+  $('if-list').addEventListener('click', function(e){
+    var b = e.target.closest('[data-im]'); if (!b) return;
+    infoSel = b.getAttribute('data-im'); store(LS_INFO_M, infoSel);
+    renderInfo(); window.scrollTo(0, 0);
+  });
+  $('if-view').addEventListener('click', function(e){
+    if (!e.target.closest('#if-back')) return;
+    infoSel = ''; store(LS_INFO_M, '');
+    renderInfo(); window.scrollTo(0, 0);
+  });
+  $('if-q').addEventListener('input', function(){ renderInfo(); });
+
   function refresh(){
     status(); renderOld();
     if (!editing) fillMachines();
@@ -1663,7 +1853,8 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
   window.__neraicho = {calc:calc, norm:norm, groups:groups, monthSums:monthSums, applyQueue:applyQueue, keyFrom:keyFrom, fmtAt:fmtAt, pickList:pickList, recs:recs,
     resolvePick:resolvePick, timeLabel:timeLabel, shortDay:shortDay, hasTime:hasTime, byNewest:byNewest,
     parseFields:parseFields, fieldsText:fieldsText, detText:detText, detLabel:detLabel, detKey:detKey, aimList:aimList, resolveAim:resolveAim,
-    aimFields:aimFields, yomiKey:yomiKey, byYomi:byYomi, allMachines:allMachines, shareOf:shareOf, daySums:daySums, compactYen:compactYen};
+    aimFields:aimFields, yomiKey:yomiKey, byYomi:byYomi, allMachines:allMachines, shareOf:shareOf, daySums:daySums, compactYen:compactYen,
+    infoLine:infoLine, kanaRow:kanaRow, infoFind:infoFind};
 
   /* ---------- start ---------- */
   if (!canStore) $('no-store').hidden = false;
@@ -1691,7 +1882,7 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
 <script>
 (function(){
   'use strict';
-  var BUILD = '93e4afde38c2', CACHE = 'neraicho-app-v1', lastCheck = 0;
+  var BUILD = '6eb61b0bfded', CACHE = 'neraicho-app-v1', lastCheck = 0;
   if (!('serviceWorker' in navigator)) return;
   var bar = document.getElementById('app-update');
   document.body.insertBefore(bar, document.body.firstChild);   // above the page, so it never covers the machine select or tabs
