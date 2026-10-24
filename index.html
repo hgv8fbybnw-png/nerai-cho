@@ -163,12 +163,41 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
 .sum{display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 0}
 .sum small{font-size:13px;font-weight:700;color:var(--muted)}
 .sum b{font-family:var(--font-num);font-size:34px;line-height:1.2;font-variant-numeric:tabular-nums}
+.sum .share{display:grid;grid-template-columns:auto auto;column-gap:14px;row-gap:2px;justify-content:center;align-items:baseline;width:100%;margin:4px 0 6px;padding-top:8px;border-top:1px dashed var(--line)}
+.sum .share span{font-size:13px;font-weight:700;color:var(--muted);text-align:right;white-space:nowrap}
+.sum .share b{font-size:20px;text-align:left}
 .sum-meta{display:flex;flex-wrap:wrap;justify-content:center;column-gap:12px;font-size:13px;color:var(--muted)}
 .sum-meta span{white-space:nowrap}
 .pbar{position:relative;height:6px;border-radius:3px;background:var(--bg);margin-top:4px}
 .pbar::after{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--line)}
 .pbar i{position:absolute;top:0;bottom:0;border-radius:3px}
 .pbar i.pos{background:var(--go)} .pbar i.neg{background:var(--skip)}
+/* 日ごとの収支（カレンダー）: the sign (+/−) always shows, so a day's result never rests on green/red alone */
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px}
+.cal-h{font-size:11px;font-weight:700;color:var(--muted);text-align:center;padding:2px 0}
+.cal-d{font:inherit;color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:8px;min-width:0;min-height:50px;padding:3px 1px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;touch-action:manipulation}
+.cal-d i{font-style:normal;font-size:11px;color:var(--muted);text-align:left;padding-left:2px;line-height:1.2}
+.cal-d b{font-family:var(--font-num);font-size:10.5px;font-variant-numeric:tabular-nums;letter-spacing:-.03em;white-space:nowrap;overflow:hidden;text-align:center;line-height:1.3;min-height:1.3em}
+.cal-d.up{background:var(--go-soft);border-color:var(--go-soft)}
+.cal-d.down{background:var(--skip-soft);border-color:var(--skip-soft)}
+.cal-d.even{background:var(--bg);border-color:var(--bg)}
+.cal-d.today i{color:var(--accent);font-weight:700}
+.cal-d[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset:1px}
+.cal-d:disabled{opacity:.35;cursor:default}
+.cal-d:focus-visible{outline:3px solid var(--accent);outline-offset:1px}
+.cal-day{display:flex;flex-direction:column;gap:4px;border-top:1px dashed var(--line);padding-top:10px}
+.cal-day-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.cal-day-top b+b{font-family:var(--font-num);font-size:18px;font-variant-numeric:tabular-nums}
+.cal-day .rk-plays{margin:0;border-top:0;padding:2px 0}
+.cal-day .rk-plays+.rk-plays{border-top:1px dashed var(--line);padding-top:6px}
+/* 稼働日数と打った台: one bar column per measure, each on its own scale */
+.wk{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,1fr);gap:8px 12px;align-items:center;font-size:13px}
+.wk-h{font-size:12px;font-weight:700;color:var(--muted)}
+.wk-name{font-weight:700;max-width:6.5em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wk-bar{display:flex;align-items:center;gap:6px;min-width:0}
+.wk-bar i{display:block;flex:none;height:10px;border-radius:0 4px 4px 0;background:var(--accent)}
+.wk-bar span{font-family:var(--font-num);font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap}
+.wk-bar.none span{color:var(--muted);font-weight:400}
 
 /* ランキング・月の人ごと */
 .rk-ctl{display:flex;flex-direction:column;gap:10px}
@@ -328,12 +357,24 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
       <div class="mon-nav"><button type="button" id="mon-prev" class="btn" aria-label="前の月">‹</button><b id="mon-label"></b><button type="button" id="mon-next" class="btn" aria-label="次の月">›</button></div>
       <div id="mon-sum" class="sum" aria-live="polite"></div>
     </div>
+    <div class="block">
+      <h2>日ごとの収支</h2>
+      <div id="cal-who" class="chips" role="group" aria-label="だれの収支を出すか"></div>
+      <div id="cal" class="cal"></div>
+      <p id="cal-sum" class="count"></p>
+      <div id="cal-day" class="cal-day" aria-live="polite"></div>
+    </div>
+    <div class="block">
+      <h2>稼働日数と打った台</h2>
+      <div id="mon-work" class="wk"></div>
+      <p class="hint">稼働日数は、その月に1台でも記録した日の数です。棒の長さは、それぞれの列でいちばん多い人を基準にしています。</p>
+    </div>
     <div class="seg" role="radiogroup" aria-label="分け方">
       <input type="radio" name="mon-by" id="mon-by-by" value="by" checked><label for="mon-by-by">メンバーごと</label>
       <input type="radio" name="mon-by" id="mon-by-pick" value="pick"><label for="mon-by-pick">拾った人ごと</label>
     </div>
     <div id="mon-people" class="list"></div>
-    <p class="hint">「メンバーごと」は、その人が自分の合言葉で記録した収支です。収支は円で足しています（現金は換金の枚数で数えて、記録ごとの交換率で円にしてから足します）。押すと、その月の中身が出ます。</p>
+    <p class="hint">「合計の40%」はチームの合計に40%をかけた数、「1人あたり」はそれを今のメンバーの人数で割った数です。「メンバーごと」は、その人が自分の合言葉で記録した収支です。収支は円で足しています（現金は換金の枚数で数えて、記録ごとの交換率で円にしてから足します）。押すと、その月の中身が出ます。</p>
   </section>
 
   <!-- ランキング -->
@@ -1165,35 +1206,62 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
 
   /* ---------- 月の収支: the team total and each member (the one who recorded = played), or by 拾った人 ---------- */
   var month = fmtAt(new Date()).slice(0, 7);
+  // n = 打った台 (one record = one machine played), days = 稼働日数 (days with at least one record; user 2026-10-24)
   function monthSums(all, m, key, names){
-    var team = {n:0, win:0, yen:0}, by = {}, out = [];
+    var team = {n:0, win:0, yen:0, days:0}, by = {}, out = [], tdays = {};
     // 拾った人 is free words: the same name written in full/half width or with spaces counts as one
     var kf = key==='pick' ? function(v){ return norm(v); } : function(v){ return v; };
-    (names || []).forEach(function(n){ by[kf(n)] = {name:n, n:0, win:0, yen:0, plays:[]}; out.push(by[kf(n)]); });
+    function person(name){ return {name:name, n:0, win:0, yen:0, days:0, plays:[], seen:{}}; }
+    (names || []).forEach(function(n){ by[kf(n)] = person(n); out.push(by[kf(n)]); });
     all.forEach(function(r){
       if (r.at.slice(0, 7)!==m) return;
-      var c = calc(r), who = r[key] || (key==='pick' ? '拾った人なし' : '—'), k = kf(who);
-      if (!by[k]){ by[k] = {name:who, n:0, win:0, yen:0, plays:[]}; out.push(by[k]); }
+      var c = calc(r), who = r[key] || (key==='pick' ? '拾った人なし' : '—'), k = kf(who), d = r.at.slice(0, 10);
+      if (!by[k]){ by[k] = person(who); out.push(by[k]); }
       var p = by[k];
       p.n++; p.yen += c.yen; if (c.yen>0) p.win++;
+      if (!p.seen[d]){ p.seen[d] = 1; p.days++; }
       p.plays.push({at:r.at, name:r.name, aim:r.aim, det:r.det, yen:c.yen, other:key==='by' ? r.pick : r.by});
       team.n++; team.yen += c.yen; if (c.yen>0) team.win++;
+      if (!tdays[d]){ tdays[d] = 1; team.days++; }
     });
+    out.forEach(function(p){ delete p.seen; });
     out.sort(function(a, b){ return (b.n>0) - (a.n>0) || b.yen - a.yen || b.n - a.n; });
     return {team:team, people:out};
+  }
+  // the team's share (user 2026-10-24): 40% of the team total, and that split by the number of members
+  function shareOf(yen, people){ var s = roundHalfAway(yen * 0.4); return {share:s, each:people>0 ? roundHalfAway(s / people) : null}; }
+  // each day of a month for everyone (who='') or one member: {'2026-10-21': {yen, n, win, plays:[records]}}
+  function daySums(all, m, who){
+    var out = {};
+    all.forEach(function(r){
+      if (r.at.slice(0, 7)!==m || (who && r.by!==who)) return;
+      var d = r.at.slice(0, 10), c = calc(r), x = out[d] || (out[d] = {yen:0, n:0, win:0, plays:[]});
+      x.yen += c.yen; x.n++; if (c.yen>0) x.win++; x.plays.push(r);
+    });
+    return out;
+  }
+  // a short amount that fits a calendar cell on a phone: 「+3500」「−1.2万」「+123万」「±0」 (the day's detail shows it exactly)
+  function compactYen(v){
+    if (!v) return '±0';
+    var a = Math.abs(v), t = a<10000 ? String(a) : a<100000 ? String(Math.round(a/1000)/10).replace(/\.0$/, '') + '万' : Math.round(a/10000) + '万';
+    return (v>0 ? '+' : '−') + t;
   }
   function renderMonth(){
     $('mon-label').textContent = monthLabel(month);
     $('mon-next').disabled = month>=fmtAt(new Date()).slice(0, 7);
-    var key = document.querySelector('input[name="mon-by"]:checked').value, s = monthSums(recs(), month, key, key==='by' ? activeNames() : []), t = s.team;
+    var all = recs(), key = document.querySelector('input[name="mon-by"]:checked').value, s = monthSums(all, month, key, key==='by' ? activeNames() : []), t = s.team;
+    var members = activeNames().length, sh = shareOf(t.yen, members);
     $('mon-sum').innerHTML = '<small>チームの合計</small><b class="'+cls(t.yen)+'">'+esc(signed(t.yen, '円'))+'</b>'
-      + '<span class="sum-meta"><span>'+t.n+'回</span><span>勝ち'+t.win+'回</span>'+(t.n ? '<span>1回あたり '+esc(signed(roundHalfAway(t.yen/t.n), '円'))+'</span>' : '')+'</span>';
+      + '<div class="share"><span>合計の40%</span><b class="'+cls(sh.share)+'">'+esc(signed(sh.share, '円'))+'</b>'
+      + (sh.each!=null ? '<span>1人あたり（÷'+members+'人）</span><b class="'+cls(sh.each)+'">'+esc(signed(sh.each, '円'))+'</b>' : '') + '</div>'
+      + '<span class="sum-meta"><span>稼働 '+t.days+'日</span><span>打った台 '+t.n+'台</span><span>勝ち '+t.win+'台</span>'+(t.n ? '<span>1台あたり '+esc(signed(roundHalfAway(t.yen/t.n), '円'))+'</span>' : '')+'</span>';
+    renderCal(all); renderWork(all);
     var max = 1; s.people.forEach(function(p){ max = Math.max(max, Math.abs(p.yen)); });
     $('mon-people').innerHTML = s.people.length ? s.people.map(function(p){
       var w = Math.round(Math.abs(p.yen)/max*50), bar = p.yen>0 ? 'left:50%;width:'+w+'%' : 'right:50%;width:'+w+'%';
       return '<details class="rk pp"><summary>'
         + '<span class="rk-main"><b>'+esc(p.name)+(S.me && p.name===S.me.name ? '<small style="display:inline;margin-left:6px">自分</small>' : '')+'</b>'
-        + '<span class="rk-meta">'+(p.n ? '<span>'+p.n+'回</span><span>勝ち'+p.win+'回</span>' : '<span>この月の記録なし</span>')+'</span>'
+        + '<span class="rk-meta">'+(p.n ? '<span>稼働'+p.days+'日</span><span>'+p.n+'台</span><span>勝ち'+p.win+'台</span>' : '<span>この月の記録なし</span>')+'</span>'
         + (p.n ? '<span class="pbar" aria-hidden="true"><i class="'+cls(p.yen)+'" style="'+bar+'"></i></span>' : '')+'</span>'
         + '<span class="rk-val"><b class="'+cls(p.yen)+'">'+(p.n ? esc(signed(p.yen, '円')) : '—')+'</b></span>'
         + '</summary>'
@@ -1203,8 +1271,58 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
         + '</details>';
     }).join('') : '<div class="empty">メンバーを読み込むと、ここに一人ずつ出ます。</div>';
   }
-  $('mon-prev').addEventListener('click', function(){ month = shiftMonth(month, -1); renderMonth(); });
-  $('mon-next').addEventListener('click', function(){ month = shiftMonth(month, 1); renderMonth(); });
+  /* 日ごとの収支: a month calendar for everyone or one member (user 2026-10-24 「日毎の利益＝1人ずつと全体カレンダー式」) */
+  var calWho = '', calDay = '';
+  function renderCal(all){
+    var names = activeNames();
+    all.forEach(function(r){ if (r.by && r.at.slice(0, 7)===month && names.indexOf(r.by)<0) names.push(r.by); });
+    if (calWho && names.indexOf(calWho)<0) calWho = '';
+    $('cal-who').innerHTML = [''].concat(names).map(function(n){ return '<button type="button" class="chip" data-who="'+esc(n)+'" aria-pressed="'+(n===calWho ? 'true' : 'false')+'">'+esc(n || 'みんな')+'</button>'; }).join('');
+    var ds = daySums(all, month, calWho), p = month.split('-'), mo = +p[1], first = new Date(+p[0], mo-1, 1).getDay(), last = new Date(+p[0], mo, 0).getDate(), today = fmtAt(new Date()).slice(0, 10);
+    var h = '日月火水木金土'.split('').map(function(c){ return '<span class="cal-h" aria-hidden="true">'+c+'</span>'; }).join('');
+    for (var i=0; i<first; i++) h += '<span></span>';
+    for (var d=1; d<=last; d++){
+      var k = month + '-' + pad(d), x = ds[k];
+      h += '<button type="button" class="cal-d'+(x ? (x.yen>0 ? ' up' : x.yen<0 ? ' down' : ' even') : '')+(k===today ? ' today' : '')+'" data-day="'+k+'"'+(k>today ? ' disabled' : '')
+        + ' aria-pressed="'+(k===calDay ? 'true' : 'false')+'" aria-label="'+mo+'月'+d+'日 '+(x ? esc(signed(x.yen, '円'))+' '+x.n+'台' : '記録なし')+'"><i>'+d+'</i><b class="'+(x ? cls(x.yen) : '')+'">'+(x ? esc(compactYen(x.yen)) : '')+'</b></button>';
+    }
+    $('cal').innerHTML = h;
+    var days = Object.keys(ds), n = 0;
+    days.forEach(function(k){ n += ds[k].n; });
+    $('cal-sum').textContent = (calWho || 'みんな') + '：稼働 ' + days.length + '日・打った台 ' + n + '台';
+    renderCalDay(ds);
+  }
+  function renderCalDay(ds){
+    var el = $('cal-day'), x = calDay ? ds[calDay] : null, who = calWho || 'みんな';
+    if (!calDay || calDay.slice(0, 7)!==month){ el.innerHTML = '<p class="hint">日にちを押すと、その日の中身が出ます。</p>'; return; }
+    if (!x){ el.innerHTML = '<p class="hint">'+esc(dayLabel(calDay))+'：'+esc(who)+'の記録はありません。</p>'; return; }
+    var h = '<div class="cal-day-top"><b>'+esc(dayLabel(calDay)+'・'+who)+'</b><b class="'+cls(x.yen)+'">'+esc(signed(x.yen, '円'))+'</b></div><p class="hint">'+x.n+'台・勝ち'+x.win+'台</p>';
+    if (!calWho){   // everyone: each member's day first
+      var per = {}, order = [];
+      x.plays.forEach(function(r){ var k = r.by || '—'; if (!per[k]){ per[k] = {n:0, yen:0}; order.push(k); } per[k].n++; per[k].yen += calc(r).yen; });
+      order.sort(function(a, b){ return per[b].yen - per[a].yen; });
+      h += '<div class="rk-plays">' + order.map(function(k){ return '<div class="rk-play"><span>'+esc(k+'（'+per[k].n+'台）')+'</span><b class="'+cls(per[k].yen)+'">'+esc(signed(per[k].yen, '円'))+'</b></div>'; }).join('') + '</div>';
+    }
+    h += '<div class="rk-plays">' + x.plays.slice().sort(byNewest).map(function(r){
+      var c = calc(r);
+      return '<div class="rk-play"><span>'+esc(timeLabel(r.at)+' '+r.name+(r.aim ? '・'+r.aim+(r.det ? '（'+detLabel(r.det)+'）' : '') : '')+(calWho ? '' : '・'+(r.by || '—')))+'</span><b class="'+cls(c.yen)+'">'+esc(signed(c.yen, '円'))+'</b></div>';
+    }).join('') + '</div>';
+    el.innerHTML = h;
+  }
+  $('cal-who').addEventListener('click', function(e){ var b = e.target.closest('.chip'); if (!b) return; calWho = b.getAttribute('data-who'); renderMonth(); });
+  $('cal').addEventListener('click', function(e){ var b = e.target.closest('.cal-d'); if (!b || b.disabled) return; var k = b.getAttribute('data-day'); calDay = calDay===k ? '' : k; renderMonth(); });
+  /* 稼働日数と打った台 for each member (user 2026-10-24 「稼働日数と台の数を可視化したい」): two bar columns, each on its own scale */
+  function renderWork(all){
+    var order = activeNames(), ppl = monthSums(all, month, 'by', order).people, md = 0, mn = 0;
+    ppl.sort(function(a, b){ var i = order.indexOf(a.name), j = order.indexOf(b.name); return (i<0 ? 99 : i) - (j<0 ? 99 : j); });
+    ppl.forEach(function(p){ md = Math.max(md, p.days); mn = Math.max(mn, p.n); });
+    function bar(v, max, label){ return '<span class="wk-bar'+(v ? '' : ' none')+'">'+(v ? '<i style="width:calc((100% - 3.4em) * '+(v / max).toFixed(3)+')"></i>' : '')+'<span>'+label+'</span></span>'; }
+    $('mon-work').innerHTML = ppl.length ? '<span></span><span class="wk-h">稼働日数</span><span class="wk-h">打った台</span>'
+      + ppl.map(function(p){ return '<span class="wk-name">'+esc(p.name)+'</span>' + bar(p.days, md, p.days+'日') + bar(p.n, mn, p.n+'台'); }).join('')
+      : '<p class="hint" style="grid-column:1 / -1">メンバーを読み込むと、ここに一人ずつ出ます。</p>';
+  }
+  $('mon-prev').addEventListener('click', function(){ month = shiftMonth(month, -1); calDay = ''; renderMonth(); });
+  $('mon-next').addEventListener('click', function(){ month = shiftMonth(month, 1); calDay = ''; renderMonth(); });
   document.querySelectorAll('input[name="mon-by"]').forEach(function(x){ x.addEventListener('change', renderMonth); });
 
   /* ---------- ランキング: one row per (台 × 狙い目 name), everyone's records (user 2026-10-23 「G数とかなしの狙い目でつけて」);
@@ -1532,7 +1650,7 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
   window.__neraicho = {calc:calc, norm:norm, groups:groups, monthSums:monthSums, applyQueue:applyQueue, keyFrom:keyFrom, fmtAt:fmtAt, pickList:pickList, recs:recs,
     resolvePick:resolvePick, timeLabel:timeLabel, shortDay:shortDay, hasTime:hasTime, byNewest:byNewest,
     parseFields:parseFields, fieldsText:fieldsText, detText:detText, detLabel:detLabel, detKey:detKey, aimList:aimList, resolveAim:resolveAim,
-    aimFields:aimFields, yomiKey:yomiKey, byYomi:byYomi, allMachines:allMachines};
+    aimFields:aimFields, yomiKey:yomiKey, byYomi:byYomi, allMachines:allMachines, shareOf:shareOf, daySums:daySums, compactYen:compactYen};
 
   /* ---------- start ---------- */
   if (!canStore) $('no-store').hidden = false;
@@ -1560,7 +1678,7 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
 <script>
 (function(){
   'use strict';
-  var BUILD = '675adf302f67', CACHE = 'neraicho-app-v1', lastCheck = 0;
+  var BUILD = '141481ee6c93', CACHE = 'neraicho-app-v1', lastCheck = 0;
   if (!('serviceWorker' in navigator)) return;
   var bar = document.getElementById('app-update');
   document.body.insertBefore(bar, document.body.firstChild);   // above the page, so it never covers the machine select or tabs
