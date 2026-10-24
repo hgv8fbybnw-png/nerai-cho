@@ -490,6 +490,11 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
 
 <div class="dock" id="dock" hidden>
   <nav class="nav" aria-label="画面の切り替え">
+    <!-- 狙い目はいちばん左（2026-10-24 ユーザー「1番左に」） -->
+    <button type="button" data-view="info">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 1.5v4M12 18.5v4M1.5 12h4M18.5 12h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <span>狙い目</span>
+    </button>
     <button type="button" data-view="rec">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M13 7l4 4" fill="none" stroke="currentColor" stroke-width="2"/></svg>
       <span>記録する</span>
@@ -505,10 +510,6 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
     <button type="button" data-view="rank">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><rect x="9" y="5" width="6" height="15" rx="1.2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="3" y="11" width="6" height="9" rx="1.2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="15" y="14" width="6" height="6" rx="1.2" fill="none" stroke="currentColor" stroke-width="2"/></svg>
       <span>ランキング</span>
-    </button>
-    <button type="button" data-view="info">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 1.5v4M12 18.5v4M1.5 12h4M18.5 12h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      <span>狙い目</span>
     </button>
   </nav>
 </div>
@@ -1882,7 +1883,7 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
 <script>
 (function(){
   'use strict';
-  var BUILD = '6eb61b0bfded', CACHE = 'neraicho-app-v1', lastCheck = 0;
+  var BUILD = 'b61671e3ed16', CACHE = 'neraicho-app-v1', lastCheck = 0;
   if (!('serviceWorker' in navigator)) return;
   var bar = document.getElementById('app-update');
   document.body.insertBefore(bar, document.body.firstChild);   // above the page, so it never covers the machine select or tabs
