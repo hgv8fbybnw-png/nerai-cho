@@ -247,6 +247,23 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
 .if-kana{grid-column:1/-1;font-size:12px;font-weight:700;color:var(--muted);padding:6px 2px 0}
 .if-m{font:inherit;font-size:14px;font-weight:700;line-height:1.35;text-align:left;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-height:48px;cursor:pointer;overflow-wrap:anywhere;touch-action:manipulation}
 .if-m:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+/* 決定67・68（2026-10-31）：一覧の作りは今のまま（オーナー「台を選ぶ画面はそのままで」）。狙わない台は同じボタンのまま色を薄く
+   （押せば開ける）／探す欄の上に全台共通の枠（探す欄と同じカードの見た目＝.block）／
+   台の画面の上に「徘徊で見るところ」の太い枠と、そのすぐ下に「特記」の目立つ色の枠（オーナー「特記のところもう少し強調したい」） */
+.if-m.dim{color:var(--muted);background:transparent;opacity:.7}
+.cm-g{display:flex;flex-direction:column;gap:2px}
+.cm-g h3{font-size:14px;overflow-wrap:anywhere}
+.fl{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:4px}
+.fl li{overflow-wrap:anywhere}
+.fl li::marker{color:var(--accent)}
+.cm-g .fl{font-size:14px;line-height:1.5}
+.if-focus{background:var(--accent-soft);border:3px solid var(--accent);border-radius:var(--r);padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.if-focus h3{align-self:flex-start;font-size:13px;letter-spacing:.04em;background:var(--accent);color:var(--accent-ink);border-radius:6px;padding:2px 8px}
+.if-focus .fl{font-size:18px;font-weight:700;line-height:1.45;gap:6px}
+.if-focus.x{background:var(--skip-soft);border-color:var(--skip)}
+.if-focus.x h3{background:var(--skip);color:var(--surface)}
+.if-focus.x .fl li::marker{color:var(--skip)}
+.if-focus+.if-focus.x{margin-top:-6px}
 .if-top{display:flex;flex-direction:column;gap:6px}
 .if-top .btn{align-self:flex-start}
 .if-top h2{font-size:19px;overflow-wrap:anywhere}
@@ -459,6 +476,8 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
   <section id="view-info" class="view" aria-labelledby="info-title" hidden>
     <header class="top"><div class="brand"><small>台ごとの天井・ゾーン・pt</small><h1 id="info-title">狙い目</h1></div></header>
     <div id="if-pick" class="view">
+      <!-- 全台共通（決定67・68）：中身は合言葉が合った人にだけ渡すデータから出す。ここには書かない -->
+      <div id="if-common" class="block if-common" hidden></div>
       <div class="block">
         <input id="if-q" class="tin" type="search" autocomplete="off" placeholder="台の名前で探す（ひらがなでも）" aria-label="台の名前で探す">
       </div>
@@ -1774,8 +1793,23 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
     if (!k) return list;
     return list.filter(function(m){ return norm(hira(m.name)).indexOf(k)>=0 || norm(hira(m.short)).indexOf(k)>=0 || norm(hira(m.yomi)).indexOf(k)>=0; });
   }
-  function infoMachine(id){
+  /* 決定67・68（2026-10-31）：台の配列の先頭に、特別な台「全台共通」（id が _common）が来る。一覧の台にも検索の結果にも出さず、
+     一覧のいちばん上の枠に、その common（[{h 見出し, t [行]}]）を出す。出どころ（src）は画面に出さない。
+     1台ごとの focus（徘徊で見るところ）・focus_x（特記）は文字の配列、dim が true の台は狙わない台（一覧で薄い色）。
+     中身はデータから出すだけ（このページには書かない）。新しい欄がない古い形のデータでも、今までどおりに出る */
+  var INFO_COMMON = '_common';
+  // 文字の配列として読む（空の行は出さない）
+  function infoLines(v){ return (Array.isArray(v) ? v : v==null ? [] : [v]).filter(function(s){ return s!=null && String(s).trim()!==''; }); }
+  function infoMachines(){ return S.info ? S.info.machines.filter(function(m){ return m && m.id!==INFO_COMMON; }) : []; }
+  function infoCommon(){
     var ms = S.info ? S.info.machines : [];
+    for (var i=0; i<ms.length; i++) if (ms[i] && ms[i].id===INFO_COMMON)
+      return (Array.isArray(ms[i].common) ? ms[i].common : []).filter(function(g){ return g && (g.h || infoLines(g.t).length); });
+    return [];
+  }
+  function lineList(a){ return '<ul class="fl">' + a.map(function(s){ return '<li>' + esc(s) + '</li>'; }).join('') + '</ul>'; }
+  function infoMachine(id){
+    var ms = infoMachines();
     for (var i=0; i<ms.length; i++) if (ms[i].id===id) return ms[i];
     return null;
   }
@@ -1783,7 +1817,12 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
     var m = infoMachine(infoSel);
     $('if-pick').hidden = !!m; $('if-view').hidden = !m;
     if (m) return renderInfoMachine(m);
-    var st = $('if-state'), list = $('if-list');
+    var st = $('if-state'), list = $('if-list'), cm = $('if-common'), cg = infoCommon();
+    cm.hidden = !cg.length;
+    cm.innerHTML = !cg.length ? '' : '<h2>全台共通</h2>' + cg.map(function(g){
+      var t = infoLines(g.t);
+      return '<div class="cm-g">' + (g.h ? '<h3>' + esc(g.h) + '</h3>' : '') + (t.length ? lineList(t) : '') + '</div>';
+    }).join('');
     if (!S.info){
       st.hidden = false; list.innerHTML = '';
       st.textContent = infoBusy ? '読みこみ中です（はじめてのときは少しかかります）'
@@ -1791,12 +1830,12 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
         : '狙い目の中身がとれませんでした（' + (infoErr || 'つながりません') + '）。電波のある所で開き直してください';
       return;
     }
-    var found = infoFind(S.info.machines, $('if-q').value), row = '', h = '';
+    var found = infoFind(infoMachines(), $('if-q').value), row = '', h = '';
     st.hidden = found.length>0; st.textContent = 'その名前の台は入っていません';
     found.forEach(function(x){
       var r = kanaRow(x.yomi);
       if (r!==row){ row = r; h += '<div class="if-kana">' + esc(r) + '</div>'; }
-      h += '<button type="button" class="if-m" data-im="' + esc(x.id) + '">' + esc(x.short) + '</button>';
+      h += '<button type="button" class="if-m' + (x.dim===true ? ' dim' : '') + '" data-im="' + esc(x.id) + '">' + esc(x.short) + '</button>';
     });
     list.innerHTML = h;
   }
@@ -1817,6 +1856,10 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
   }
   function renderInfoMachine(m){
     var h = '<div class="if-top"><button type="button" class="btn" id="if-back">‹ 台の一覧</button><h2>' + esc(m.short) + '</h2></div>';
+    // 決定67・68：見出しのすぐ下・「狙い目」の前に、徘徊で見るところ（focus）と特記（focus_x）。どちらもない台は今までどおり
+    var f = infoLines(m.focus), fx = infoLines(m.focus_x);
+    if (f.length) h += '<div class="if-focus"><h3>徘徊で見るところ</h3>' + lineList(f) + '</div>';
+    if (fx.length) h += '<div class="if-focus x"><h3>特記</h3>' + lineList(fx) + '</div>';
     if (!m.nerai){   // the phone still holds the content of the version before the 狙い目 rewrite
       $('if-view').innerHTML = h + '<p class="empty">新しい中身を読みこみ中です。電波のある所で開き直してください。</p>';
       return;
@@ -1884,7 +1927,9 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
 <script>
 (function(){
   'use strict';
-  var BUILD = '846d13df1ce9', CACHE = 'neraicho-app-v1', lastCheck = 0;
+  // BUILD＝この index.html の BUILD の値を空（''）にした中身の SHA-256 の頭12字。sw.js の BUILD・version.json の build と同じ値にする
+  // （2026-10-31 から。前の組み立ての道具 build.py は消えたので、この決め方にした）
+  var BUILD = '42b0d529ff26', CACHE = 'neraicho-app-v1', lastCheck = 0;
   if (!('serviceWorker' in navigator)) return;
   var bar = document.getElementById('app-update');
   document.body.insertBefore(bar, document.body.firstChild);   // above the page, so it never covers the machine select or tabs
