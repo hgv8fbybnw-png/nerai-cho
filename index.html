@@ -241,7 +241,11 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
 .key-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
 .link-box{display:flex;flex-direction:column;gap:8px;background:var(--go-soft);border-radius:10px;padding:12px;font-size:14px}
 .link-box code{font-family:var(--font-num);font-size:12px;overflow-wrap:anywhere;color:var(--muted)}
+/* 決定70（2026-10-31）：見るだけの人（狙い目だけのページ mi/ で狙い目タブだけを見る人）の印と、見るだけの合言葉で開いたときの案内 */
+.tag.view{color:var(--accent);border-color:var(--accent)}
+a.btn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;align-self:flex-start}
 
+/* ★決定70（2026-10-31）：ここから「.if-more dd」の行までは、狙い目だけのページ（mi/index.html）にも同じものを写してある。直すときは2か所とも直す */
 /* 狙い目（台ごとの天井・打ち始めの線） */
 .if-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
 .if-kana{grid-column:1/-1;font-size:12px;font-weight:700;color:var(--muted);padding:6px 2px 0}
@@ -359,6 +363,7 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
         <input id="k-in" class="tin" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="合言葉か、もらったリンク">
       </div>
       <p id="k-err" class="err" role="alert" hidden></p>
+      <div id="k-mi" class="link-box" role="alert" hidden></div>
       <div class="acts"><button type="button" id="k-go" class="btn main">開く</button></div>
       <p class="hint">合言葉は一人ずつ違います。管理の人からもらった合言葉を入れてください。もらったリンクをそのまま貼っても開けます。</p>
     </div>
@@ -486,6 +491,7 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
   </section>
 
   <!-- 狙い目（台ごとの天井・打ち始めの線） -->
+  <!-- ★決定70（2026-10-31）：この section は、狙い目だけのページ（mi/index.html）にも同じものを写してある。直すときは2か所とも直す -->
   <section id="view-info" class="view" aria-labelledby="info-title" hidden>
     <header class="top"><div class="brand"><small>台ごとの天井・ゾーン・pt</small><h1 id="info-title">狙い目</h1></div></header>
     <div id="if-pick" class="view">
@@ -517,9 +523,11 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
       <div class="field"><label for="adm-key">合言葉</label>
         <div class="key-row"><input id="adm-key" class="tin" type="text" maxlength="40" autocomplete="off" autocapitalize="off" spellcheck="false"><button type="button" id="adm-gen" class="btn sm">おまかせで作る</button></div></div>
       <label class="chk"><input type="checkbox" id="adm-admin">管理もできる人にする</label>
+      <label class="chk"><input type="checkbox" id="adm-view">見るだけの人にする（狙い目だけ）</label>
       <p id="adm-err" class="err" role="alert" hidden></p>
       <div class="acts"><button type="button" id="adm-add" class="btn main">足す</button></div>
       <p class="hint">足したら、その人専用のリンクが出ます。本人に送って、iPhoneの Safari で開いてもらい、共有ボタン →「ホーム画面に追加」をしてもらってください。合言葉を打たずに開けます。</p>
+      <p class="hint">「見るだけ」の人は、狙い目だけのページで狙い目タブだけを見られます。記録は見られない・入れられない、1人あたりの人数にも入りません。リンクは狙い目だけのページのものが出ます。</p>
     </div>
     <div id="pk" class="block" hidden>
       <h2>拾った人の名前の整理</h2>
@@ -704,6 +712,7 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
         return;
       }
       if (r.鍵ちがい) return lockOut('合言葉が変わったか、止められています。管理の人に確かめてください。');
+      if (r.見るだけ) return viewOnlyOut(S.key);
       if (r.重なり) return lockOut(r.error);
       again(left, r.error || 'とれませんでした');
     }, function(){ S.loading = false; again(left, 'つながりません'); });
@@ -739,6 +748,7 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
         return;
       }
       if (r.鍵ちがい) return lockOut('合言葉が変わったか、止められています。管理の人に確かめてください。');
+      if (r.見るだけ) return viewOnlyOut(S.key);
       // the sheet said no (for example the record was already removed by someone): drop it, say so, and look again
       drop(op); toast('送れませんでした：' + (r.error || '')); reload();
     }, function(){
@@ -802,15 +812,27 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
     S.key = ''; S.me = null; S.members = []; S.picks = []; S.aliases = []; S.aims = []; S.machines = []; S.recs = []; S.info = null; S.infoVer = '';
     try { localStorage.removeItem(LS_KEY); localStorage.removeItem(LS_CACHE); localStorage.removeItem(LS_INFO); } catch(e){}
     $('k-err').textContent = msg || ''; $('k-err').hidden = !msg;
+    $('k-mi').hidden = true;
     show('key');
+  }
+  /* 決定70（2026-10-31）：見るだけの合言葉（狙い目タブだけを見る人の合言葉）でこのページを開いたとき。このページでは使えないので、
+     ほかの合言葉と同じく端末から消して、狙い目だけのページ（mi/）へのリンクを出す。リンクは管理の画面の「見るだけの人のリンク」と同じ作り */
+  function miLinkFor(key){ return new URL('mi/', location.origin + location.pathname).href + '?k=' + encodeURIComponent(key); }
+  function viewOnlyOut(key){
+    lockOut('');
+    var box = $('k-mi');
+    box.innerHTML = '<b>見るだけの合言葉です。狙い目だけのページで開いてください</b>'
+      + '<a class="btn sm" id="k-mi-go" href="' + esc(miLinkFor(key)) + '">狙い目だけのページを開く</a>';
+    box.hidden = false;
   }
   $('k-go').addEventListener('click', function(){
     var k = keyFrom($('k-in').value), err = $('k-err');
     if (!k){ err.textContent = '合言葉を入れてください'; err.hidden = false; return; }
-    var b = $('k-go'); b.disabled = true; b.textContent = 'たしかめ中…'; err.hidden = true;
+    var b = $('k-go'); b.disabled = true; b.textContent = 'たしかめ中…'; err.hidden = true; $('k-mi').hidden = true;
     S.key = k;
     call('all', {}).then(function(r){
       b.disabled = false; b.textContent = '開く';
+      if (!r.ok && r.見るだけ){ S.key = ''; $('k-in').value = ''; return viewOnlyOut(k); }
       if (!r.ok){ S.key = ''; err.textContent = r.鍵ちがい ? '合言葉がちがいます（大文字・小文字も見ます）' : (r.error || 'うまくいきませんでした'); err.hidden = false; return; }
       store(LS_KEY, k);
       // put it in the address too, so "ホーム画面に追加" from here keeps it (the icon opens with this address)
@@ -1538,12 +1560,13 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
     if (!memberRows) return;
     $('adm-list').innerHTML = memberRows.map(function(m){
       var me = S.me && m.name===S.me.name, n = esc(m.name);
-      return '<div class="mem"><div class="mem-top"><b>'+n+'</b>'+(m.admin ? '<span class="tag">管理</span>' : '')+(m.active ? '' : '<span class="tag wait">止めています</span>')+(me ? '<span class="tag">自分</span>' : '')+'</div>'
+      return '<div class="mem"><div class="mem-top"><b>'+n+'</b>'+(m.admin ? '<span class="tag">管理</span>' : '')+(m.view ? '<span class="tag view">見るだけ</span>' : '')+(m.active ? '' : '<span class="tag wait">止めています</span>')+(me ? '<span class="tag">自分</span>' : '')+'</div>'
         + '<div class="acts" style="flex-wrap:wrap"><button type="button" class="btn sm" data-mact="link" data-name="'+n+'">リンクを送る</button><button type="button" class="btn sm" data-mact="open" data-name="'+n+'">直す</button></div>'
         + (admOpen===m.name ? '<div class="mem-edit">'
             + '<div class="field"><label>名前</label><input class="tin" data-f="name" type="text" maxlength="20" value="'+n+'" autocomplete="off"></div>'
             + '<div class="field"><label>合言葉</label><input class="tin" data-f="key" type="text" maxlength="40" value="'+esc(m.key || '')+'" autocomplete="off" autocapitalize="off" spellcheck="false"></div>'
             + (me ? '' : '<label class="chk"><input type="checkbox" data-f="admin"'+(m.admin ? ' checked' : '')+'>管理もできる人にする</label>'
+                       + '<label class="chk"><input type="checkbox" data-f="view"'+(m.view ? ' checked' : '')+'>見るだけの人にする（狙い目だけ）</label>'
                        + '<label class="chk"><input type="checkbox" data-f="stop"'+(m.active ? '' : ' checked')+'>止める（この人の合言葉では開けなくする）</label>')
             + '<p class="err" data-f="err" hidden></p>'
             + '<div class="acts"><button type="button" class="btn sm" data-mact="close" data-name="'+n+'">やめる</button><button type="button" class="btn sm main" data-mact="save" data-name="'+n+'">保存</button></div>'
@@ -1552,13 +1575,14 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
         + '</div>';
     }).join('');
   }
-  function showLink(name, key){
-    var url = linkFor(key), box = $('adm-link');
-    box.innerHTML = '<b>'+esc(name)+' さんのリンク</b><code>'+esc(url)+'</code>'
+  // 決定70：見るだけの人（view）には、狙い目だけのページ（mi/）のリンクを出す。作りは今の「◯◯さんのリンク」と同じ
+  function showLink(name, key, view){
+    var url = view ? miLinkFor(key) : linkFor(key), box = $('adm-link');
+    box.innerHTML = '<b>'+esc(name)+' さんのリンク'+(view ? '（狙い目だけ）' : '')+'</b><code>'+esc(url)+'</code>'
       + '<div class="acts" style="flex-wrap:wrap">'+(navigator.share ? '<button type="button" class="btn sm" id="adm-share">送る</button>' : '')+'<button type="button" class="btn sm" id="adm-copy">コピー</button></div>'
       + '<p class="hint">このリンクには合言葉が入っています。本人にだけ送ってください。</p>';
     box.hidden = false;
-    if ($('adm-share')) $('adm-share').addEventListener('click', function(){ navigator.share({title:'狙い目帳', url:url}).catch(function(){}); });
+    if ($('adm-share')) $('adm-share').addEventListener('click', function(){ navigator.share({title:view ? '狙い目' : '狙い目帳', url:url}).catch(function(){}); });
     $('adm-copy').addEventListener('click', function(){
       var ok = function(){ toast('コピーしました'); };
       if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(ok, function(){ fallbackCopy(url); ok(); });
@@ -1571,7 +1595,7 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
     var b = e.target.closest('button[data-mact]'); if (!b) return;
     var name = b.getAttribute('data-name'), act = b.getAttribute('data-mact'), m = (memberRows || []).filter(function(x){ return x.name===name; })[0];
     if (!m) return;
-    if (act==='link') return showLink(m.name, m.key);
+    if (act==='link') return showLink(m.name, m.key, !!m.view);
     if (act==='open'){ admOpen = name; return renderMembers(); }
     if (act==='close'){ admOpen = null; return renderMembers(); }
     if (act==='save'){
@@ -1581,14 +1605,19 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
       if (nk!==m.key) p.newKey = nk;
       if (f('admin') && f('admin').checked!==m.admin) p.admin = f('admin').checked ? '1' : '0';
       if (f('stop') && f('stop').checked===m.active) p.active = f('stop').checked ? '0' : '1';
+      if (f('view') && f('view').checked!==!!m.view) p.view = f('view').checked ? '1' : '0';   // 決定70
+      if (f('view') && f('view').checked && f('admin').checked){ f('err').textContent = '管理と見るだけは、一緒にできません'; f('err').hidden = false; return; }
       if (Object.keys(p).length===1){ admOpen = null; return renderMembers(); }
       b.disabled = true;
       call('memberEdit', p).then(function(r){
         b.disabled = false;
         if (!r.ok){ f('err').textContent = r.error || 'うまくいきませんでした'; f('err').hidden = false; return; }
+        // 決定70：見るだけにしたのに印が返ってこない＝受け口（Apps Script）が前の版。その人はふつうのメンバーのままなので、知らせる
+        var now = (r.members || []).filter(function(x){ return norm(x.name)===norm(nn); })[0];
+        if (p.view==='1' && !(now && now.view)){ memberRows = r.members; renderMembers(); toast('見るだけの印が付きませんでした（受け口が前の版です）'); reload(); return; }
         memberRows = r.members; admOpen = null; renderMembers();
         toast('保存しました');
-        if (p.newKey) showLink(nn, nk);
+        if (p.newKey || p.view) showLink(nn, nk, !!(now && now.view));
         reload();
       }, function(){ b.disabled = false; f('err').textContent = 'つながりません。もう一度どうぞ。'; f('err').hidden = false; });
     }
@@ -1602,13 +1631,19 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
   $('adm-add').addEventListener('click', function(){
     var name = $('adm-name').value.trim(), key = $('adm-key').value.trim(), err = $('adm-err'), b = $('adm-add');
     if (!name || !key){ err.textContent = '名前と合言葉を入れてください'; err.hidden = false; return; }
+    var asView = $('adm-view').checked, p = {name:name, key:key, admin:$('adm-admin').checked ? '1' : '0'};   // 決定70：見るだけは view=1
+    if (asView && $('adm-admin').checked){ err.textContent = '管理と見るだけは、一緒にできません'; err.hidden = false; return; }
+    if (asView) p.view = '1';
     b.disabled = true; err.hidden = true;
-    call('memberAdd', {name:name, key:key, admin:$('adm-admin').checked ? '1' : '0'}).then(function(r){
+    call('memberAdd', p).then(function(r){
       b.disabled = false;
       if (!r.ok){ err.textContent = r.error || 'うまくいきませんでした'; err.hidden = false; return; }
       memberRows = r.members; renderMembers();
-      $('adm-name').value = ''; $('adm-key').value = ''; $('adm-admin').checked = false;
-      showLink(name, key);
+      // 決定70：見るだけで足したのに印が返ってこない＝受け口（Apps Script）が前の版。その人はふつうのメンバーで入ったので、リンクを出さずに知らせる
+      var now = (r.members || []).filter(function(x){ return norm(x.name)===norm(name); })[0];
+      if (asView && !(now && now.view)){ err.textContent = '見るだけの印が付きませんでした（受け口が前の版です）。この人は今ふつうのメンバーで入っているので、上の一覧の「直す」で止めてください'; err.hidden = false; reload(); return; }
+      $('adm-name').value = ''; $('adm-key').value = ''; $('adm-admin').checked = false; $('adm-view').checked = false;
+      showLink(name, key, asView);
       reload();
     }, function(){ b.disabled = false; err.textContent = 'つながりません。もう一度どうぞ。'; err.hidden = false; });
   });
@@ -1767,6 +1802,10 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
   $('set-reload').addEventListener('click', function(){ reload(); renderSet(true); toast('読み込み直しています'); });
   $('set-switch').addEventListener('click', function(){ lockOut(''); });
 
+  /* ★決定70（2026-10-31）：ここから「$('if-q')」の行までは、狙い目だけのページ（mi/index.html）にも写してある（loadInfo だけは mi/ に合わせて
+     書きかえた。all を使えないので、控えの版を have で送る）。台の出し方・全台共通・用語集を直すときは、2か所とも直す。
+     ほかに mi/ へ文字のまま写した所（一覧は mi/index.html のいちばん上）：CSS の :root〜.warn・.field〜.tin:focus・.acts〜.err・.tag・.empty・
+     .app-update の2行／JS の API・$〜canStore・norm・hira・SMALL・yomiKey・call・keyFrom・いちばん下の「更新する」の作り */
   /* ---------- 狙い目（2026-10-24 ユーザー「この記録ツールに狙い目タブの追加をしたい。狙い目は台ごとの天井情報（リセット、
      上位CZ失敗などの特殊天井短縮条件含む）ゾーン狙い pt狙い」） ----------
      The content is 鬣犬's per-machine data (built from the team's notes), so it is NOT in this public page: the sheet
@@ -1977,7 +2016,7 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
   'use strict';
   // BUILD＝この index.html の BUILD の値を空（''）にした中身の SHA-256 の頭12字。sw.js の BUILD・version.json の build と同じ値にする
   // （2026-10-31 から。前の組み立ての道具 build.py は消えたので、この決め方にした）
-  var BUILD = '7984f7f57f1d', CACHE = 'neraicho-app-v1', lastCheck = 0;
+  var BUILD = '82b66a4c2a19', CACHE = 'neraicho-app-v1', lastCheck = 0;
   if (!('serviceWorker' in navigator)) return;
   var bar = document.getElementById('app-update');
   document.body.insertBefore(bar, document.body.firstChild);   // above the page, so it never covers the machine select or tabs

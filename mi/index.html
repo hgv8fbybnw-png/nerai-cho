@@ -1,0 +1,529 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>狙い目</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="狙い目">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png" sizes="192x192">
+<meta name="theme-color" content="#F1F2F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E1120" media="(prefers-color-scheme: dark)">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head><body><style>
+/* 狙い目だけのページ（決定70・2026-10-31）：狙い目帳（../index.html）の狙い目タブだけを持つページ。メンバー以外にも見せる。
+   記録・一覧・月の収支・ランキング・設定は持たない。中身（台の情報・オーナーの文）はこのページに書かず、合言葉が合った人にだけ
+   受け口（Apps Script の info）から渡す。見るだけの合言葉でも、狙い目帳のメンバーの合言葉でも開ける。
+   ★今の index.html から文字のまま写した所（直すときは2か所とも直す）：
+     CSS＝:root〜.warn／.field〜.tin:focus／.acts〜.err／.tag／.empty／「★決定70」の印〜.if-more dd／.app-update の2行
+     HTML＝<section id="view-info"> の全部（合言葉の section は、見出しと説明の文だけ変えた）
+     JS＝API／$〜canStore／norm／hira・SMALL・yomiKey／call（受け口の呼び方）／keyFrom／狙い目の出し方（「狙い目（2026-10-24…」の説明〜infoBusy、
+         infoLine〜$('if-q')。loadInfo だけは書きかえた）／下の「更新する」の作り（控えの箱の名前だけ neraimi-v1 に変えた）
+   ★スマホの中に置く名前（localStorage）は、今の狙い目帳と分けた（neraicho.mi.…）。見るだけの合言葉を入れても、狙い目帳の合言葉は消えない */
+:root{
+  --bg:#F1F2F7; --surface:#FFFFFF; --ink:#151A2D; --muted:#596079; --line:#D8DBE6;
+  --accent:#2B45C4; --accent-ink:#FFFFFF; --accent-soft:#E5E9FA;
+  --go:#13784A; --go-soft:#E1F2E8; --skip:#9A2B2B; --skip-soft:#F7E3E3;
+  --font-body:"Hiragino Sans","Hiragino Kaku Gothic ProN","BIZ UDPGothic","Yu Gothic",Meiryo,"Noto Sans JP",system-ui,sans-serif;
+  --font-num:system-ui,-apple-system,"Segoe UI",Roboto,"Hiragino Sans",sans-serif;
+  --r:12px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1120; --surface:#171B2D; --ink:#E6E8F2; --muted:#99A0B8; --line:#2A3049;
+    --accent:#8A9FFF; --accent-ink:#0E1120; --accent-soft:#1D2547;
+    --go:#62CC94; --go-soft:#11301F; --skip:#F09090; --skip-soft:#381718;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1120; --surface:#171B2D; --ink:#E6E8F2; --muted:#99A0B8; --line:#2A3049;
+  --accent:#8A9FFF; --accent-ink:#0E1120; --accent-soft:#1D2547;
+  --go:#62CC94; --go-soft:#11301F; --skip:#F09090; --skip-soft:#381718;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.6;-webkit-text-size-adjust:100%}
+.wrap{max-width:560px;margin:0 auto;padding-inline:16px;padding-block:10px calc(110px + env(safe-area-inset-bottom, 0px));display:flex;flex-direction:column;gap:14px}
+.wrap>*{min-width:0}
+.view{display:flex;flex-direction:column;gap:14px;min-width:0}
+h1,h2,h3{margin:0;line-height:1.3}
+p{margin:0}
+.top{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.brand{display:flex;flex-direction:column}
+.brand small{color:var(--muted);font-size:12px;letter-spacing:.06em}
+.brand h1{font-size:20px}
+.block{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.block h2{font-size:16px}
+.hint{color:var(--muted);font-size:13px;line-height:1.5}
+.warn{background:var(--skip-soft);color:var(--skip);border-radius:var(--r);padding:10px 14px;font-size:14px;font-weight:700}
+
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field>label,.lbl{font-weight:700;font-size:14px}
+.lbl small,.field>label small{font-weight:400;color:var(--muted);margin-left:4px}
+.tin,.sel{font:inherit;font-size:16px;width:100%;min-width:0;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+.tin:focus,.sel:focus{outline:3px solid var(--accent);outline-offset:1px}
+.acts{display:flex;gap:8px}
+.btn{font:inherit;font-size:14px;font-weight:700;min-height:44px;padding:6px 14px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;white-space:nowrap;touch-action:manipulation}
+.btn:disabled{opacity:.45;cursor:default}
+.btn:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.btn.main{flex:1;min-height:52px;font-size:17px;background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.sm{min-height:38px;font-size:13px;padding:4px 12px}
+.btn.danger{background:var(--skip);border-color:var(--skip);color:var(--surface)}
+.need{font-size:13px;color:var(--muted);font-weight:700;text-align:center}
+.err{font-size:13px;color:var(--skip);font-weight:700}
+.tag{flex:none;font-size:11px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:0 6px;white-space:nowrap}
+.empty{background:var(--surface);border:1px dashed var(--line);border-radius:var(--r);padding:20px 16px;color:var(--muted);font-size:14px;text-align:center}
+
+/* ★決定70（2026-10-31）：ここから「.if-more dd」の行までは、狙い目だけのページ（mi/index.html）にも同じものを写してある。直すときは2か所とも直す */
+/* 狙い目（台ごとの天井・打ち始めの線） */
+.if-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.if-kana{grid-column:1/-1;font-size:12px;font-weight:700;color:var(--muted);padding:6px 2px 0}
+.if-m{font:inherit;font-size:14px;font-weight:700;line-height:1.35;text-align:left;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-height:48px;cursor:pointer;overflow-wrap:anywhere;touch-action:manipulation}
+.if-m:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+/* 決定67・68（2026-10-31）：一覧の作りは今のまま（オーナー「台を選ぶ画面はそのままで」）。狙わない台は同じボタンのまま色を薄く
+   （押せば開ける）／探す欄の上に全台共通の枠（探す欄と同じカードの見た目＝.block）／
+   台の画面の上に「徘徊で見るところ」の太い枠と、そのすぐ下に「特記」の目立つ色の枠（オーナー「特記のところもう少し強調したい」） */
+.if-m.dim{color:var(--muted);background:transparent;opacity:.7}
+.cm-g{display:flex;flex-direction:column;gap:2px}
+.cm-g h3{font-size:14px;overflow-wrap:anywhere}
+.fl{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:4px}
+.fl li{overflow-wrap:anywhere}
+.fl li::marker{color:var(--accent)}
+.cm-g .fl{font-size:14px;line-height:1.5}
+.if-focus{background:var(--accent-soft);border:3px solid var(--accent);border-radius:var(--r);padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.if-focus h3{align-self:flex-start;font-size:13px;letter-spacing:.04em;background:var(--accent);color:var(--accent-ink);border-radius:6px;padding:2px 8px}
+.if-focus .fl{font-size:18px;font-weight:700;line-height:1.45;gap:6px}
+.if-focus.x{background:var(--skip-soft);border-color:var(--skip)}
+.if-focus.x h3{background:var(--skip);color:var(--surface)}
+.if-focus.x .fl li::marker{color:var(--skip)}
+.if-focus+.if-focus.x{margin-top:-6px}
+/* 決定69（2026-10-31）：全台共通の枠で、押すと用語集のその言葉へ飛ぶ1行（見出し：行 ›）と、枠の下の「用語集 ›」のボタン／
+   用語集の画面（台の画面と同じ作り：上に「‹ 台の一覧」と見出し、その下のカードに、言葉を太字の見出し・その下に説明の行）。
+   色は決定67と同じく var(--…) だけ（暗い画面も同じ変数で変わる） */
+.cm-go{font:inherit;font-size:14px;line-height:1.5;text-align:left;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-height:44px;display:flex;align-items:center;gap:8px;cursor:pointer;touch-action:manipulation}
+.cm-go:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.cm-go span{flex:1;min-width:0;overflow-wrap:anywhere}
+.cm-go b{font-weight:700}
+.cm-go i{font-style:normal;font-size:20px;font-weight:700;line-height:1;color:var(--accent)}
+.if-common>.btn{align-self:flex-start}
+.tm{display:flex;flex-direction:column;gap:4px;scroll-margin-top:12px}
+.tm+.tm{border-top:1px solid var(--line);padding-top:12px}
+.tm h3{font-size:16px;font-weight:700;overflow-wrap:anywhere}
+.tm p{font-size:14px;line-height:1.6;overflow-wrap:anywhere}
+.if-top{display:flex;flex-direction:column;gap:6px}
+.if-top .btn{align-self:flex-start}
+.if-top h2{font-size:19px;overflow-wrap:anywhere}
+.if-top small{font-size:12px;color:var(--muted)}
+.src{display:inline-block;font-size:10.5px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:0 5px;margin-left:6px;line-height:1.5;vertical-align:1px;white-space:nowrap}
+.ce{display:flex;flex-direction:column;gap:2px;border-top:1px dashed var(--line);padding-top:10px}
+.ce:first-child{border-top:0;padding-top:0}
+.ce-n{font-size:13px;font-weight:700;color:var(--muted)}
+.ce-v{font-size:17px;font-weight:700;overflow-wrap:anywhere}
+.ce-v small{font-size:13px;color:var(--muted);margin-left:2px}
+.ce-s{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+.cd{display:flex;flex-direction:column;gap:6px;background:var(--bg);border-radius:10px;padding:10px}
+.cd h3{font-size:13px;color:var(--muted)}
+.cd-r{display:flex;flex-direction:column;font-size:14px;border-top:1px dashed var(--line);padding-top:6px}
+.cd h3+.cd-r{border-top:0;padding-top:0}
+.cd-r b{font-size:13px}
+.cd-r span{overflow-wrap:anywhere}
+.aim{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:12px}
+.block>h2+.aim{border-top:0;padding-top:0}
+.aim-h{display:flex;align-items:baseline;gap:4px 10px;flex-wrap:wrap}
+.aim-h b{font-size:17px;overflow-wrap:anywhere}
+.aim-h span{font-family:var(--font-num);font-size:19px;font-weight:700;color:var(--accent);overflow-wrap:anywhere}
+.aim-n{font-size:14px;line-height:1.5;overflow-wrap:anywhere}
+.aim-n b{font-weight:700;margin-right:2px}
+.bd{display:grid;grid-template-columns:minmax(0,1fr) auto auto;column-gap:12px;align-items:baseline;background:var(--bg);border-radius:10px;padding:8px 10px;margin-top:2px}
+.bd>*{padding:7px 0;border-top:1px dashed var(--line)}
+.bd>.bd-h{font-size:11px;font-weight:700;color:var(--muted);border-top:0;padding:0 0 3px}
+.bd>.bd-h~.bd-h{text-align:right}
+.bd-l{font-size:14px;font-weight:700;line-height:1.4;overflow-wrap:anywhere}
+.bd-l .tag{display:inline-block;margin-left:5px;color:var(--accent);border-color:var(--accent);vertical-align:1px}
+.bd-l i{display:block;font-style:normal;font-size:12px;color:var(--accent)}
+.bd>b{font-family:var(--font-num);font-size:16px;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.bd>b.none{font-size:12px;font-weight:400;color:var(--muted)}
+.ig{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);padding-top:12px}
+.ig:first-of-type{border-top:0;padding-top:0}
+.ig-h{font-size:15px;font-weight:700;overflow-wrap:anywhere}
+.ig-u{font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.ir{background:var(--bg);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.ir-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.ir-l{font-size:14px;font-weight:700;min-width:0;overflow-wrap:anywhere}
+.ir-l .tag{display:inline-block;margin-left:6px;color:var(--accent);border-color:var(--accent);vertical-align:1px}
+.ir-v{flex:none;display:grid;grid-template-columns:auto auto;column-gap:6px;align-items:baseline;justify-items:end}
+.ir-v span{font-size:11px;font-weight:700;color:var(--muted)}
+.ir-v b{font-family:var(--font-num);font-size:17px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ir-v b.none{font-size:13px;color:var(--muted);font-weight:400}
+.ir-e{font-size:12px;font-weight:700;color:var(--accent)}
+.ir-see{font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.ir details summary,.if-more summary{font-size:12px;font-weight:700;color:var(--accent);cursor:pointer;padding:2px 0}
+.ir details p{font-size:12px;color:var(--muted);overflow-wrap:anywhere;margin-top:2px}
+.io{display:flex;flex-direction:column;gap:2px;border-top:1px dashed var(--line);padding-top:8px;font-size:14px}
+.io:first-of-type{border-top:0;padding-top:0}
+.io b{font-size:14px;overflow-wrap:anywhere}
+.io span{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+.if-more{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px 14px}
+.if-more summary{font-size:14px;color:var(--ink)}
+.if-more>div{display:flex;flex-direction:column;gap:6px;padding-top:8px;font-size:14px}
+.if-more dt{font-weight:700}
+.if-more dd{margin:0 0 6px;color:var(--muted);font-size:13px}
+
+/* mi/ だけ：下の切りかえの帯（dock）がないので、下の余白を小さく */
+.wrap{padding-block:10px calc(32px + env(safe-area-inset-bottom, 0px))}
+</style>
+
+<div class="wrap">
+  <div id="no-store" class="warn" hidden>この開き方では、合言葉や狙い目の控えが残りません。ホーム画面のアイコンか、ふつうのブラウザで開いてください。</div>
+
+  <!-- 合言葉（今の狙い目帳と同じ作り。見出しと説明の文だけ変えた） -->
+  <section id="view-key" class="view" aria-labelledby="key-title" hidden>
+    <header class="top"><div class="brand"><small>台ごとの天井・ゾーン・pt</small><h1 id="key-title">狙い目</h1></div></header>
+    <div class="block">
+      <div class="field">
+        <label for="k-in">合言葉</label>
+        <input id="k-in" class="tin" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="合言葉か、もらったリンク">
+      </div>
+      <p id="k-err" class="err" role="alert" hidden></p>
+      <div class="acts"><button type="button" id="k-go" class="btn main">開く</button></div>
+      <p class="hint">管理の人からもらった合言葉を入れてください。もらったリンクをそのまま貼っても開けます。狙い目帳のメンバーは、自分の合言葉でも開けます。</p>
+    </div>
+  </section>
+
+  <!-- 狙い目（今の index.html の section を文字のまま写した） -->
+  <section id="view-info" class="view" aria-labelledby="info-title" hidden>
+    <header class="top"><div class="brand"><small>台ごとの天井・ゾーン・pt</small><h1 id="info-title">狙い目</h1></div></header>
+    <div id="if-pick" class="view">
+      <!-- 全台共通（決定67・68）と、その下の用語集のボタン（決定69）：中身は合言葉が合った人にだけ渡すデータから出す。ここには書かない -->
+      <div id="if-common" class="block if-common" hidden></div>
+      <div class="block">
+        <input id="if-q" class="tin" type="search" autocomplete="off" placeholder="台の名前で探す（ひらがなでも）" aria-label="台の名前で探す">
+      </div>
+      <p id="if-state" class="empty" hidden></p>
+      <div id="if-list" class="if-list"></div>
+    </div>
+    <div id="if-view" class="view" hidden></div>
+  </section>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  var API = 'https://script.google.com/macros/s/AKfycbwpscWKcnidJbAb8TLqmOJsbwcSBb1Qok8Ma4UqY7dUZBGY6yvc6Vbft71lsjD5P_VEcA/exec';
+  var LS_KEY = 'neraicho.mi.key', LS_INFO = 'neraicho.mi.info', LS_INFO_M = 'neraicho.mi.infoMachine';   // 狙い目帳（neraicho.key など）とは別の名前
+  var $ = function(id){ return document.getElementById(id); };
+  function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function load(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
+  function store(k, v){ try { localStorage.setItem(k, v); return true; } catch(e){ return false; } }
+  function loadJSON(k, d){ try { var v = JSON.parse(load(k)); return v==null ? d : v; } catch(e){ return d; } }
+  var canStore = store('neraicho.t', '1');
+  try { localStorage.removeItem('neraicho.t'); } catch(e){}
+  function norm(s){ return String(s).normalize('NFKC').replace(/[\s　]+/g, '').replace(/[〜~]/g, '~').toLowerCase(); }
+  function hira(s){ return String(s || '').normalize('NFKC').toLowerCase().replace(/[\u30A1-\u30F6]/g, function(c){ return String.fromCharCode(c.charCodeAt(0)-0x60); }); }
+  var SMALL = {'ぁ':'あ','ぃ':'い','ぅ':'う','ぇ':'え','ぉ':'お','っ':'つ','ゃ':'や','ゅ':'ゆ','ょ':'よ','ゎ':'わ'};
+  function yomiKey(y){
+    var h = hira(y).replace(/\s+/g, '');
+    return [h.normalize('NFD').replace(/[\u3099\u309a]/g, '').replace(/[ぁぃぅぇぉっゃゅょゎ]/g, function(c){ return SMALL[c]; }).replace(/ー/g, ''), h];
+  }
+
+  /* ---------- 状態：合言葉と、台の情報の控え（電波がなくても開けるように、スマホの中に置く） ---------- */
+  var S = {key:'', info:null, infoVer:'', loading:false};
+  (function(){
+    var inf = loadJSON(LS_INFO, null);
+    if (inf && inf.ver && Array.isArray(inf.machines)){ S.info = inf; S.infoVer = inf.ver; }
+  })();
+
+  /* ---------- 受け口とのやりとり（今の狙い目帳と同じ JSONP） ---------- */
+  var seq = 0;
+  function call(action, params, ms){
+    return new Promise(function(resolve, reject){
+      var cb = '__nc' + (seq++) + '_' + Math.floor(Math.random()*1e6), s = document.createElement('script');
+      var timer = setTimeout(function(){ done(); reject(new Error('timeout')); }, ms || 25000);
+      function done(){ clearTimeout(timer); try { delete window[cb]; } catch(e){ window[cb] = undefined; } if (s.parentNode) s.parentNode.removeChild(s); }
+      window[cb] = function(d){ done(); resolve(d || {}); };
+      s.onerror = function(){ done(); reject(new Error('network')); };
+      var q = ['action='+encodeURIComponent(action), 'k='+encodeURIComponent(S.key), 'callback='+cb];
+      Object.keys(params || {}).forEach(function(k){ if (params[k]!=null) q.push(encodeURIComponent(k)+'='+encodeURIComponent(params[k])); });
+      s.src = API + '?' + q.join('&') + '&_=' + Date.now();
+      document.head.appendChild(s);
+    });
+  }
+
+  /* ---------- 画面：合言葉か、狙い目の2つだけ ---------- */
+  var view = 'info';
+  function show(v){
+    view = v;
+    $('view-key').hidden = v!=='key'; $('view-info').hidden = v!=='info';
+    if (v==='info') renderInfo();
+    window.scrollTo(0, 0);
+  }
+
+  /* ---------- 合言葉（今の狙い目帳と同じ：合言葉か、もらったリンクを入れる／?k= で開く） ---------- */
+  function keyFrom(text){
+    var t = String(text || '').trim(), m = /[?&]k=([^&#\s]+)/.exec(t);
+    if (m){ try { return decodeURIComponent(m[1]).trim(); } catch(e){ return m[1]; } }
+    return t.replace(/\s+/g, '');
+  }
+  function lockOut(msg){
+    S.key = ''; S.info = null; S.infoVer = '';
+    try { localStorage.removeItem(LS_KEY); localStorage.removeItem(LS_INFO); } catch(e){}
+    $('k-err').textContent = msg || ''; $('k-err').hidden = !msg;
+    show('key');
+  }
+  // 受け口の info の答えを受け取る。'same'＝控えと同じ版（控えのまま）／'new'＝新しい中身を控えた／''＝受け取れない
+  function takeInfo(r){
+    if (r.same && S.info && S.info.ver===r.ver){ S.infoVer = r.ver; return 'same'; }
+    if (Array.isArray(r.machines)){ S.info = {ver:r.ver, machines:r.machines}; S.infoVer = r.ver; store(LS_INFO, JSON.stringify(S.info)); return 'new'; }
+    return '';
+  }
+
+  /* ---------- 狙い目（2026-10-24 ユーザー「この記録ツールに狙い目タブの追加をしたい。狙い目は台ごとの天井情報（リセット、
+     上位CZ失敗などの特殊天井短縮条件含む）ゾーン狙い pt狙い」） ----------
+     The content is 鬣犬's per-machine data (built from the team's notes), so it is NOT in this public page: the sheet
+     hands it only to a member (action "info"), and "all" carries just its version (infoVer). The phone keeps a copy
+     (LS_INFO, so it also opens with no signal in the hall) and fetches it again only when the version changes.
+     A machine: {id, name, short, yomi, ceil:[[name, val, gets, sub, src]], cond:[[when, ceil, src]],
+     groups:[{t, u, src, rows:[{l, c (現金・非等価の線), m (持ちメダル・等価の線), n (unit when not G), e (やめる所), x (no number),
+     see, memo, src, am (朝)}]}], others:[[name, text, src]], yame, terms:[[word, meaning]]} — made by make_info.py */
+  var infoBusy = false, infoErr = '', infoSel = load(LS_INFO_M) || '';
+
+  /* ★決定70：mi/ の loadInfo（ここだけ、今の index.html の loadInfo を書きかえた）。all を使えないので、開くたびに info を呼び、
+     控えがあればその版を have で送る（同じ版なら、受け口は中身を省いて same だけ返す＝今の狙い目帳の「版が変わったときだけ
+     中身を取りに来る」と同じ考え）。have を知らない前の版の受け口でも、中身がそのまま返ってくるので動く */
+  function loadInfo(){
+    if (infoBusy || !S.key) return;
+    infoBusy = true; infoErr = '';
+    if (view==='info' && !S.info) renderInfo();
+    call('info', S.info ? {have:S.info.ver} : {}, 60000).then(function(r){
+      infoBusy = false;
+      if (r.鍵ちがい) return lockOut('合言葉が変わったか、止められています。管理の人に確かめてください。');
+      if (r.重なり) return lockOut(r.error);
+      var got = r.ok ? takeInfo(r) : '';
+      if (!got) infoErr = r.error || 'とれませんでした';
+      if (view==='info' && got!=='same') renderInfo();   // 同じ版のときは描き直さない（見ている所が動かないように）
+    }, function(){ infoBusy = false; infoErr = 'つながりません'; if (view==='info' && !S.info) renderInfo(); });
+  }
+  // the opening line, as the notes write it: 231G〜 / 9pt〜; no line = —
+  function infoLine(v, n){ return v==null ? '' : v + (n==null ? 'G' : n) + '〜'; }
+  // the 50音 row a machine is listed under (its よみ without dakuten): あ, か, さ … or その他
+  var KANA_ROWS = ['あいうえお', 'かきくけこ', 'さしすせそ', 'たちつてと', 'なにぬねの', 'はひふへほ', 'まみむめも', 'やゆよ', 'らりるれろ', 'わをん'];
+  function kanaRow(yomi){
+    var c = yomiKey(yomi)[0].charAt(0);
+    for (var i=0; i<KANA_ROWS.length; i++) if (KANA_ROWS[i].indexOf(c)>=0) return KANA_ROWS[i].charAt(0) + '行';
+    return 'その他';
+  }
+  // search by the name as written or by its reading; katakana and hiragana, full and half width all match
+  function infoFind(list, q){
+    var k = norm(hira(q));
+    if (!k) return list;
+    return list.filter(function(m){ return norm(hira(m.name)).indexOf(k)>=0 || norm(hira(m.short)).indexOf(k)>=0 || norm(hira(m.yomi)).indexOf(k)>=0; });
+  }
+  /* 決定67・68（2026-10-31）：台の配列の先頭に、特別な台「全台共通」（id が _common）が来る。一覧の台にも検索の結果にも出さず、
+     一覧のいちばん上の枠に、その common（[{h 見出し, t [行]}]）を出す。出どころ（src）は画面に出さない。
+     1台ごとの focus（徘徊で見るところ）・focus_x（特記）は文字の配列、dim が true の台は狙わない台（一覧で薄い色）。
+     中身はデータから出すだけ（このページには書かない）。新しい欄がない古い形のデータでも、今までどおりに出る */
+  var INFO_COMMON = '_common';
+  // 文字の配列として読む（空の行は出さない）
+  function infoLines(v){ return (Array.isArray(v) ? v : v==null ? [] : [v]).filter(function(s){ return s!=null && String(s).trim()!==''; }); }
+  function infoMachines(){ return S.info ? S.info.machines.filter(function(m){ return m && m.id!==INFO_COMMON; }) : []; }
+  function infoCommonMachine(){
+    var ms = S.info ? S.info.machines : [];
+    for (var i=0; i<ms.length; i++) if (ms[i] && ms[i].id===INFO_COMMON) return ms[i];
+    return null;
+  }
+  function infoCommon(){
+    var c = infoCommonMachine();
+    return c ? (Array.isArray(c.common) ? c.common : []).filter(function(g){ return g && (g.h || infoLines(g.t).length); }) : [];
+  }
+  /* 決定69（2026-10-31）：全台共通の台に terms（用語集。[{w 言葉, d [説明の行], src 出どころ}]）が来る。common の項目に go（押すと
+     飛ぶ言葉）があり、用語集にその言葉があれば、その項目は押せる1行（見出し：行 ›）にして、押すと用語集の画面のその言葉の所へ飛ぶ。
+     枠の下に「用語集 ›」のボタン。用語集の画面は台の画面と同じ作り（「‹ 台の一覧」で戻る）。出どころ（src）は画面に出さない。
+     terms がない古い形のデータでは、ボタンも押せる行も出さず、今までどおりに出る。中身はデータから出すだけ（このページには書かない） */
+  var INFO_TERMS = '_terms';   // 用語集を開いているときの infoSel（台の id とは重ならない）
+  function infoTerms(){
+    var c = infoCommonMachine();
+    return (c && Array.isArray(c.terms) ? c.terms : []).filter(function(t){ return t && t.w!=null && String(t.w).trim()!==''; });
+  }
+  function termIndex(tm, w){ for (var i=0; i<tm.length; i++) if (tm[i].w===w) return i; return -1; }
+  function lineList(a){ return '<ul class="fl">' + a.map(function(s){ return '<li>' + esc(s) + '</li>'; }).join('') + '</ul>'; }
+  function infoMachine(id){
+    var ms = infoMachines();
+    for (var i=0; i<ms.length; i++) if (ms[i].id===id) return ms[i];
+    return null;
+  }
+  function renderInfo(){
+    var tm = infoTerms(), terms = infoSel===INFO_TERMS && tm.length>0;
+    var m = terms ? null : infoMachine(infoSel);
+    $('if-pick').hidden = !!m || terms; $('if-view').hidden = !m && !terms;
+    if (terms) return renderInfoTerms(tm);
+    if (m) return renderInfoMachine(m);
+    var st = $('if-state'), list = $('if-list'), cm = $('if-common'), cg = infoCommon();
+    cm.hidden = !cg.length && !tm.length;
+    cm.innerHTML = cm.hidden ? '' : '<h2>全台共通</h2>' + cg.map(function(g){
+      var t = infoLines(g.t);
+      if (g.go!=null && termIndex(tm, g.go)>=0)   // 決定69：押すと用語集のその言葉へ
+        return '<button type="button" class="cm-go" data-go="' + esc(g.go) + '"><span>' + (g.h ? '<b>' + esc(g.h) + '</b>：' : '')
+          + t.map(esc).join('<br>') + '</span><i aria-hidden="true">›</i></button>';
+      return '<div class="cm-g">' + (g.h ? '<h3>' + esc(g.h) + '</h3>' : '') + (t.length ? lineList(t) : '') + '</div>';
+    }).join('') + (tm.length ? '<button type="button" class="btn" id="if-terms-open">用語集 ›</button>' : '');
+    if (!S.info){
+      st.hidden = false; list.innerHTML = '';
+      st.textContent = infoBusy ? '読みこみ中です（はじめてのときは少しかかります）'
+        : !S.infoVer ? (S.loading ? '読みこみ中です' : '狙い目の中身がまだありません。電波のある所で開き直してください')
+        : '狙い目の中身がとれませんでした（' + (infoErr || 'つながりません') + '）。電波のある所で開き直してください';
+      return;
+    }
+    var found = infoFind(infoMachines(), $('if-q').value), row = '', h = '';
+    st.hidden = found.length>0; st.textContent = 'その名前の台は入っていません';
+    found.forEach(function(x){
+      var r = kanaRow(x.yomi);
+      if (r!==row){ row = r; h += '<div class="if-kana">' + esc(r) + '</div>'; }
+      h += '<button type="button" class="if-m' + (x.dim===true ? ' dim' : '') + '" data-im="' + esc(x.id) + '">' + esc(x.short) + '</button>';
+    });
+    list.innerHTML = h;
+  }
+  /* 2026-10-24 ユーザー「狙い目っていうのは天井1000gとか100ゾーンとかCZ7スルーとかグールpt9-12ptとかそれが狙い目で、
+     今狙い目で書いてくれているのは狙い目に対してのボーダーね」「その狙い目を見ながら徘徊して考えながらエナできるように」
+     「短くなる時▶︎リセット時、上位AT後、浮世絵雨以上 こんな感じでまとめて」「他に天井が変わる時の情報をなくして」：
+     台の画面は「狙い目」の並び。狙い目ごとに 値・ひとこと（見出し▶︎文）・ボーダー（現金／持ちメダル）。
+     その前の「細かい文字全部いらない」も守る（説明・出どころの印は出さない。推測の線だけ小さく「推測」） */
+  function guessTag(s){ return /推測/.test(s || '') ? '<span class="src">推測</span>' : ''; }
+  // the borders of one 狙い目 as a small table: name | 現金 | 持ちメダル, one line each (many fit on a phone in the hall)
+  function borderTable(rows){
+    function cell(v, n){ return v==null ? '<b class="none">線なし</b>' : '<b>' + esc(infoLine(v, n)) + '</b>'; }
+    return '<div class="bd"><span class="bd-h">ボーダー</span><span class="bd-h">現金</span><span class="bd-h">持ちメダル</span>'
+      + rows.map(function(r){
+        return '<span class="bd-l">' + esc(r.l) + (r.am ? '<span class="tag">朝</span>' : '') + guessTag(r.src) + (r.e ? '<i>' + esc(r.e) + '</i>' : '') + '</span>'
+          + (r.x ? '<b class="none">—</b><b class="none">—</b>' : cell(r.c, r.n) + cell(r.m, r.n));
+      }).join('') + '</div>';
+  }
+  function renderInfoMachine(m){
+    var h = '<div class="if-top"><button type="button" class="btn" id="if-back">‹ 台の一覧</button><h2>' + esc(m.short) + '</h2></div>';
+    // 決定67・68：見出しのすぐ下・「狙い目」の前に、徘徊で見るところ（focus）と特記（focus_x）。どちらもない台は今までどおり
+    var f = infoLines(m.focus), fx = infoLines(m.focus_x);
+    if (f.length) h += '<div class="if-focus"><h3>徘徊で見るところ</h3>' + lineList(f) + '</div>';
+    if (fx.length) h += '<div class="if-focus x"><h3>特記</h3>' + lineList(fx) + '</div>';
+    if (!m.nerai){   // the phone still holds the content of the version before the 狙い目 rewrite
+      $('if-view').innerHTML = h + '<p class="empty">新しい中身を読みこみ中です。電波のある所で開き直してください。</p>';
+      return;
+    }
+    h += '<div class="block"><h2>狙い目</h2>' + m.nerai.map(function(a){
+      return '<div class="aim"><div class="aim-h"><b>' + esc(a.name) + '</b>' + (a.val ? '<span>' + esc(a.val) + '</span>' : '') + '</div>'
+        + a.notes.map(function(n){ return '<p class="aim-n"><b>' + esc(n[0]) + '▶︎</b>' + esc(n[1]) + '</p>'; }).join('')
+        + (a.rows.length ? borderTable(a.rows) : '')
+        + '</div>';
+    }).join('') + '</div>';
+    $('if-view').innerHTML = h;
+  }
+  // 決定69：用語集の画面（台の画面と同じ作り）。言葉を太字の見出しに、その下に説明の行
+  function renderInfoTerms(tm){
+    $('if-view').innerHTML = '<div class="if-top"><button type="button" class="btn" id="if-back">‹ 台の一覧</button><h2>用語集</h2></div>'
+      + '<div class="block if-terms">' + tm.map(function(t, i){
+        return '<div class="tm" id="if-tm-' + i + '"><h3>' + esc(t.w) + '</h3>'
+          + infoLines(t.d).map(function(s){ return '<p>' + esc(s) + '</p>'; }).join('') + '</div>';
+      }).join('') + '</div>';
+  }
+  // 決定69：全台共通の枠の押せる行（go）→ 用語集のその言葉の所へ／「用語集 ›」→ 用語集のいちばん上へ
+  $('if-common').addEventListener('click', function(e){
+    var g = e.target.closest('[data-go]');
+    if (!g && !e.target.closest('#if-terms-open')) return;
+    infoSel = INFO_TERMS; store(LS_INFO_M, infoSel);
+    renderInfo();
+    var i = g ? termIndex(infoTerms(), g.getAttribute('data-go')) : -1, el = i>=0 ? $('if-tm-' + i) : null;
+    if (el) el.scrollIntoView({block:'start'}); else window.scrollTo(0, 0);
+  });
+  $('if-list').addEventListener('click', function(e){
+    var b = e.target.closest('[data-im]'); if (!b) return;
+    infoSel = b.getAttribute('data-im'); store(LS_INFO_M, infoSel);
+    renderInfo(); window.scrollTo(0, 0);
+  });
+  $('if-view').addEventListener('click', function(e){
+    if (!e.target.closest('#if-back')) return;
+    infoSel = ''; store(LS_INFO_M, '');
+    renderInfo(); window.scrollTo(0, 0);
+  });
+  $('if-q').addEventListener('input', function(){ renderInfo(); });
+
+  $('k-go').addEventListener('click', function(){
+    var k = keyFrom($('k-in').value), err = $('k-err');
+    if (!k){ err.textContent = '合言葉を入れてください'; err.hidden = false; return; }
+    var b = $('k-go'); b.disabled = true; b.textContent = 'たしかめ中…'; err.hidden = true;
+    S.key = k;
+    call('info', S.info ? {have:S.info.ver} : {}, 60000).then(function(r){
+      b.disabled = false; b.textContent = '開く';
+      if (!r.ok || !takeInfo(r)){ S.key = ''; err.textContent = r.鍵ちがい ? '合言葉がちがいます（大文字・小文字も見ます）' : (r.error || 'うまくいきませんでした'); err.hidden = false; return; }
+      store(LS_KEY, k);
+      // 住所にも入れる（ここから「ホーム画面に追加」をしても合言葉が残る。今の狙い目帳と同じ）
+      try { var u = new URL(location.href); u.searchParams.set('k', k); history.replaceState(null, '', u.href); } catch(e){}
+      $('k-in').value = '';
+      show('info');
+    }, function(){
+      S.key = ''; b.disabled = false; b.textContent = '開く';
+      err.textContent = 'つながりません。電波のある所で、もう一度どうぞ。'; err.hidden = false;
+    });
+  });
+  $('k-in').addEventListener('keydown', function(e){ if (e.key==='Enter') $('k-go').click(); });
+
+  /* ---------- はじめ ---------- */
+  if (!canStore) $('no-store').hidden = false;
+  (function(){
+    var k = '';
+    try { k = keyFrom(new URL(location.href).searchParams.get('k') ? location.href : ''); } catch(e){}
+    if (k) store(LS_KEY, k);
+    S.key = k || load(LS_KEY) || '';
+  })();
+  // ホーム画面のアプリは、裏から戻っても読み込み直さない：戻ったときに、新しい版がないかだけ見る
+  document.addEventListener('visibilitychange', function(){ if (document.visibilityState==='visible' && S.key) loadInfo(); });
+  if (!S.key){ show('key'); return; }
+  show('info');
+  loadInfo();
+})();
+</script>
+<!-- アプリ版（GitHubに置く版）：スマホの中の控えから開く。新しい版が出ていたら、いちばん上に「更新する」を出す（今の狙い目帳と同じ作り） -->
+<div id="app-update" class="app-update" role="status" hidden><span>新しい版があります</span><button type="button" id="app-update-go">更新する</button></div>
+<style>
+.app-update{display:flex;align-items:center;justify-content:space-between;gap:10px;max-width:560px;margin:8px auto 0;width:calc(100% - 32px);background:var(--ink);color:var(--bg);border-radius:12px;padding:6px 6px 6px 14px;font-size:14px;font-weight:700}
+.app-update button{font:inherit;border:0;border-radius:9px;background:var(--accent);color:var(--accent-ink);padding:8px 14px;cursor:pointer;white-space:nowrap}
+</style>
+<script>
+(function(){
+  'use strict';
+  // BUILD＝この index.html の BUILD の値を空（''）にした中身の SHA-256 の頭12字。sw.js の BUILD・version.json の build と同じ値にする
+  // （2026-10-31 から。前の組み立ての道具 build.py は消えたので、この決め方にした）
+  var BUILD = '2d25e665e23b', CACHE = 'neraimi-v1', lastCheck = 0;
+  if (!('serviceWorker' in navigator)) return;
+  var bar = document.getElementById('app-update');
+  document.body.insertBefore(bar, document.body.firstChild);   // above the page, so it never covers the machine select or tabs
+  // The app opens from the copy kept on the phone (fast, works without signal). If the server has a newer one, offer it.
+  function check(){
+    if (Date.now() - lastCheck < 60000) return;
+    lastCheck = Date.now();
+    navigator.serviceWorker.getRegistration().then(function(r){ if (r) r.update().catch(function(){}); });
+    fetch('version.json', {cache: 'no-store'}).then(function(r){ return r.ok ? r.json() : null; }).then(function(v){
+      if (v && v.build && v.build !== BUILD) bar.hidden = false;
+    }).catch(function(){});
+  }
+  document.getElementById('app-update-go').addEventListener('click', function(){
+    bar.querySelector('span').textContent = '読み込み中…';
+    var go = function(){ location.reload(); };
+    if (!window.caches) return go();
+    // straight from the server (the copy-keeper lets cache:'reload' through), then keep it as the new copy
+    fetch('./', {cache: 'reload'}).then(function(res){
+      if (!res.ok) throw new Error(res.status);
+      return caches.open(CACHE).then(function(c){ return c.put(new URL('./', location.href).href, res); });
+    }).then(go, go);
+  });
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+    check();
+  });
+  // a home-screen app comes back from the background without reloading: look again then
+  document.addEventListener('visibilitychange', function(){ if (document.visibilityState === 'visible') check(); });
+  window.addEventListener('pageshow', function(e){ if (e.persisted) check(); });
+})();
+</script>
+</body></html>

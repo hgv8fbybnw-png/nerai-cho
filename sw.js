@@ -9,10 +9,14 @@
  *   消すのは自分の箱（neraicho- で始まる名前）だけ。
  * ★ 「更新する」はページから cache:'reload' で取りにくる。ここで控えを返すと古い版をまた入れてしまうので、ネットに通す。
  */
-var BUILD = '7984f7f57f1d';
+var BUILD = '82b66a4c2a19';
 var CACHE = 'neraicho-app-v1';
 var PAGE = new URL('./', self.registration.scope).href;
 var STATIC = ['manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
+/* 決定70（2026-10-31）：狙い目だけのページ（mi/）は、自分の控え係（mi/sw.js・範囲 /nerai-cho/mi/・控えの箱 neraimi-…）を持つ。
+   この控え係は mi/ への行き来に手を出さない（前はページを開く動きを全部 狙い目帳 にしていたので、mi/ を開くと狙い目帳が出てしまった）。
+   控えの箱の名前は neraimi- で始まり、下の「neraicho- で始まる古い箱を消す」にはかからない */
+var MI = new URL('./mi/', self.registration.scope).pathname;
 
 self.addEventListener('install', function (e) {
   e.waitUntil(
@@ -40,6 +44,7 @@ self.addEventListener('fetch', function (e) {
   if (req.method !== 'GET') return;
   var url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
+  if (url.pathname === MI.slice(0, -1) || url.pathname.indexOf(MI) === 0) return;   // 狙い目だけのページ（mi/）は mi/ の控え係かネットに任せる
   if (/\/(sw\.js|version\.json)$/.test(url.pathname)) return;   // いつもネットから
   if (req.cache === 'reload' || req.cache === 'no-store' || req.cache === 'no-cache') return;   // 「更新する」など、新しいのがほしいとき
 

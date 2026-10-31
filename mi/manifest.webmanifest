@@ -1,0 +1,17 @@
+{
+  "name": "狙い目",
+  "short_name": "狙い目",
+  "description": "台ごとの狙い目を見る",
+  "lang": "ja",
+  "dir": "ltr",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F1F2F7",
+  "theme_color": "#F1F2F7",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
