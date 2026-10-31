@@ -264,6 +264,19 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
 .if-focus.x h3{background:var(--skip);color:var(--surface)}
 .if-focus.x .fl li::marker{color:var(--skip)}
 .if-focus+.if-focus.x{margin-top:-6px}
+/* 決定69（2026-10-31）：全台共通の枠で、押すと用語集のその言葉へ飛ぶ1行（見出し：行 ›）と、枠の下の「用語集 ›」のボタン／
+   用語集の画面（台の画面と同じ作り：上に「‹ 台の一覧」と見出し、その下のカードに、言葉を太字の見出し・その下に説明の行）。
+   色は決定67と同じく var(--…) だけ（暗い画面も同じ変数で変わる） */
+.cm-go{font:inherit;font-size:14px;line-height:1.5;text-align:left;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-height:44px;display:flex;align-items:center;gap:8px;cursor:pointer;touch-action:manipulation}
+.cm-go:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.cm-go span{flex:1;min-width:0;overflow-wrap:anywhere}
+.cm-go b{font-weight:700}
+.cm-go i{font-style:normal;font-size:20px;font-weight:700;line-height:1;color:var(--accent)}
+.if-common>.btn{align-self:flex-start}
+.tm{display:flex;flex-direction:column;gap:4px;scroll-margin-top:12px}
+.tm+.tm{border-top:1px solid var(--line);padding-top:12px}
+.tm h3{font-size:16px;font-weight:700;overflow-wrap:anywhere}
+.tm p{font-size:14px;line-height:1.6;overflow-wrap:anywhere}
 .if-top{display:flex;flex-direction:column;gap:6px}
 .if-top .btn{align-self:flex-start}
 .if-top h2{font-size:19px;overflow-wrap:anywhere}
@@ -476,7 +489,7 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
   <section id="view-info" class="view" aria-labelledby="info-title" hidden>
     <header class="top"><div class="brand"><small>台ごとの天井・ゾーン・pt</small><h1 id="info-title">狙い目</h1></div></header>
     <div id="if-pick" class="view">
-      <!-- 全台共通（決定67・68）：中身は合言葉が合った人にだけ渡すデータから出す。ここには書かない -->
+      <!-- 全台共通（決定67・68）と、その下の用語集のボタン（決定69）：中身は合言葉が合った人にだけ渡すデータから出す。ここには書かない -->
       <div id="if-common" class="block if-common" hidden></div>
       <div class="block">
         <input id="if-q" class="tin" type="search" autocomplete="off" placeholder="台の名前で探す（ひらがなでも）" aria-label="台の名前で探す">
@@ -1801,12 +1814,25 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
   // 文字の配列として読む（空の行は出さない）
   function infoLines(v){ return (Array.isArray(v) ? v : v==null ? [] : [v]).filter(function(s){ return s!=null && String(s).trim()!==''; }); }
   function infoMachines(){ return S.info ? S.info.machines.filter(function(m){ return m && m.id!==INFO_COMMON; }) : []; }
-  function infoCommon(){
+  function infoCommonMachine(){
     var ms = S.info ? S.info.machines : [];
-    for (var i=0; i<ms.length; i++) if (ms[i] && ms[i].id===INFO_COMMON)
-      return (Array.isArray(ms[i].common) ? ms[i].common : []).filter(function(g){ return g && (g.h || infoLines(g.t).length); });
-    return [];
+    for (var i=0; i<ms.length; i++) if (ms[i] && ms[i].id===INFO_COMMON) return ms[i];
+    return null;
   }
+  function infoCommon(){
+    var c = infoCommonMachine();
+    return c ? (Array.isArray(c.common) ? c.common : []).filter(function(g){ return g && (g.h || infoLines(g.t).length); }) : [];
+  }
+  /* 決定69（2026-10-31）：全台共通の台に terms（用語集。[{w 言葉, d [説明の行], src 出どころ}]）が来る。common の項目に go（押すと
+     飛ぶ言葉）があり、用語集にその言葉があれば、その項目は押せる1行（見出し：行 ›）にして、押すと用語集の画面のその言葉の所へ飛ぶ。
+     枠の下に「用語集 ›」のボタン。用語集の画面は台の画面と同じ作り（「‹ 台の一覧」で戻る）。出どころ（src）は画面に出さない。
+     terms がない古い形のデータでは、ボタンも押せる行も出さず、今までどおりに出る。中身はデータから出すだけ（このページには書かない） */
+  var INFO_TERMS = '_terms';   // 用語集を開いているときの infoSel（台の id とは重ならない）
+  function infoTerms(){
+    var c = infoCommonMachine();
+    return (c && Array.isArray(c.terms) ? c.terms : []).filter(function(t){ return t && t.w!=null && String(t.w).trim()!==''; });
+  }
+  function termIndex(tm, w){ for (var i=0; i<tm.length; i++) if (tm[i].w===w) return i; return -1; }
   function lineList(a){ return '<ul class="fl">' + a.map(function(s){ return '<li>' + esc(s) + '</li>'; }).join('') + '</ul>'; }
   function infoMachine(id){
     var ms = infoMachines();
@@ -1814,15 +1840,20 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
     return null;
   }
   function renderInfo(){
-    var m = infoMachine(infoSel);
-    $('if-pick').hidden = !!m; $('if-view').hidden = !m;
+    var tm = infoTerms(), terms = infoSel===INFO_TERMS && tm.length>0;
+    var m = terms ? null : infoMachine(infoSel);
+    $('if-pick').hidden = !!m || terms; $('if-view').hidden = !m && !terms;
+    if (terms) return renderInfoTerms(tm);
     if (m) return renderInfoMachine(m);
     var st = $('if-state'), list = $('if-list'), cm = $('if-common'), cg = infoCommon();
-    cm.hidden = !cg.length;
-    cm.innerHTML = !cg.length ? '' : '<h2>全台共通</h2>' + cg.map(function(g){
+    cm.hidden = !cg.length && !tm.length;
+    cm.innerHTML = cm.hidden ? '' : '<h2>全台共通</h2>' + cg.map(function(g){
       var t = infoLines(g.t);
+      if (g.go!=null && termIndex(tm, g.go)>=0)   // 決定69：押すと用語集のその言葉へ
+        return '<button type="button" class="cm-go" data-go="' + esc(g.go) + '"><span>' + (g.h ? '<b>' + esc(g.h) + '</b>：' : '')
+          + t.map(esc).join('<br>') + '</span><i aria-hidden="true">›</i></button>';
       return '<div class="cm-g">' + (g.h ? '<h3>' + esc(g.h) + '</h3>' : '') + (t.length ? lineList(t) : '') + '</div>';
-    }).join('');
+    }).join('') + (tm.length ? '<button type="button" class="btn" id="if-terms-open">用語集 ›</button>' : '');
     if (!S.info){
       st.hidden = false; list.innerHTML = '';
       st.textContent = infoBusy ? '読みこみ中です（はじめてのときは少しかかります）'
@@ -1872,6 +1903,23 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
     }).join('') + '</div>';
     $('if-view').innerHTML = h;
   }
+  // 決定69：用語集の画面（台の画面と同じ作り）。言葉を太字の見出しに、その下に説明の行
+  function renderInfoTerms(tm){
+    $('if-view').innerHTML = '<div class="if-top"><button type="button" class="btn" id="if-back">‹ 台の一覧</button><h2>用語集</h2></div>'
+      + '<div class="block if-terms">' + tm.map(function(t, i){
+        return '<div class="tm" id="if-tm-' + i + '"><h3>' + esc(t.w) + '</h3>'
+          + infoLines(t.d).map(function(s){ return '<p>' + esc(s) + '</p>'; }).join('') + '</div>';
+      }).join('') + '</div>';
+  }
+  // 決定69：全台共通の枠の押せる行（go）→ 用語集のその言葉の所へ／「用語集 ›」→ 用語集のいちばん上へ
+  $('if-common').addEventListener('click', function(e){
+    var g = e.target.closest('[data-go]');
+    if (!g && !e.target.closest('#if-terms-open')) return;
+    infoSel = INFO_TERMS; store(LS_INFO_M, infoSel);
+    renderInfo();
+    var i = g ? termIndex(infoTerms(), g.getAttribute('data-go')) : -1, el = i>=0 ? $('if-tm-' + i) : null;
+    if (el) el.scrollIntoView({block:'start'}); else window.scrollTo(0, 0);
+  });
   $('if-list').addEventListener('click', function(e){
     var b = e.target.closest('[data-im]'); if (!b) return;
     infoSel = b.getAttribute('data-im'); store(LS_INFO_M, infoSel);
@@ -1929,7 +1977,7 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
   'use strict';
   // BUILD＝この index.html の BUILD の値を空（''）にした中身の SHA-256 の頭12字。sw.js の BUILD・version.json の build と同じ値にする
   // （2026-10-31 から。前の組み立ての道具 build.py は消えたので、この決め方にした）
-  var BUILD = '42b0d529ff26', CACHE = 'neraicho-app-v1', lastCheck = 0;
+  var BUILD = '7984f7f57f1d', CACHE = 'neraicho-app-v1', lastCheck = 0;
   if (!('serviceWorker' in navigator)) return;
   var bar = document.getElementById('app-update');
   document.body.insertBefore(bar, document.body.firstChild);   // above the page, so it never covers the machine select or tabs
