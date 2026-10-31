@@ -14,14 +14,18 @@
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 </head><body><style>
 /* 狙い目だけのページ（決定70・2026-10-31）：狙い目帳（../index.html）の狙い目タブだけを持つページ。メンバー以外にも見せる。
-   記録・一覧・月の収支・ランキング・設定は持たない。中身（台の情報・オーナーの文）はこのページに書かず、合言葉が合った人にだけ
-   受け口（Apps Script の info）から渡す。見るだけの合言葉でも、狙い目帳のメンバーの合言葉でも開ける。
+   記録・一覧・月の収支・ランキング・設定は持たない。中身（台の情報・オーナーの文）はこのページに書かず、
+   受け口（Apps Script の info）から渡す。
+   決定74（2026-10-31）：合言葉なしで開く。合言葉の画面はなくし、開いたらすぐ狙い目の一覧を出す。受け口には合言葉（k）を送らない
+   （受け口は、k を送ってこない info にだけ台の情報を答える）。前に配った ?k= つきのリンクで開いても、k は読まずにそのまま開く。
    ★今の index.html から文字のまま写した所（直すときは2か所とも直す）：
      CSS＝:root〜.warn／.field〜.tin:focus／.acts〜.err／.tag／.empty／「★決定70」の印〜.if-more dd／.app-update の2行
-     HTML＝<section id="view-info"> の全部（合言葉の section は、見出しと説明の文だけ変えた）
-     JS＝API／$〜canStore／norm／hira・SMALL・yomiKey／call（受け口の呼び方）／keyFrom／狙い目の出し方（「狙い目（2026-10-24…」の説明〜infoBusy、
+     HTML＝<section id="view-info"> の全部
+     JS＝API／$〜canStore／norm／hira・SMALL・yomiKey／狙い目の出し方（「狙い目（2026-10-24…」の説明〜infoBusy、
          infoLine〜$('if-q')。loadInfo だけは書きかえた）／下の「更新する」の作り（控えの箱の名前だけ neraimi-v1 に変えた）
-   ★スマホの中に置く名前（localStorage）は、今の狙い目帳と分けた（neraicho.mi.…）。見るだけの合言葉を入れても、狙い目帳の合言葉は消えない */
+     call（受け口の呼び方）は、決定74で k を送らない形に書きかえた（ほかは今の index.html と同じ）
+   ★スマホの中に置く名前（localStorage）は、今の狙い目帳と分けた（neraicho.mi.…）。台の情報の控えは前と同じ名前（neraicho.mi.info）。
+     前に見るだけの合言葉を入れたスマホに残った neraicho.mi.key は、もう読まない（決定74） */
 :root{
   --bg:#F1F2F7; --surface:#FFFFFF; --ink:#151A2D; --muted:#596079; --line:#D8DBE6;
   --accent:#2B45C4; --accent-ink:#FFFFFF; --accent-soft:#E5E9FA;
@@ -178,23 +182,9 @@ p{margin:0}
 </style>
 
 <div class="wrap">
-  <div id="no-store" class="warn" hidden>この開き方では、合言葉や狙い目の控えが残りません。ホーム画面のアイコンか、ふつうのブラウザで開いてください。</div>
+  <div id="no-store" class="warn" hidden>この開き方では、狙い目の控えが残りません。ホーム画面のアイコンか、ふつうのブラウザで開いてください。</div>
 
-  <!-- 合言葉（今の狙い目帳と同じ作り。見出しと説明の文だけ変えた） -->
-  <section id="view-key" class="view" aria-labelledby="key-title" hidden>
-    <header class="top"><div class="brand"><small>台ごとの天井・ゾーン・pt</small><h1 id="key-title">狙い目</h1></div></header>
-    <div class="block">
-      <div class="field">
-        <label for="k-in">合言葉</label>
-        <input id="k-in" class="tin" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="合言葉か、もらったリンク">
-      </div>
-      <p id="k-err" class="err" role="alert" hidden></p>
-      <div class="acts"><button type="button" id="k-go" class="btn main">開く</button></div>
-      <p class="hint">管理の人からもらった合言葉を入れてください。もらったリンクをそのまま貼っても開けます。狙い目帳のメンバーは、自分の合言葉でも開けます。</p>
-    </div>
-  </section>
-
-  <!-- 狙い目（今の index.html の section を文字のまま写した） -->
+  <!-- 狙い目（今の index.html の section を文字のまま写した）。決定74：合言葉の画面はなくした -->
   <section id="view-info" class="view" aria-labelledby="info-title" hidden>
     <header class="top"><div class="brand"><small>台ごとの天井・ゾーン・pt</small><h1 id="info-title">狙い目</h1></div></header>
     <div id="if-pick" class="view">
@@ -214,7 +204,7 @@ p{margin:0}
 (function(){
   'use strict';
   var API = 'https://script.google.com/macros/s/AKfycbwpscWKcnidJbAb8TLqmOJsbwcSBb1Qok8Ma4UqY7dUZBGY6yvc6Vbft71lsjD5P_VEcA/exec';
-  var LS_KEY = 'neraicho.mi.key', LS_INFO = 'neraicho.mi.info', LS_INFO_M = 'neraicho.mi.infoMachine';   // 狙い目帳（neraicho.key など）とは別の名前
+  var LS_INFO = 'neraicho.mi.info', LS_INFO_M = 'neraicho.mi.infoMachine';   // 狙い目帳（neraicho.key など）とは別の名前（決定74：合言葉は置かない）
   var $ = function(id){ return document.getElementById(id); };
   function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
   function load(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
@@ -230,14 +220,14 @@ p{margin:0}
     return [h.normalize('NFD').replace(/[\u3099\u309a]/g, '').replace(/[ぁぃぅぇぉっゃゅょゎ]/g, function(c){ return SMALL[c]; }).replace(/ー/g, ''), h];
   }
 
-  /* ---------- 状態：合言葉と、台の情報の控え（電波がなくても開けるように、スマホの中に置く） ---------- */
-  var S = {key:'', info:null, infoVer:'', loading:false};
+  /* ---------- 状態：台の情報の控え（電波がなくても開けるように、スマホの中に置く）。決定74：合言葉は持たない ---------- */
+  var S = {info:null, infoVer:'', loading:false};
   (function(){
     var inf = loadJSON(LS_INFO, null);
     if (inf && inf.ver && Array.isArray(inf.machines)){ S.info = inf; S.infoVer = inf.ver; }
   })();
 
-  /* ---------- 受け口とのやりとり（今の狙い目帳と同じ JSONP） ---------- */
+  /* ---------- 受け口とのやりとり（今の狙い目帳と同じ JSONP）。決定74：合言葉（k）は送らない ---------- */
   var seq = 0;
   function call(action, params, ms){
     return new Promise(function(resolve, reject){
@@ -246,34 +236,22 @@ p{margin:0}
       function done(){ clearTimeout(timer); try { delete window[cb]; } catch(e){ window[cb] = undefined; } if (s.parentNode) s.parentNode.removeChild(s); }
       window[cb] = function(d){ done(); resolve(d || {}); };
       s.onerror = function(){ done(); reject(new Error('network')); };
-      var q = ['action='+encodeURIComponent(action), 'k='+encodeURIComponent(S.key), 'callback='+cb];
+      var q = ['action='+encodeURIComponent(action), 'callback='+cb];
       Object.keys(params || {}).forEach(function(k){ if (params[k]!=null) q.push(encodeURIComponent(k)+'='+encodeURIComponent(params[k])); });
       s.src = API + '?' + q.join('&') + '&_=' + Date.now();
       document.head.appendChild(s);
     });
   }
 
-  /* ---------- 画面：合言葉か、狙い目の2つだけ ---------- */
+  /* ---------- 画面：狙い目だけ（決定74：合言葉の画面はなくした） ---------- */
   var view = 'info';
   function show(v){
     view = v;
-    $('view-key').hidden = v!=='key'; $('view-info').hidden = v!=='info';
+    $('view-info').hidden = v!=='info';
     if (v==='info') renderInfo();
     window.scrollTo(0, 0);
   }
 
-  /* ---------- 合言葉（今の狙い目帳と同じ：合言葉か、もらったリンクを入れる／?k= で開く） ---------- */
-  function keyFrom(text){
-    var t = String(text || '').trim(), m = /[?&]k=([^&#\s]+)/.exec(t);
-    if (m){ try { return decodeURIComponent(m[1]).trim(); } catch(e){ return m[1]; } }
-    return t.replace(/\s+/g, '');
-  }
-  function lockOut(msg){
-    S.key = ''; S.info = null; S.infoVer = '';
-    try { localStorage.removeItem(LS_KEY); localStorage.removeItem(LS_INFO); } catch(e){}
-    $('k-err').textContent = msg || ''; $('k-err').hidden = !msg;
-    show('key');
-  }
   // 受け口の info の答えを受け取る。'same'＝控えと同じ版（控えのまま）／'new'＝新しい中身を控えた／''＝受け取れない
   function takeInfo(r){
     if (r.same && S.info && S.info.ver===r.ver){ S.infoVer = r.ver; return 'same'; }
@@ -293,15 +271,14 @@ p{margin:0}
 
   /* ★決定70：mi/ の loadInfo（ここだけ、今の index.html の loadInfo を書きかえた）。all を使えないので、開くたびに info を呼び、
      控えがあればその版を have で送る（同じ版なら、受け口は中身を省いて same だけ返す＝今の狙い目帳の「版が変わったときだけ
-     中身を取りに来る」と同じ考え）。have を知らない前の版の受け口でも、中身がそのまま返ってくるので動く */
+     中身を取りに来る」と同じ考え）。have を知らない前の版の受け口でも、中身がそのまま返ってくるので動く
+     決定74：合言葉なし。受け口に断られても（前の版の受け口など）、控えは消さずにそのまま出す */
   function loadInfo(){
-    if (infoBusy || !S.key) return;
+    if (infoBusy) return;
     infoBusy = true; infoErr = '';
     if (view==='info' && !S.info) renderInfo();
     call('info', S.info ? {have:S.info.ver} : {}, 60000).then(function(r){
       infoBusy = false;
-      if (r.鍵ちがい) return lockOut('合言葉が変わったか、止められています。管理の人に確かめてください。');
-      if (r.重なり) return lockOut(r.error);
       var got = r.ok ? takeInfo(r) : '';
       if (!got) infoErr = r.error || 'とれませんでした';
       if (view==='info' && got!=='same') renderInfo();   // 同じ版のときは描き直さない（見ている所が動かないように）
@@ -448,37 +425,10 @@ p{margin:0}
   });
   $('if-q').addEventListener('input', function(){ renderInfo(); });
 
-  $('k-go').addEventListener('click', function(){
-    var k = keyFrom($('k-in').value), err = $('k-err');
-    if (!k){ err.textContent = '合言葉を入れてください'; err.hidden = false; return; }
-    var b = $('k-go'); b.disabled = true; b.textContent = 'たしかめ中…'; err.hidden = true;
-    S.key = k;
-    call('info', S.info ? {have:S.info.ver} : {}, 60000).then(function(r){
-      b.disabled = false; b.textContent = '開く';
-      if (!r.ok || !takeInfo(r)){ S.key = ''; err.textContent = r.鍵ちがい ? '合言葉がちがいます（大文字・小文字も見ます）' : (r.error || 'うまくいきませんでした'); err.hidden = false; return; }
-      store(LS_KEY, k);
-      // 住所にも入れる（ここから「ホーム画面に追加」をしても合言葉が残る。今の狙い目帳と同じ）
-      try { var u = new URL(location.href); u.searchParams.set('k', k); history.replaceState(null, '', u.href); } catch(e){}
-      $('k-in').value = '';
-      show('info');
-    }, function(){
-      S.key = ''; b.disabled = false; b.textContent = '開く';
-      err.textContent = 'つながりません。電波のある所で、もう一度どうぞ。'; err.hidden = false;
-    });
-  });
-  $('k-in').addEventListener('keydown', function(e){ if (e.key==='Enter') $('k-go').click(); });
-
-  /* ---------- はじめ ---------- */
+  /* ---------- はじめ（決定74：合言葉は聞かない。住所の ?k= も読まない。開いたらすぐ狙い目の一覧） ---------- */
   if (!canStore) $('no-store').hidden = false;
-  (function(){
-    var k = '';
-    try { k = keyFrom(new URL(location.href).searchParams.get('k') ? location.href : ''); } catch(e){}
-    if (k) store(LS_KEY, k);
-    S.key = k || load(LS_KEY) || '';
-  })();
   // ホーム画面のアプリは、裏から戻っても読み込み直さない：戻ったときに、新しい版がないかだけ見る
-  document.addEventListener('visibilitychange', function(){ if (document.visibilityState==='visible' && S.key) loadInfo(); });
-  if (!S.key){ show('key'); return; }
+  document.addEventListener('visibilitychange', function(){ if (document.visibilityState==='visible') loadInfo(); });
   show('info');
   loadInfo();
 })();
@@ -494,7 +444,7 @@ p{margin:0}
   'use strict';
   // BUILD＝この index.html の BUILD の値を空（''）にした中身の SHA-256 の頭12字。sw.js の BUILD・version.json の build と同じ値にする
   // （2026-10-31 から。前の組み立ての道具 build.py は消えたので、この決め方にした）
-  var BUILD = '2d25e665e23b', CACHE = 'neraimi-v1', lastCheck = 0;
+  var BUILD = 'e67a444fd5c2', CACHE = 'neraimi-v1', lastCheck = 0;
   if (!('serviceWorker' in navigator)) return;
   var bar = document.getElementById('app-update');
   document.body.insertBefore(bar, document.body.firstChild);   // above the page, so it never covers the machine select or tabs

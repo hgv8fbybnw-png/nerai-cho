@@ -7,7 +7,7 @@
  *   消すのは自分の箱（neraimi- で始まる名前）だけ。狙い目帳の箱（neraicho- で始まる名前）には手を出さない。
  * ★ 「更新する」はページから cache:'reload' で取りにくる。ここで控えを返すと古い版をまた入れてしまうので、ネットに通す。
  */
-var BUILD = '2d25e665e23b';
+var BUILD = 'e67a444fd5c2';
 var CACHE = 'neraimi-v1';
 var PAGE = new URL('./', self.registration.scope).href;
 var STATIC = ['manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
