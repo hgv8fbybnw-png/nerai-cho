@@ -466,14 +466,14 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     <div class="block">
       <h2>稼働日数・打った台・拾った台・渡した台</h2>
       <div id="mon-work" class="wk"></div>
-      <p class="hint">稼働日数は、その月に1台でも記録した日の数です。「拾った台」は、その人が拾って自分で打った台の数です。「渡した台」は、その人が拾って、ほかの人が打った台の数です。拾った台に渡した台は入りません。「拾った人」が空の台は、どちらにも数えません。棒の長さは、それぞれの列でいちばん多い人を基準にしています。</p>
+      <p class="hint">稼働日数は、その月に1台でも記録した日の数です。「拾った台」は、その人が拾った台の全部の数です（自分で打った台と、ほかの人に渡した台を足した数）。「渡した台」は、そのうちほかの人が打った台の数です。「拾った人」が空の台は数えません。棒の長さは、それぞれの列でいちばん多い人を基準にしています。</p>
     </div>
     <div class="seg" role="radiogroup" aria-label="分け方">
       <input type="radio" name="mon-by" id="mon-by-by" value="by" checked><label for="mon-by-by">メンバーごと</label>
       <input type="radio" name="mon-by" id="mon-by-pick" value="pick"><label for="mon-by-pick">拾った人ごと</label>
     </div>
     <div id="mon-people" class="list"></div>
-    <p class="hint">「合計の40%」はチームの合計に40%をかけた数、「1人あたり」はそれを今のメンバーの人数で割った数です。「メンバーごと」は、その人が自分の合言葉で記録した収支です。収支は円で足しています（現金は換金の枚数で数えて、記録ごとの交換率で円にしてから足します）。押すと、その月の中身が出ます。</p>
+    <p class="hint">「合計の40%」はチームの合計に40%をかけた数、「1人あたり」はそれを今のメンバーの人数で割った数です。「メンバーごと」は、その人が自分の合言葉で記録した収支です。「拾った人ごと」は、その人がほかの人に渡した台の収支です。自分で打った台の金額は入りません。チームの合計は全部の台の合計です。収支は円で足しています（現金は換金の枚数で数えて、記録ごとの交換率で円にしてから足します）。押すと、その月の中身が出ます。</p>
   </section>
 
   <!-- ランキング -->
@@ -1346,25 +1346,35 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
 
   /* ---------- 月の収支: the team total and each member (the one who recorded = played), or by 拾った人 ---------- */
   var month = fmtAt(new Date()).slice(0, 7);
-  // n = 打った台 (one record = one machine played), days = 稼働日数 (days with at least one record; user 2026-10-24),
-  // gave = 拾って渡した台: plays whose 拾った人 is this person and 打った人 someone else (a machine found for yourself is not
-  // counted; user 2026-10-24 「拾って自分で打った数はなしで、拾って他人に渡した台の数だけ」). Only in the by-member split.
-  // found＝拾った台：拾った人が打った人と同じ台（古い「自分」も入れる）。1つの記録は、渡した台か拾った台のどちらか片方にだけ入る
-  // （user 2026-11-05 「拾った数に渡した数は合算しないで欲しい」）。打った人が空の記録は、記録した人に読み替えない。メンバーごとの分け方のときだけ数える
+  // 渡した台か（決定108と同じ見分け方）：拾った人に名前があり、打った人と違う台。「自分」は渡した台にしない。打った人が空で拾った人に名前があれば渡した台
+  function isGiven(r){ var k = norm(r.pick || ''); return !!k && !isSelf(r.pick) && k!==norm(r.by || ''); }
+  var NO_PICK = '拾った人なし';
+  // n = 打った台 (one record = one machine played), days = 稼働日数 (days with at least one record; user 2026-10-24).
+  // 拾った人ごとの分け方では、n はその人が拾った台の全部の数で、yen・win・plays は渡した台の分だけ（決定109）。
+  // gave＝拾って渡した台：拾った人がこの人で、打った人がほかの人の台（見分け方は isGiven）。
+  // found＝自分で拾って自分で打った台（古い「自分」も入れる）。打った人が空の記録は、記録した人に読み替えない。メンバーごとの分け方のときだけ数える。
+  // 1つの記録は found か gave のどちらか片方にだけ入り、グラフの拾った台は2つを足した数（決定109。足すのは renderWork）
   function monthSums(all, m, key, names){
-    var team = {n:0, win:0, yen:0, days:0, gave:0}, by = {}, out = [], tdays = {};
+    var team = {n:0, win:0, yen:0, days:0, gave:0}, by = {}, out = [], tdays = {}, pick = key==='pick';
     // 拾った人 is free words: the same name written in full/half width or with spaces counts as one
-    var kf = key==='pick' ? function(v){ return norm(v); } : function(v){ return v; };
+    var kf = pick ? function(v){ return norm(v); } : function(v){ return v; };
     function person(name){ return {name:name, n:0, win:0, yen:0, days:0, found:0, gave:0, plays:[], seen:{}}; }
     (names || []).forEach(function(n){ by[kf(n)] = person(n); out.push(by[kf(n)]); });
     all.forEach(function(r){
       if (r.at.slice(0, 7)!==m) return;
-      var c = calc(r), who = r[key] || (key==='pick' ? '拾った人なし' : '—'), k = kf(who), d = r.at.slice(0, 10);
+      // 拾った人ごとの行：古い「自分」は打った人の行へ（グラフの数え方と同じ）。打った人が空の「自分」は「拾った人なし」の行へ
+      var c = calc(r), who = pick ? ((isSelf(r.pick) ? r.by : r.pick) || NO_PICK) : (r.by || '—'), k = kf(who), d = r.at.slice(0, 10);
       if (!by[k]){ by[k] = person(who); out.push(by[k]); }
-      var p = by[k];
-      p.n++; p.yen += c.yen; if (c.yen>0) p.win++;
+      var p = by[k], given = pick && isGiven(r);
+      p.n++;
       if (!p.seen[d]){ p.seen[d] = 1; p.days++; }
-      p.plays.push({at:r.at, name:r.name, aim:r.aim, det:r.det, yen:c.yen, other:key==='by' ? r.pick : r.by});
+      if (given) p.gave++;
+      // 渡した台の絞りは人ごとの足し込みだけに入れる（user 2026-11-06 「計算に組み込むのは渡した台のみ」）。
+      // 記録は読み飛ばさない。読み飛ばすと、切り替えたときだけ下のチームの合計・40%・1人あたり・1台あたりが小さくなる
+      if (!pick || given){
+        p.yen += c.yen; if (c.yen>0) p.win++;
+        p.plays.push({at:r.at, name:r.name, aim:r.aim, det:r.det, yen:c.yen, other:key==='by' ? r.pick : r.by});
+      }
       team.n++; team.yen += c.yen; if (c.yen>0) team.win++;
       if (!tdays[d]){ tdays[d] = 1; team.days++; }
     });
@@ -1374,12 +1384,16 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
       all.forEach(function(r){
         if (r.at.slice(0, 7)!==m || !r.pick) return;
         var g = byNorm[norm(r.pick)], played = norm(r.by || '');
-        if (g && norm(r.pick)!==played){ g.gave++; team.gave++; }
+        if (g && isGiven(r)){ g.gave++; team.gave++; }
         else if (played && (norm(r.pick)===played || isSelf(r.pick))) by[r.by].found++;
       });
     }
     out.forEach(function(p){ delete p.seen; });
-    out.sort(function(a, b){ return (b.n>0) - (a.n>0) || b.yen - a.yen || b.n - a.n; });
+    // 拾った人ごとは、金額のある人を金額の順に先に出し、金額が「—」の人（渡した台がない人）はそのあと、「拾った人なし」はいちばん下にする
+    // （金額0として並べると、勝ちの人と負けの人のあいだに「—」の行が入るため）
+    out.sort(function(a, b){
+      return (pick ? (a.name===NO_PICK) - (b.name===NO_PICK) || (b.gave>0) - (a.gave>0) : (b.n>0) - (a.n>0)) || b.yen - a.yen || b.n - a.n;
+    });
     return {team:team, people:out};
   }
   // the team's share (user 2026-10-24): 40% of the team total, and that split by the number of members
@@ -1400,6 +1414,11 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     var a = Math.abs(v), t = a<10000 ? String(a) : a<100000 ? String(Math.round(a/1000)/10).replace(/\.0$/, '') + '万' : Math.round(a/10000) + '万';
     return (v>0 ? '+' : '−') + t;
   }
+  // 「拾った人ごと」の台数の字：拾った台と、そのうち渡した台。勝ちは渡した台の分だけ。「拾った人なし」の行は台数だけ
+  function pickMeta(p){
+    if (p.name===NO_PICK) return '<span>'+p.n+'台</span>';
+    return '<span>拾った'+p.n+'台</span><span>うち渡した'+p.gave+'台</span>'+(p.gave ? '<span>勝ち'+p.win+'台</span>' : '');
+  }
   function renderMonth(){
     $('mon-label').textContent = monthLabel(month);
     $('mon-next').disabled = month>=fmtAt(new Date()).slice(0, 7);
@@ -1413,14 +1432,15 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     renderCal(all); renderWork(all);
     var max = 1; s.people.forEach(function(p){ max = Math.max(max, Math.abs(p.yen)); });
     $('mon-people').innerHTML = s.people.length ? s.people.map(function(p){
-      var w = Math.round(Math.abs(p.yen)/max*50), bar = p.yen>0 ? 'left:50%;width:'+w+'%' : 'right:50%;width:'+w+'%';
+      // 金額・棒・開く中身を出すか：拾った人ごとは、拾った台の数でなく渡した台の数で決める（渡した台がない人に±0円を出さない）
+      var has = key==='pick' ? p.gave : p.n, w = Math.round(Math.abs(p.yen)/max*50), bar = p.yen>0 ? 'left:50%;width:'+w+'%' : 'right:50%;width:'+w+'%';
       return '<details class="rk pp"><summary>'
         + '<span class="rk-main"><b>'+esc(p.name)+(S.me && p.name===S.me.name ? '<small style="display:inline;margin-left:6px">自分</small>' : '')+'</b>'
-        + '<span class="rk-meta">'+(p.n ? '<span>稼働'+p.days+'日</span><span>'+p.n+'台</span><span>勝ち'+p.win+'台</span>' : (p.gave ? '' : '<span>この月の記録なし</span>'))+(p.gave ? '<span>拾って渡した'+p.gave+'台</span>' : '')+'</span>'
-        + (p.n ? '<span class="pbar" aria-hidden="true"><i class="'+cls(p.yen)+'" style="'+bar+'"></i></span>' : '')+'</span>'
-        + '<span class="rk-val"><b class="'+cls(p.yen)+'">'+(p.n ? esc(signed(p.yen, '円')) : '—')+'</b></span>'
+        + '<span class="rk-meta">'+(key==='pick' ? pickMeta(p) : (p.n ? '<span>稼働'+p.days+'日</span><span>'+p.n+'台</span><span>勝ち'+p.win+'台</span>' : (p.gave ? '' : '<span>この月の記録なし</span>'))+(p.gave ? '<span>拾って渡した'+p.gave+'台</span>' : ''))+'</span>'
+        + (has ? '<span class="pbar" aria-hidden="true"><i class="'+cls(p.yen)+'" style="'+bar+'"></i></span>' : '')+'</span>'
+        + '<span class="rk-val"><b class="'+cls(p.yen)+'">'+(has ? esc(signed(p.yen, '円')) : '—')+'</b></span>'
         + '</summary>'
-        + (p.n ? '<div class="rk-plays">' + p.plays.map(function(x){
+        + (has ? '<div class="rk-plays">' + p.plays.map(function(x){
             return '<div class="rk-play"><span>'+esc(shortDay(x.at)+' '+x.name+(x.aim ? '・'+x.aim+(x.det ? '（'+detLabel(x.det)+'）' : '') : '')+(x.other && x.other!==p.name ? '（'+(key==='by' ? '拾った：' : '打った：')+x.other+'）' : ''))+'</span><b class="'+cls(x.yen)+'">'+esc(signed(x.yen, '円'))+'</b></div>';
           }).join('') + '</div>' : '')
         + '</details>';
@@ -1467,14 +1487,17 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   $('cal-who').addEventListener('click', function(e){ var b = e.target.closest('.chip'); if (!b) return; calWho = b.getAttribute('data-who'); renderMonth(); });
   $('cal').addEventListener('click', function(e){ var b = e.target.closest('.cal-d'); if (!b || b.disabled) return; var k = b.getAttribute('data-day'); calDay = calDay===k ? '' : k; renderMonth(); });
   /* 1人ずつの稼働日数・打った台・拾った台・渡した台（user 2026-10-24 「稼働日数と台の数を可視化したい」「拾って他人に渡した台の数」、
-     user 2026-11-05 「それに拾った台数を用意して」）：名前を上に置き、その下に棒の列を4つ並べる。棒の長さの基準は列ごとに別 */
+     user 2026-11-05 「それに拾った台数を用意して」）：名前を上に置き、その下に棒の列を4つ並べる。棒の長さの基準は列ごとに別。
+     拾った台は、自分で打った台（found）と渡した台（gave）を足した数で、列の棒の基準も足した数で取る
+     （決定109。user 2026-11-06 「拾った台数と渡した台数は合算していい」）。渡した台の列はそのまま残す */
   function renderWork(all){
     var order = activeNames(), ppl = monthSums(all, month, 'by', order).people, md = 0, mn = 0, mf = 0, mg = 0;
+    function picked(p){ return p.found + p.gave; }
     ppl.sort(function(a, b){ var i = order.indexOf(a.name), j = order.indexOf(b.name); return (i<0 ? 99 : i) - (j<0 ? 99 : j); });
-    ppl.forEach(function(p){ md = Math.max(md, p.days); mn = Math.max(mn, p.n); mf = Math.max(mf, p.found); mg = Math.max(mg, p.gave); });
+    ppl.forEach(function(p){ md = Math.max(md, p.days); mn = Math.max(mn, p.n); mf = Math.max(mf, picked(p)); mg = Math.max(mg, p.gave); });
     function bar(v, max, label){ return '<span class="wk-bar'+(v ? '' : ' none')+'"><span>'+label+'</span>'+(v ? '<i style="width:'+(v / max * 100).toFixed(1)+'%"></i>' : '')+'</span>'; }
     $('mon-work').innerHTML = ppl.length ? '<span class="wk-h">稼働日数</span><span class="wk-h">打った台</span><span class="wk-h">拾った台</span><span class="wk-h">渡した台</span>'
-      + ppl.map(function(p){ return '<span class="wk-name">'+esc(p.name)+'</span>' + bar(p.days, md, p.days+'日') + bar(p.n, mn, p.n+'台') + bar(p.found, mf, p.found+'台') + bar(p.gave, mg, p.gave+'台'); }).join('')
+      + ppl.map(function(p){ return '<span class="wk-name">'+esc(p.name)+'</span>' + bar(p.days, md, p.days+'日') + bar(p.n, mn, p.n+'台') + bar(picked(p), mf, picked(p)+'台') + bar(p.gave, mg, p.gave+'台'); }).join('')
       : '<p class="hint" style="grid-column:1 / -1">メンバーを読み込むと、ここに一人ずつ出ます。</p>';
   }
   $('mon-prev').addEventListener('click', function(){ month = shiftMonth(month, -1); calDay = ''; renderMonth(); });
@@ -2019,7 +2042,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   'use strict';
   // BUILD＝この index.html の BUILD の値を空（''）にした中身の SHA-256 の頭12字。sw.js の BUILD・version.json の build と同じ値にする
   // （2026-10-31 から。前の組み立ての道具 build.py は消えたので、この決め方にした）
-  var BUILD = '580efd46f73f', CACHE = 'neraicho-app-v1', lastCheck = 0;
+  var BUILD = '606e16dc427c', CACHE = 'neraicho-app-v1', lastCheck = 0;
   if (!('serviceWorker' in navigator)) return;
   var bar = document.getElementById('app-update');
   document.body.insertBefore(bar, document.body.firstChild);   // above the page, so it never covers the machine select or tabs
