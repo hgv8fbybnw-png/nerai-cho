@@ -1837,7 +1837,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     box.hidden = !memberGroups.length;
     if (box.hidden) return;
     sel.innerHTML = teamOptions(null) + '<option value="new">新しいグループ</option><option value="solo">個別（その人1人のグループ）</option>';
-    sel.value = cur; if (sel.value!==cur) sel.selectedIndex = 0;
+    sel.value = cur || 'solo'; if (!sel.value) sel.value = 'solo';   // 決定115：これから入る人は個別が中心なので、最初の選択は個別
     $('adm-gname').hidden = sel.value!=='new';
   }
   $('adm-group').addEventListener('change', function(){ $('adm-gname').hidden = $('adm-group').value!=='new'; });
@@ -1969,7 +1969,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
       var now = (r.members || []).filter(function(x){ return norm(x.name)===norm(name); })[0];
       if (asView && !(now && now.view)){ err.textContent = '見るだけの印が付きませんでした（受け口が前の版です）。この人は今ふつうのメンバーで入っているので、上の一覧の「直す」で止めてください'; err.hidden = false; reload(); return; }
       $('adm-name').value = ''; $('adm-key').value = ''; $('adm-admin').checked = false; $('adm-view').checked = false; $('adm-gname').value = '';
-      if (memberGroups.length){ $('adm-group').selectedIndex = 0; $('adm-gname').hidden = $('adm-group').value!=='new'; }
+      if (memberGroups.length){ $('adm-group').value = 'solo'; $('adm-gname').hidden = $('adm-group').value!=='new'; }
       showLink(name, key, asView);
       reload();
     }, function(){ b.disabled = false; err.textContent = 'つながりません。もう一度どうぞ。'; err.hidden = false; });
@@ -2343,7 +2343,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   'use strict';
   // BUILD＝この index.html の BUILD の値を空（''）にした中身の SHA-256 の頭12字。sw.js の BUILD・version.json の build と同じ値にする
   // （2026-10-31 から。前の組み立ての道具 build.py は消えたので、この決め方にした）
-  var BUILD = 'def0b003d8ff', CACHE = 'neraicho-app-v1', lastCheck = 0;
+  var BUILD = 'ae41f6646870', CACHE = 'neraicho-app-v1', lastCheck = 0;
   if (!('serviceWorker' in navigator)) return;
   var bar = document.getElementById('app-update');
   document.body.insertBefore(bar, document.body.firstChild);   // above the page, so it never covers the machine select or tabs
