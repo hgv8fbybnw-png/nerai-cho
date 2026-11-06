@@ -61,14 +61,15 @@ p{margin:0}
 .warn{background:var(--skip-soft);color:var(--skip);border-radius:var(--r);padding:10px 14px;font-size:14px;font-weight:700}
 .note{background:var(--accent-soft);border:1px solid var(--accent);border-radius:var(--r);padding:12px 14px;display:flex;flex-direction:column;gap:10px;font-size:14px}
 .note .acts{flex-wrap:wrap}
+.noread #view-rec,.noread #view-list,.noread #view-month,.noread #view-rank{display:none}
 
 /* the strip at the top: who is using it and whether everything is sent */
 .bar{display:flex;align-items:center;gap:10px;font-size:13px;min-height:36px}
 .bar-me{font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bar-me small{font-weight:400;color:var(--muted);margin-left:4px}
 .sync{color:var(--muted);font-weight:700;margin-left:auto;white-space:nowrap}
-.sync.bad{color:var(--skip)}
-.bar .btn{margin-left:auto}
+.sync.bad{color:var(--skip);white-space:normal;text-align:right}
+.bar .btn{margin-left:auto;flex:none}
 .sync+.btn{margin-left:0}
 
 /* 記録する */
@@ -155,6 +156,12 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
 .confirm span{flex:1 1 auto}
 .empty{background:var(--surface);border:1px dashed var(--line);border-radius:var(--r);padding:20px 16px;color:var(--muted);font-size:14px;text-align:center}
 .count{font-size:13px;color:var(--muted);font-weight:700}
+
+/* 管理の人のグループ切り替え（決定111） */
+.grp{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:700}
+.grp .hint{font-weight:400}
+.mv{display:flex;flex-direction:column;gap:4px;font-size:13px}
+.mv ul{margin:0;padding-left:18px}
 
 /* 月の収支 */
 .mon-nav{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:center}
@@ -345,6 +352,8 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
 .nav{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);padding:0 6px env(safe-area-inset-bottom, 0px)}
 .nav button{font:inherit;font-size:11px;font-weight:700;line-height:1.2;border:0;background:transparent;color:var(--muted);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:54px;padding:6px 2px;touch-action:manipulation}
 .nav button svg{width:24px;height:24px}
+/* 切り替え中は「記録する」を出さないので、4つで並べる（決定111） */
+.nav.four{grid-template-columns:repeat(4,1fr)}
 .nav button[aria-current="page"]{color:var(--accent)}
 .nav button:focus-visible{outline:3px solid var(--accent);outline-offset:-3px;border-radius:10px}
 .toast{position:fixed;left:16px;right:16px;bottom:calc(66px + env(safe-area-inset-bottom, 0px));max-width:528px;margin:0 auto;z-index:6;display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--ink);color:var(--bg);border-radius:12px;padding:6px 6px 6px 14px;font-size:14px;font-weight:700}
@@ -374,10 +383,20 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     <span id="sync" class="sync" role="status"></span>
     <button type="button" id="open-set" class="btn sm">設定</button>
   </div>
+  <!-- 管理の人のグループ切り替え（決定111）。全部のグループを足した選択肢は作らない -->
+  <div id="grp" class="grp" hidden>
+    <label for="grp-sel">見るグループ</label>
+    <select id="grp-sel" class="sel"></select>
+    <p id="grp-say" class="hint" hidden></p>
+  </div>
+  <!-- 打つが通らなかったとき、入れた数を捨てずに、新しい打った記録として足すかを選んでもらう（決定111） -->
+  <div id="stuck" class="note" role="alert" hidden></div>
+  <!-- 記録を読めなかったとき（表の見出しが合わない など）。0件として見せない（決定111） -->
+  <div id="readfail" class="note" role="alert" hidden></div>
 
   <!-- 記録する -->
   <section id="view-rec" class="view" aria-labelledby="rec-title" hidden>
-    <header class="top"><div class="brand"><small>打った台と狙い目</small><h1 id="rec-title">記録する</h1></div></header>
+    <header class="top"><div class="brand"><small>拾った台・打った台と狙い目</small><h1 id="rec-title">記録する</h1></div></header>
     <div id="old-note" class="note" hidden>
       <p id="old-text"></p>
       <div class="acts"><button type="button" id="old-send" class="btn sm">みんなの記録に入れる</button><button type="button" id="old-skip" class="btn sm">入れない</button></div>
@@ -407,6 +426,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
         </div>
         <div id="aim-vals" class="vals" hidden></div>
         <p class="hint">G数などの数は、狙い目の名前に入れずに、数の欄に入れてください（分かるものだけでよい）。ランキングでは、同じ狙い目の中で、数が同じものごとの成績が見られます。</p>
+        <p class="hint">台と狙い目の字は、ほかのグループの人にも見えます。人の名前を書かないでください。</p>
       </div>
       <div class="field">
         <span class="lbl" id="pick-lbl">拾った人<small>なくても記録できます</small></span>
@@ -417,16 +437,16 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
         <input id="f-pick" class="tin" type="text" maxlength="20" placeholder="新しい名前は、ここに書く" autocomplete="off" aria-label="拾った人の名前">
         <p id="pick-new" class="hint" hidden></p>
       </div>
-      <div class="field">
+      <div class="field" id="f-at-box">
         <label for="f-at" id="at-lbl">打った日時</label>
         <div class="at-row"><input id="f-at" class="tin" type="datetime-local"><input id="f-day" class="tin" type="date" aria-labelledby="at-lbl" hidden><button type="button" id="f-now" class="btn sm">いまにする</button></div>
         <label class="chk"><input type="checkbox" id="f-notime">時間不明（日にちだけ入れる）</label>
       </div>
-      <div class="field">
+      <div class="field" id="f-rate-box">
         <span class="lbl" id="rate-lbl">交換率</span>
         <div id="f-rate" class="seg seg3" role="radiogroup" aria-labelledby="rate-lbl"></div>
       </div>
-      <div class="mrows">
+      <div class="mrows" id="f-money">
         <div class="mrow"><label class="mlbl" for="f-cash">投資<small>現金</small></label><div class="gbox"><input id="f-cash" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="7" placeholder="0" autocomplete="off"><span>円</span></div></div>
         <div class="mrow"><label class="mlbl" for="f-medal">投資<small>メダル</small></label><div class="gbox"><input id="f-medal" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="0" autocomplete="off"><span>枚</span></div></div>
         <div class="mrow"><label class="mlbl" for="f-out">回収<small>メダル</small></label><div class="gbox"><input id="f-out" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="0" autocomplete="off"><span>枚</span></div></div>
@@ -444,6 +464,10 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   <!-- 一覧 -->
   <section id="view-list" class="view" aria-labelledby="list-title" hidden>
     <header class="top"><div class="brand"><small>みんなの記録</small><h1 id="list-title">一覧</h1></div><span id="list-count" class="count"></span></header>
+    <div class="seg" role="radiogroup" aria-label="一覧の分け方">
+      <input type="radio" name="ls-tab" id="ls-tab-picked" value="picked"><label for="ls-tab-picked">拾った台</label>
+      <input type="radio" name="ls-tab" id="ls-tab-played" value="played" checked><label for="ls-tab-played">打った台</label>
+    </div>
     <select id="ls-who" class="sel" aria-label="記録した人でしぼる"></select>
     <div id="list" class="list"></div>
     <button type="button" id="ls-more" class="btn" hidden>もっと見る</button>
@@ -451,7 +475,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
 
   <!-- 月の収支 -->
   <section id="view-month" class="view" aria-labelledby="mon-title" hidden>
-    <header class="top"><div class="brand"><small>チームと一人ずつ</small><h1 id="mon-title">月の収支</h1></div></header>
+    <header class="top"><div class="brand"><small id="mon-sub">チームと一人ずつ</small><h1 id="mon-title">月の収支</h1></div></header>
     <div class="block">
       <div class="mon-nav"><button type="button" id="mon-prev" class="btn" aria-label="前の月">‹</button><b id="mon-label"></b><button type="button" id="mon-next" class="btn" aria-label="次の月">›</button></div>
       <div id="mon-sum" class="sum" aria-live="polite"></div>
@@ -466,14 +490,14 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     <div class="block">
       <h2>稼働日数・打った台・拾った台・渡した台</h2>
       <div id="mon-work" class="wk"></div>
-      <p class="hint">稼働日数は、その月に1台でも記録した日の数です。「拾った台」は、その人が拾った台の全部の数です（自分で打った台と、ほかの人に渡した台を足した数）。「渡した台」は、そのうちほかの人が打った台の数です。「拾った人」が空の台は数えません。棒の長さは、それぞれの列でいちばん多い人を基準にしています。</p>
+      <p class="hint">稼働日数は、その月に1台でも記録した日の数です。「拾った台」は、その人が拾った台の全部の数です（自分で打った台と、ほかの人に渡した台と、まだ打っていない台を足した数）。「渡した台」は、そのうちほかの人が打った台の数です。「拾った人」が空の台は数えません。棒の長さは、それぞれの列でいちばん多い人を基準にしています。</p>
     </div>
     <div class="seg" role="radiogroup" aria-label="分け方">
       <input type="radio" name="mon-by" id="mon-by-by" value="by" checked><label for="mon-by-by">メンバーごと</label>
       <input type="radio" name="mon-by" id="mon-by-pick" value="pick"><label for="mon-by-pick">拾った人ごと</label>
     </div>
     <div id="mon-people" class="list"></div>
-    <p class="hint">「合計の40%」はチームの合計に40%をかけた数、「1人あたり」はそれを今のメンバーの人数で割った数です。「メンバーごと」は、その人が自分の合言葉で記録した収支です。「拾った人ごと」は、その人がほかの人に渡した台の収支です。自分で打った台の金額は入りません。チームの合計は全部の台の合計です。収支は円で足しています（現金は換金の枚数で数えて、記録ごとの交換率で円にしてから足します）。押すと、その月の中身が出ます。</p>
+    <p class="hint"><span id="mon-hint-40">「合計の40%」はチームの合計に40%をかけた数、「1人あたり」はそれを今のメンバーの人数で割った数です。</span>「メンバーごと」は、その人が自分の合言葉で記録した収支です。「拾った人ごと」は、その人がほかの人に渡した台の収支です。自分で打った台の金額は入りません。<span id="mon-hint-sum">チームの合計</span>は全部の打った台の合計です。まだ打っていない拾った台は入りません。収支は円で足しています（現金は換金の枚数で数えて、記録ごとの交換率で円にしてから足します）。押すと、その月の中身が出ます。</p>
   </section>
 
   <!-- ランキング -->
@@ -522,6 +546,9 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
       <div class="field"><label for="adm-name">名前</label><input id="adm-name" class="tin" type="text" maxlength="20" autocomplete="off"></div>
       <div class="field"><label for="adm-key">合言葉</label>
         <div class="key-row"><input id="adm-key" class="tin" type="text" maxlength="40" autocomplete="off" autocapitalize="off" spellcheck="false"><button type="button" id="adm-gen" class="btn sm">おまかせで作る</button></div></div>
+      <div class="field" id="adm-group-box" hidden><label for="adm-group">グループ</label><select id="adm-group" class="sel"></select>
+        <input id="adm-gname" class="tin" type="text" maxlength="20" autocomplete="off" placeholder="新しいグループの呼び名" aria-label="新しいグループの呼び名" hidden>
+        <p class="hint">一覧・月の収支・ランキングは、グループごとに分かれます。個別は、その人1人だけのグループです。</p></div>
       <label class="chk"><input type="checkbox" id="adm-admin">管理もできる人にする</label>
       <label class="chk"><input type="checkbox" id="adm-view">見るだけの人にする（狙い目だけ）</label>
       <p id="adm-err" class="err" role="alert" hidden></p>
@@ -631,24 +658,35 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   /* ---------- state ----------
      A record: {id, at, m, name, aim, rate, cash (円), medal (枚), out (枚), by (打った人 = the member who recorded it),
      pick (拾った人, free words, may be empty), who (記録した人), saved, cid, det (the 狙い目's numbers: 'G数:580／スルー回数:2')}
+     拾っただけの行（決定111）は picked が付き、by は空、cash・medal・out は0、at は拾った日時。打つと picked が消えて pickedAt が付く。
      S.aims is the sheet's 狙い目 list: [{k (台 key = mKey), m, name, aim, f (入れる数), to (where a merged 狙い目 went)}];
      S.machines the typed-in 台 with their よみ: [{name, yomi}].
      S.recs is what the spreadsheet last said; S.queue holds what this phone did and has not sent yet. The screen always
      shows S.recs with the queue laid on top, so a record appears at once even with no signal in the hall. */
   var S = {key:'', me:null, members:[], picks:[], aliases:[], aims:[], machines:[], recs:[], queue:[], sending:null, loading:false, failed:'', retry:null,
-           info:null, infoVer:''};
+           info:null, infoVer:'', view:null, groups:[]};
+  /* 管理の人がほかのグループを見ている間だけ {id, own:{本人のグループの中身}}。覚えない（開き直すと本人のグループに戻す。決定111）。
+     切り替え中の S は見ているグループの中身で、本人のグループの中身は own に置いておく。viewSeq は切り替えのたびに増やし、前に頼んだ答えを捨てる */
+  var G = null, viewSeq = 0;
   (function(){
     var c = loadJSON(LS_CACHE, null);
-    if (c && Array.isArray(c.records)){ S.me = c.me || null; S.members = c.members || []; S.picks = c.picks || []; S.aliases = c.aliases || []; S.aims = c.aims || []; S.machines = c.machines || []; S.recs = c.records; S.infoVer = c.infoVer || ''; }
+    if (c && Array.isArray(c.records)){ S.me = c.me || null; S.members = c.members || []; S.picks = c.picks || []; S.aliases = c.aliases || []; S.aims = c.aims || []; S.machines = c.machines || []; S.recs = c.records; S.infoVer = c.infoVer || ''; S.view = c.view || null; }
     var inf = loadJSON(LS_INFO, null);
     if (inf && inf.ver && Array.isArray(inf.machines)) S.info = inf;
     var q = loadJSON(LS_QUEUE, []);
     S.queue = Array.isArray(q) ? q : [];
   })();
-  function saveCache(){ store(LS_CACHE, JSON.stringify({me:S.me, members:S.members, picks:S.picks, aliases:S.aliases, aims:S.aims, machines:S.machines, records:S.recs, infoVer:S.infoVer})); }
+  // 控えはいつも本人のグループの分だけ。ほかのグループの答えは書かない（決定111）
+  function saveCache(){
+    var o = G ? G.own : S;
+    store(LS_CACHE, JSON.stringify({me:S.me, members:o.members, picks:o.picks, aliases:o.aliases, aims:o.aims, machines:o.machines, records:o.recs, infoVer:o.infoVer, view:o.view}));
+  }
   // what the spreadsheet sent back with action "all"
-  function takeAll(r){ S.me = r.me; S.members = r.members || []; S.picks = r.picks || []; S.aliases = r.aliases || []; S.aims = r.aims || []; S.machines = r.machines || []; S.recs = r.records || []; S.infoVer = r.infoVer || ''; S.failed = ''; }
-  function saveQueue(){ if (!store(LS_QUEUE, JSON.stringify(S.queue)) && S.queue.length) $('no-store').hidden = false; }
+  function takeAll(r){ S.me = r.me; S.members = r.members || []; S.picks = r.picks || []; S.aliases = r.aliases || []; S.aims = r.aims || []; S.machines = r.machines || []; S.recs = r.records || []; S.infoVer = r.infoVer || ''; S.view = r.view || null; S.groups = r.groups || []; S.failed = ''; S.readErr = ''; }
+  // 合計の40%・1人あたりを出すのは最初のグループだけ（決定111。前の受け口には view がないので、そのときは今までどおり出す）
+  function isFirst(){ return !S.view || !!S.view.first; }
+  // 切り替え中の直す・消す（g の付いた操作）は控えに書かない。ほかのグループの字をスマホに残さないため（決定111）
+  function saveQueue(){ var q = S.queue.filter(function(op){ return op.g==null; }); if (!store(LS_QUEUE, JSON.stringify(q)) && q.length) $('no-store').hidden = false; }
 
   // the records as this phone should show them: the spreadsheet's, with the unsent changes laid on top
   function applyQueue(recs, queue, meName){
@@ -657,18 +695,26 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     queue.forEach(function(op){
       var i;
       if (op.t==='add'){
-        if (!out.some(function(r){ return r.cid===op.cid; })) out.push(Object.assign({id:'tmp_'+op.cid, cid:op.cid, who:meName || '', by:meName || '', saved:'', pending:true}, op.rec));
+        if (!out.some(function(r){ return r.cid===op.cid; })) out.push(Object.assign({id:'tmp_'+op.cid, cid:op.cid, who:meName || '', by:op.rec.picked ? '' : meName || '', saved:'', pending:true}, op.rec.picked ? {cash:0, medal:0, out:0} : {}, op.rec));
       } else if (op.t==='upd'){
         i = at(op.ref); if (i>=0) out[i] = Object.assign({}, out[i], op.rec, {pending:true});
       } else if (op.t==='del'){
         i = at(op.ref); if (i>=0) out.splice(i, 1);
       } else if (op.t==='undel'){
         if (at(op.ref)<0 && op.snap) out.push(Object.assign({}, op.snap, {pending:true}));
+      } else if (op.t==='play'){
+        // 打つ：送る前でも打った台に移して見せる。選びを待っている間（stuck）は重ねない
+        i = at(op.ref);
+        if (i>=0 && !op.stuck) out[i] = Object.assign({}, out[i], op.rec, {picked:false, pickedAt:out[i].at, by:meName || '', who:meName || '', pending:true});
       }
     });
     return out.sort(byNewest);
   }
-  function recs(){ return applyQueue(S.recs, S.queue, S.me && S.me.name); }
+  // 今見ているグループの番号（本人のグループなら null）。送っていない操作は、その操作をした画面にだけ重ねる（決定111）
+  function gNow(){ return G ? String(G.id) : null; }
+  function recs(){ var g = gNow(); return applyQueue(S.recs, S.queue.filter(function(op){ return (op.g==null ? null : String(op.g))===g; }), S.me && S.me.name); }
+  // 送り終えた操作の答えを入れる先：見ている中身か、置いてある本人のグループの中身。どちらでもなければ入れない
+  function boxOf(op){ var g = op.g==null ? null : String(op.g); if (!G) return g==null ? S : null; return g==null ? G.own : g===String(G.id) ? S : null; }
   function byId(id){ var a = recs(); for (var i=0; i<a.length; i++) if (a[i].id===id) return a[i]; return null; }
   function again_(r){ return byId(r.id) || (r.cid ? recs().filter(function(x){ return x.cid===r.cid; })[0] : null); }
   function canTouch(r){ return !!S.me && (S.me.admin || r.who===S.me.name || r.by===S.me.name || !!r.pending); }
@@ -683,7 +729,8 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
       function done(){ clearTimeout(timer); try { delete window[cb]; } catch(e){ window[cb] = undefined; } if (s.parentNode) s.parentNode.removeChild(s); }
       window[cb] = function(d){ done(); resolve(d || {}); };
       s.onerror = function(){ done(); reject(new Error('network')); };
-      var q = ['action='+encodeURIComponent(action), 'k='+encodeURIComponent(S.key), 'callback='+cb];
+      // ui=2＝新しい画面の名乗り。付けないと、拾っただけの行と足した項目が返らない（決定111）
+      var q = ['action='+encodeURIComponent(action), 'k='+encodeURIComponent(S.key), 'callback='+cb, 'ui=2'];
       Object.keys(params || {}).forEach(function(k){ if (params[k]!=null) q.push(encodeURIComponent(k)+'='+encodeURIComponent(params[k])); });
       s.src = API + '?' + q.join('&') + '&_=' + Date.now();
       document.head.appendChild(s);
@@ -692,7 +739,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
 
   function status(){
     var e = $('sync'), wait = S.queue.length, t = '', bad = false;
-    if (wait){ t = wait + '件 送れていません'; bad = true; }
+    if (wait){ t = wait + '件 送れていません' + (S.queue.some(function(x){ return x.g!=null; }) ? '（閉じると消えます）' : ''); bad = true; }
     else if (S.loading) t = 'よみこみ中';
     else if (S.failed && !S.recs.length){ t = S.failed; bad = true; }
     e.textContent = t; e.className = 'sync' + (bad ? ' bad' : '');
@@ -703,9 +750,12 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   function reload(left){
     if (S.loading || !S.key) return;
     left = left==null ? 2 : left;
+    var seq = viewSeq, at = gNow();
     S.loading = true; status();
-    call('all', {}).then(function(r){
+    call('all', G ? {g:G.id} : {}).then(function(r){
+      if (seq!==viewSeq) return;   // 切り替える前に頼んだ答えは、今の画面に入れない
       S.loading = false;
+      if (at!==gNow()){ status(); return; }   // 頼んだあとに切り替えの答えが入った。別のグループの答えなので入れない
       if (r.ok){
         takeAll(r);
         saveCache(); refresh(); flush(); loadInfo();
@@ -714,9 +764,22 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
       if (r.鍵ちがい) return lockOut('合言葉が変わったか、止められています。管理の人に確かめてください。');
       if (r.見るだけ) return viewOnlyOut(S.key);
       if (r.重なり) return lockOut(r.error);
-      again(left, r.error || 'とれませんでした');
-    }, function(){ S.loading = false; again(left, 'つながりません'); });
+      if (G){ toast('このグループを読めませんでした：' + (r.error || '')); return leaveView(); }
+      S.readErr = r.error || 'とれませんでした'; refresh();   // 読めたものとして扱わない（0件に見せない）
+      again(left, S.readErr);
+    }, function(){ if (seq!==viewSeq) return; S.loading = false; again(left, 'つながりません'); });
   }
+  // 表が「読めない」と答えたとき。前に読んだ数があれば、古いことを言う。なければ0件の画面を出さない（決定111）
+  function renderReadFail(){
+    var el = $('readfail'), on = !!S.readErr && view!=='key';
+    el.hidden = !on;
+    document.body.classList.toggle('noread', on && !S.recs.length);
+    if (!on) return;
+    el.innerHTML = '<p><b>記録を読めませんでした。</b>' + (S.recs.length ? '下の数は前に読んだときのものです。新しい記録は入っていません。' : '記録が0件という意味ではありません。') + '</p>'
+      + '<p class="hint">理由：' + esc(S.readErr) + '</p>'
+      + '<div class="acts"><button type="button" class="btn sm" data-readfail="again">読み直す</button></div>';
+  }
+  $('readfail').addEventListener('click', function(e){ if (e.target.closest('[data-readfail]')) reload(); });
   function again(left, msg){
     if (left>0) return setTimeout(function(){ reload(left-1); }, 2500);
     S.failed = msg; status();
@@ -724,31 +787,37 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
 
   /* send the unsent changes one by one, oldest first */
   function flush(){
-    if (S.sending || !S.queue.length || !S.key) return;
-    var op = S.queue[0], p;
+    // 選びを待っている打つ（stuck）は送らずに飛ばす
+    var op = S.queue.filter(function(x){ return !x.stuck; })[0], p;
+    if (S.sending || !op || !S.key) return;
     if (op.t==='add') p = Object.assign({cid:op.cid}, op.rec);
-    else if (op.t==='upd') p = Object.assign({id:op.ref}, op.rec);
+    else if (op.t==='upd' || op.t==='play') p = Object.assign({id:op.ref}, op.rec);
     else p = {id:op.ref};
+    if (op.t==='play' && String(op.ref).indexOf('tmp_')===0){ stuckPlay(op, {なし:true}); return flush(); }   // 拾った台が表に入らなかった。入れた数は捨てない
     if (op.t!=='add' && String(op.ref).indexOf('tmp_')===0){ drop(op); return flush(); }   // its record never reached the sheet
     S.sending = op;
-    call({add:'add', upd:'update', del:'delete', undel:'restore'}[op.t], p).then(function(r){
+    call({add:'add', upd:'update', del:'delete', undel:'restore', play:'play'}[op.t], p).then(function(r){
       S.sending = null;
       if (r.ok){
         S.queue = S.queue.filter(function(x){ return x!==op; });
+        var box = boxOf(op);   // 送っている間に切り替えても、答えはその操作のグループの中身にだけ入れる
         if (op.t==='add' && r.rec){
           var tmp = 'tmp_' + op.cid;
           S.queue.forEach(function(x){ if (x.ref===tmp) x.ref = r.rec.id; });
-          S.recs = S.recs.filter(function(x){ return x.id!==r.rec.id; }).concat([r.rec]);
-        } else if ((op.t==='upd' || op.t==='undel') && r.rec){
-          S.recs = S.recs.filter(function(x){ return x.id!==r.rec.id; }).concat([r.rec]);
+          if (playing && playing.id===tmp) playing.id = r.rec.id;
+          if (box) box.recs = box.recs.filter(function(x){ return x.id!==r.rec.id; }).concat([r.rec]);
+        } else if ((op.t==='upd' || op.t==='undel' || op.t==='play') && r.rec){
+          if (box) box.recs = box.recs.filter(function(x){ return x.id!==r.rec.id; }).concat([r.rec]);
         } else if (op.t==='del'){
-          S.recs = S.recs.filter(function(x){ return x.id!==op.ref; });
+          if (box) box.recs = box.recs.filter(function(x){ return x.id!==op.ref; });
         }
         saveQueue(); saveCache(); refresh(); flush();
         return;
       }
       if (r.鍵ちがい) return lockOut('合言葉が変わったか、止められています。管理の人に確かめてください。');
       if (r.見るだけ) return viewOnlyOut(S.key);
+      // 打つが通らなかったときは、入れた数を捨てずに、どうするかを選んでもらう
+      if (op.t==='play'){ stuckPlay(op, r); reload(); flush(); return; }
       // the sheet said no (for example the record was already removed by someone): drop it, say so, and look again
       drop(op); toast('送れませんでした：' + (r.error || '')); reload();
     }, function(){
@@ -758,10 +827,47 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   }
   function drop(op){
     var tmp = op.t==='add' ? 'tmp_' + op.cid : null;
-    S.queue = S.queue.filter(function(x){ return x!==op && !(tmp && x.ref===tmp); });
+    S.queue = S.queue.filter(function(x){ return x!==op && !(tmp && x.ref===tmp && x.t!=='play'); });   // 打つは入れた数を捨てない（flush で選びを出す）
     saveQueue(); refresh();
   }
   function push(op){ S.queue.push(op); saveQueue(); refresh(); flush(); }
+  /* 打つが通らなかったとき（決定111）：先に打たれていた／打つ前に消された／行がない／数が読めない。操作は残し、画面で選んでもらう */
+  function stuckPlay(op, r){
+    op.stuck = r.打たれた ? 'played' : r.消された ? 'deleted' : r.なし ? 'gone' : 'bad';
+    op.stuckBy = r.打たれた && r.rec ? r.rec.by || '' : '';
+    op.stuckMsg = r.error || '';
+    saveQueue(); refresh();
+  }
+  function renderStuck(){
+    var el = $('stuck'), op = G || view==='key' ? null : S.queue.filter(function(x){ return x.stuck; })[0];
+    el.hidden = !op;
+    if (!op) return;
+    var s = op.snap || {}, c = calc(op.rec), bad = op.stuck==='bad';
+    var why = op.stuck==='played' ? (op.stuckBy ? op.stuckBy + 'さんが先に打っていました。' : 'ほかの人が先に打っていました。')
+      : op.stuck==='deleted' ? '打つ前に、この拾った台の記録が消されていました。'
+      : op.stuck==='gone' ? 'この拾った台の記録が見つかりません。'
+      : '打った記録を入れられませんでした。' + (op.stuckMsg || '');
+    el.innerHTML = '<p><b>' + esc(s.name || '') + '</b>：' + esc(why) + '</p>'
+      + '<p>入れた数：' + esc(detail(op.rec, c)) + '（' + esc(signed(c.yen, '円')) + '）</p>'
+      + (bad ? '' : '<p>入れた数を、新しい打った記録として足しますか？</p>')
+      + '<div class="acts">' + (bad ? '<button type="button" class="btn sm" data-stuck="retry">入れ直す</button><button type="button" class="btn sm" data-stuck="drop">やめる</button>'
+        : '<button type="button" class="btn sm" data-stuck="add">足す</button><button type="button" class="btn sm" data-stuck="drop">足さない</button>') + '</div>';
+  }
+  $('stuck').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-stuck]'); if (!b) return;
+    var act = b.getAttribute('data-stuck'), op = S.queue.filter(function(x){ return x.stuck; })[0];
+    if (!op) return;
+    if (act==='retry'){ var row = byId(op.ref); if (!row || !row.picked){ op.stuck = 'gone'; saveQueue(); return refresh(); } }   // 入れ直す先がないなら、足すかの選びに替える
+    S.queue = S.queue.filter(function(x){ return x!==op; }); saveQueue();
+    if (act==='add'){
+      // ふつうの足す（新しい cid）。拾った人・台・狙い目は元の行のまま
+      var s = op.snap || {}, rec = Object.assign({}, op.rec, {m:s.m || '', name:s.name, aim:s.aim || '', det:op.rec.det!=null ? op.rec.det : s.det || '', pick:s.pick || ''});
+      push({t:'add', cid:newCid(), rec:rec});
+      return toast('打った記録として足しました');
+    }
+    if (act==='retry'){ refresh(); return startPlay(op.ref, op.rec); }
+    refresh(); flush();
+  });
   function newCid(){ return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 
   /* ---------- toast with 取り消す ---------- */
@@ -783,6 +889,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   /* ---------- screen switch ---------- */
   var view = 'rec', VIEWS = ['key', 'rec', 'list', 'month', 'rank', 'info', 'set'];
   function show(v){
+    if (v==='rec' && G && !editing) v = 'list';   // 切り替え中は足す・打つを出さない（直すだけ開ける）
     view = v;
     VIEWS.forEach(function(x){ $('view-'+x).hidden = x!==v; });
     $('bar').hidden = $('dock').hidden = v==='key';
@@ -795,12 +902,63 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     if (v==='rank') renderRank();
     if (v==='info') renderInfo();
     if (v==='set') renderSet(true);
+    renderGroupBar(); renderStuck(); renderReadFail();
     window.scrollTo(0, 0);
   }
   document.querySelectorAll('.nav button').forEach(function(b){
     b.addEventListener('click', function(){ show(b.getAttribute('data-view')); });
   });
   $('open-set').addEventListener('click', function(){ show('set'); });
+
+  /* ---------- グループの切り替え（管理の人だけ。決定111）：選んだグループの画面だけを見る。全部のグループを足した画面は作らない ---------- */
+  function groupLabel(x){ return (x.solo ? '個別：' : '') + (x.name || ''); }
+  var grpSig = '';
+  function renderGroupBar(){
+    var box = $('grp'), list = S.groups || [], on = !!(S.me && S.me.admin && list.length>1 && view!=='key');
+    box.hidden = !on;
+    var nav = document.querySelector('.nav'), rec = nav.querySelector('button[data-view="rec"]');
+    rec.hidden = !!G; nav.classList.toggle('four', !!G);
+    if (!on) return;
+    var sel = $('grp-sel'), sig = JSON.stringify(list), cur = G ? String(G.id) : String(S.me.group);
+    if (sig!==grpSig){ grpSig = sig; sel.innerHTML = list.map(function(x){ return '<option value="'+esc(x.id)+'">'+esc(groupLabel(x))+'</option>'; }).join(''); }
+    sel.value = cur;
+    $('grp-say').hidden = !G;
+    if (G){ var now = list.filter(function(x){ return String(x.id)===String(G.id); })[0]; $('grp-say').textContent = '「' + (now ? groupLabel(now) : '') + '」の画面です。記録を足す・打つはできません（直す・消すはできます）。足すときは本人のグループに戻してください。'; }
+  }
+  // 切り替えたあと、前のグループの選びを残さない
+  function afterSwitch(){
+    calWho = ''; calDay = ''; confirmId = null; pkOpen = null; listMax = 150; $('ls-who').value = '';
+    // 足す・直すの取り消しは、今の画面の行を探す作りなので、切り替えたら案内を閉じる（消すの取り消しはどの画面でも効く）
+    if (toastUndo && toastUndo.here){ $('toast').hidden = true; toastUndo = null; }
+    if (editing || playing) resetForm();
+    if (G && view==='rec') show('list'); else { refresh(); renderGroupBar(); }
+    renderOld();   // 記録の画面から切り替えたときは refresh を通らないので、前の版の案内をここで閉じる
+  }
+  function switchTo(id){
+    if (S.me && String(id)===String(S.me.group)) return leaveView();
+    if (G && String(id)===String(G.id)) return;
+    var seq = ++viewSeq, sel = $('grp-sel');
+    S.loading = false; sel.disabled = true;
+    function fail(msg){ sel.disabled = false; toast(msg); renderGroupBar(); }
+    call('all', {g:id}).then(function(r){
+      if (seq!==viewSeq) return;
+      if (r.鍵ちがい) return lockOut('合言葉が変わったか、止められています。管理の人に確かめてください。');
+      if (!r.ok) return fail('このグループを読めませんでした：' + (r.error || ''));
+      sel.disabled = false;
+      if (!G) G = {own:{members:S.members, picks:S.picks, aliases:S.aliases, aims:S.aims, machines:S.machines, infoVer:S.infoVer, recs:S.recs, view:S.view}};
+      G.id = String(id);
+      takeAll(r);
+      afterSwitch();
+    }, function(){ if (seq===viewSeq) fail('つながりません。電波のある所で、もう一度どうぞ。'); });
+  }
+  function leaveView(){
+    if (!G) return;
+    var o = G.own;
+    viewSeq++; S.loading = false; G = null; $('grp-sel').disabled = false;
+    S.members = o.members; S.picks = o.picks; S.aliases = o.aliases; S.aims = o.aims; S.machines = o.machines; S.infoVer = o.infoVer; S.recs = o.recs; S.view = o.view;
+    afterSwitch(); reload();
+  }
+  $('grp-sel').addEventListener('change', function(){ switchTo($('grp-sel').value); });
 
   /* ---------- 合言葉 ---------- */
   function keyFrom(text){
@@ -809,7 +967,8 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     return t.replace(/\s+/g, '');
   }
   function lockOut(msg){
-    S.key = ''; S.me = null; S.members = []; S.picks = []; S.aliases = []; S.aims = []; S.machines = []; S.recs = []; S.info = null; S.infoVer = '';
+    G = null; viewSeq++; S.loading = false; $('grp-sel').disabled = false;
+    S.key = ''; S.readErr = ''; S.me = null; S.members = []; S.picks = []; S.aliases = []; S.aims = []; S.machines = []; S.recs = []; S.info = null; S.infoVer = ''; S.view = null; S.groups = [];
     try { localStorage.removeItem(LS_KEY); localStorage.removeItem(LS_CACHE); localStorage.removeItem(LS_INFO); } catch(e){}
     $('k-err').textContent = msg || ''; $('k-err').hidden = !msg;
     $('k-mi').hidden = true;
@@ -849,6 +1008,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
 
   /* ---------- 記録する ---------- */
   var editing = null;   // id of the record being fixed, or null for a new one
+  var playing = null;   // 打っている拾った台 {id, snap:元の行の台・狙い目・拾った人}。打っている間に消されても、入れた数を捨てないために持つ（決定111）
   var atTouched = false;
   var rate = RATES[load(LS_RATE)] ? load(LS_RATE) : 'toka';
   $('f-rate').innerHTML = Object.keys(RATES).map(function(k){
@@ -1008,7 +1168,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   function renderAim(){
     var fa = formAim(), cur = norm(fa.aim);
     $('aim-nomachine').hidden = !!fa.fm;
-    $('aim-past').hidden = !fa.list.length;
+    $('aim-past').hidden = !fa.list.length || !!playing;
     $('aim-chips').innerHTML = fa.list.map(function(a){
       return '<button type="button" class="chip" data-aim="'+esc(a.text)+'" aria-pressed="'+(a.key===cur && cur ? 'true' : 'false')+'">'+esc(a.text)+(a.n ? '<small>'+a.n+'回</small>' : '')+'</button>';
     }).join('');
@@ -1096,7 +1256,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   function formPlayer(){ var r = editing ? byId(editing) : null; return r ? (r.by || r.who) : (S.me ? S.me.name : ''); }
   function pickChips(){
     var list = pickList(recs(), S.picks, S.aliases), typed = $('f-pick').value.trim(), res = resolvePick(typed, formPlayer(), list, S.aliases), cur = norm(res);
-    $('pick-past').hidden = !list.length;
+    $('pick-past').hidden = !list.length || !!playing;
     $('pick-chips').innerHTML = list.map(function(a){
       return '<button type="button" class="chip" data-pick="'+esc(a.text)+'" aria-pressed="'+(a.key===cur && cur!=='' ? 'true' : 'false')+'">'+esc(a.text)+(a.n ? '<small>'+a.n+'回</small>' : '')+'</button>';
     }).join('');
@@ -1141,15 +1301,25 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
 
   function renderForm(){ update(); }
 
+  /* 今の記録の画面の使い方（決定111）。投資と回収を入れれば打った台（add）、入れなければ拾った台（pick）。
+     play＝拾った台を打つ／pickEdit＝拾っただけの行を直す（台・狙い目・拾った人だけ）／edit＝打った行を直す */
+  function formKind(cash, medal, out){
+    if (playing) return 'play';
+    if (editing){ var r = byId(editing); return r && r.picked ? 'pickEdit' : 'edit'; }
+    return cash==null && medal==null && out==null ? 'pick' : 'add';
+  }
   function update(){
-    var fm = formMachine(), cash = num('f-cash'), medal = num('f-medal'), out = num('f-out');
+    var fm = formMachine(), cash = num('f-cash'), medal = num('f-medal'), out = num('f-out'), kind = formKind(cash, medal, out), noMoney = kind==='pickEdit';
     $('f-new-machine').hidden = $('f-machine').value!=='+';
     $('f-machine-say').textContent = fm && fm.known ? '「' + fm.name + '」は台の一覧にあります。その台として記録します。'
       : '入れた台は、みんなの台の一覧に入ります。よみを入れると、一覧の50音の順の所に入ります。';
     renderAim(); pickChips();
     var res = $('f-res');
+    $('f-at-box').hidden = $('f-rate-box').hidden = $('f-money').hidden = res.hidden = noMoney;
+    $('at-lbl').textContent = kind==='pick' || noMoney ? '拾った日時' : '打った日時';
+    if (!editing && !playing) $('f-save').textContent = kind==='pick' ? '拾った台に記録する' : '記録する';
     if (cash==null && medal==null && out==null){
-      res.innerHTML = '<span>収支</span><small>投資と回収を入れると、ここに出ます</small>';
+      res.innerHTML = '<span>収支</span><small>'+(kind==='pick' ? '投資と回収を入れないと、拾った台に入ります（収支には入りません）' : '投資と回収を入れると、ここに出ます')+'</small>';
     } else {
       var c = calc({rate:rate, cash:cash||0, medal:medal||0, out:out||0});
       res.innerHTML = '<span>収支</span><b class="'+cls(c.coins)+'">'+esc(signed(c.coins, '枚'))+'</b><b class="'+cls(c.yen)+'">'+esc(signed(c.yen, '円'))+'</b>'
@@ -1157,13 +1327,16 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     }
     var miss = [];
     if (!fm) miss.push('台');
-    if (!formAt()) miss.push('日時');
-    if (cash==null && medal==null) miss.push('投資');
-    if (out==null) miss.push('回収');
+    if (!noMoney && !formAt()) miss.push('日時');
+    if (kind!=='pick' && !noMoney){
+      if (cash==null && medal==null) miss.push('投資');
+      if (out==null) miss.push('回収');
+      if (kind==='play' && !miss.length && !cash && !medal && !out) miss.push('投資', '回収');   // 打つは全部0では通らない
+    }
     $('f-need').textContent = miss.length ? 'まだ入っていない：' + miss.join('・') : '';
     $('f-need').hidden = !miss.length;
     $('f-save').disabled = !!miss.length;
-    if (!editing) $('f-when').textContent = noTime()
+    if (!editing && !playing) $('f-when').textContent = noTime()
       ? '時間不明として、日にちだけ入れます。'
       : atTouched
       ? '日時は選んだものが入ります。「いまにする」で今にもどせます。'
@@ -1179,8 +1352,10 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     var r = editing ? byId(editing) : null;
     if (r) $('f-when').textContent = r.who ? '記録した人：' + r.who + (r.saved ? '（' + shortDay(r.saved) + '）' : '') : '';
   }
+  // 打つ間は、台・狙い目・拾った人を変えられない（決定111）
+  function lockPlay(on){ ['f-machine', 'f-custom', 'f-yomi', 'f-aim', 'f-pick'].forEach(function(id){ $(id).disabled = on; }); }
   function resetForm(){
-    editing = null; atTouched = false;
+    editing = null; playing = null; atTouched = false; lockPlay(false);
     setNoTime(false);
     fillMachines('');
     $('f-custom').value = ''; $('f-yomi').value = ''; $('f-aim').value = ''; $('f-pick').value = ''; $('f-cash').value = ''; $('f-medal').value = ''; $('f-out').value = '';
@@ -1195,11 +1370,17 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   }
 
   $('f-save').addEventListener('click', function(){
-    var fm = formMachine(), at = formAt(), cash = num('f-cash'), medal = num('f-medal'), out = num('f-out');
-    if (!fm || !at || (cash==null && medal==null) || out==null) return update();
+    var fm = formMachine(), at = formAt(), cash = num('f-cash'), medal = num('f-medal'), out = num('f-out'), kind = formKind(cash, medal, out);
+    if (G && !editing) return;   // 切り替え中は足す・打つをしない
+    if (kind==='play') return savePlay(at, cash, medal, out);
+    if (kind==='pick' || kind==='pickEdit'){ if (!fm || (kind==='pick' && !at)) return update(); }
+    else if (!fm || !at || (cash==null && medal==null) || out==null) return update();
     var fa = formAim();
-    var data = {at:at, m:fm.m, name:fm.name, aim:fa.aim, det:fa.aim ? formDet(fa) : '', rate:rate, cash:cash||0, medal:medal||0, out:out||0,
-      pick:resolvePick($('f-pick').value, formPlayer(), pickList(recs(), S.picks, S.aliases), S.aliases)};
+    var pick = resolvePick($('f-pick').value, formPlayer(), pickList(recs(), S.picks, S.aliases), S.aliases);
+    var data = {at:at, m:fm.m, name:fm.name, aim:fa.aim, det:fa.aim ? formDet(fa) : '', rate:rate, cash:cash||0, medal:medal||0, out:out||0, pick:pick};
+    // 拾っただけ（決定111）：金額は持たない。拾った人が空なら記録した本人にする
+    if (kind==='pick') data = {picked:1, at:at, m:fm.m, name:fm.name, aim:fa.aim, det:data.det, rate:rate, pick:pick || (S.me ? S.me.name : '')};
+    if (kind==='pickEdit') data = {m:fm.m, name:fm.name, aim:fa.aim, det:data.det, pick:pick || formPlayer()};
     if (fa.isNew) data.fields = fieldsText(newFields || parseFields(DEF_FIELDS));   // a new 狙い目 goes to the list with these
     if (fm.isNew) data.yomi = formYomi(fm.name);
     if (editing){
@@ -1207,17 +1388,51 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
       if (r){
         var before = {}; Object.keys(data).forEach(function(k){ before[k] = r[k]; });
         changeRecord(r, data);
-        toast('直しました', function(){ var x = again_(r); if (x) changeRecord(x, before); });
+        var back = function(){ var x = again_(r); if (x) changeRecord(x, before); };
+        back.here = true;
+        toast('直しました', back);
       }
       resetForm(); show('list');
       return;
     }
     var cid = newCid();
     push({t:'add', cid:cid, rec:data});
-    var c = calc(data);
-    toast('記録しました（' + timeLabel(at) + '・' + signed(c.yen, '円') + '）', function(){ var x = again_({id:'tmp_' + cid, cid:cid}); if (x) removeRecord(x); });
+    var undo = function(){ var x = again_({id:'tmp_' + cid, cid:cid}); if (x) removeRecord(x); };
+    undo.here = true;
+    if (kind==='pick') toast('拾った台に記録しました（' + timeLabel(at) + '）', undo);
+    else toast('記録しました（' + timeLabel(at) + '・' + signed(calc(data).yen, '円') + '）', undo);
     resetForm();
   });
+  /* 打つ（決定111）：拾った台の行に投資と回収を入れて、打った台へ移す。打った人は受け口が確かめた本人にするので、ここからは送らない */
+  function savePlay(at, cash, medal, out){
+    if (!at || (cash==null && medal==null) || out==null || (!cash && !medal && !out)) return update();
+    var pl = playing, fa = formAim(), det = fa.aim ? formDet(fa) : '', rec = {at:at, rate:rate, cash:cash||0, medal:medal||0, out:out||0};
+    if (det!==pl.snap.det) rec.det = det;
+    push({t:'play', ref:pl.id, rec:rec, snap:pl.snap});
+    toast('打った台に入れました（' + timeLabel(at) + '・' + signed(calc(rec).yen, '円') + '）');
+    resetForm(); setListTab('played'); show('list');
+  }
+  function startPlay(id, pre){
+    var r = byId(id);
+    if (!r || !r.picked || G) return;
+    resetForm();
+    playing = {id:id, snap:{m:r.m || '', name:r.name, aim:r.aim || '', det:r.det || '', pick:r.pick || ''}};
+    lockPlay(true);
+    fillMachines(r.m ? r.m : mKey(r));
+    $('f-aim').value = r.aim || ''; $('f-pick').value = r.pick || '';
+    parseDet(r.det).forEach(function(p){ detVals[p[0]] = p[1]; editExtra.push(p[0]); });
+    rate = RATES[r.rate] ? r.rate : rate;
+    if (pre){
+      rate = RATES[pre.rate] ? pre.rate : rate;
+      $('f-cash').value = pre.cash ? String(pre.cash) : ''; $('f-medal').value = pre.medal ? String(pre.medal) : ''; $('f-out').value = pre.out ? String(pre.out) : '';
+    }
+    var rb = $('fr-'+rate); if (rb) rb.checked = true;
+    $('rec-title').textContent = '打つ';
+    $('f-save').textContent = '打った台に入れる';
+    $('f-cancel').hidden = false;
+    show('rec');
+    $('f-when').textContent = '拾った日時：' + shortDay(r.at) + (r.who ? '（記録した人：' + r.who + '）' : '') + '。台・狙い目・拾った人は変えられません。';
+  }
   $('f-cancel').addEventListener('click', function(){ resetForm(); show('list'); });
 
   // fix a record: a record not sent yet is fixed inside its own "add"; a sent one gets an "update"
@@ -1229,17 +1444,17 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     var full = {}; ['at', 'm', 'name', 'aim', 'det', 'rate', 'cash', 'medal', 'out', 'pick'].forEach(function(k){ full[k] = data[k]!==undefined ? data[k] : k==='det' ? (r.det || '') : r[k]; });
     if (data.fields!=null) full.fields = data.fields;
     if (data.yomi) full.yomi = data.yomi;
-    push({t:'upd', ref:r.id, rec:full});
+    push({t:'upd', ref:r.id, rec:full, g:gNow()});
   }
   function removeRecord(r){
     var add = S.queue.filter(function(op){ return op.t==='add' && 'tmp_'+op.cid===r.id; })[0];
     if (add && add!==S.sending){ drop(add); return function(){ push(add); }; }
     var snap = Object.assign({}, r); delete snap.pending;
-    var op = {t:'del', ref:r.id, snap:snap};
+    var op = {t:'del', ref:r.id, snap:snap, g:gNow()};
     push(op);
     return function(){
       if (S.queue.indexOf(op)>=0 && op!==S.sending){ S.queue = S.queue.filter(function(x){ return x!==op; }); saveQueue(); refresh(); }
-      else push({t:'undel', ref:r.id, snap:snap});
+      else push({t:'undel', ref:r.id, snap:snap, g:op.g});
     };
   }
 
@@ -1273,7 +1488,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   }
   function renderOld(){
     var old = oldRecords();
-    $('old-note').hidden = !old.length || !S.me;
+    $('old-note').hidden = !old.length || !S.me || !!G;
     if (old.length) $('old-text').textContent = '前の版で、このスマホの中だけに入れた記録が ' + old.length + '件あります。みんなの記録に入れますか？（「' + (S.me ? S.me.name : '') + '」さんの記録として入ります）';
   }
   $('old-send').addEventListener('click', function(){
@@ -1289,7 +1504,9 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   $('old-skip').addEventListener('click', function(){ store(LS_OLD_DONE, '1'); renderOld(); });
 
   /* ---------- 一覧 ---------- */
-  var confirmId = null, listMax = 150;
+  var confirmId = null, listMax = 150, listTab = 'played';
+  // 一覧のタブ（決定111）：拾った台＝まだ打っていない台／打った台＝今までの一覧
+  function setListTab(t){ listTab = t; $('ls-tab-'+t).checked = true; listMax = 150; confirmId = null; }
   function detail(r, c){
     var inv = [];
     if (r.cash) inv.push('現金'+n0(r.cash)+'円（'+n0(c.cashCoins)+'枚）');
@@ -1303,16 +1520,17 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     sel.value = keep; if (sel.value!==keep) sel.value = '';
   }
   function renderList(){
-    var el = $('list'), all = recs();
+    var picked = listTab==='picked', el = $('list'), all = recs().filter(function(r){ return !!r.picked===picked; });
     fillWho($('ls-who'), $('ls-who').value);
-    var who = $('ls-who').value, list = all.filter(function(r){ return !who || r.by===who; });
+    var who = $('ls-who').value, list = all.filter(function(r){ return !who || (picked ? r.who : r.by)===who; });
     $('list-count').textContent = list.length ? '全部で ' + list.length + '件' : '';
     $('ls-more').hidden = list.length<=listMax;
-    if (!list.length){ el.innerHTML = '<div class="empty">' + (all.length ? 'この人の記録はまだありません。' : 'まだ記録がありません。「記録する」から入れてください。') + '</div>'; return; }
+    if (!list.length){ el.innerHTML = '<div class="empty">' + (all.length ? 'この人の記録はまだありません。' : G ? (picked ? 'このグループに、まだ打っていない拾った台はありません。' : 'このグループの打った台はまだありません。') : picked ? 'まだ打っていない拾った台はありません。投資と回収を入れずに記録すると、ここに入ります。' : 'まだ記録がありません。「記録する」から入れてください。') + '</div>'; return; }
     var h = '', last = '';
     list.slice(0, listMax).forEach(function(r){
       var k = r.at.slice(0, 10), c = calc(r), id = esc(r.id), mine = canTouch(r);
       if (k!==last){ h += '<h2 class="day">'+esc(dayLabel(r.at))+'</h2>'; last = k; }
+      if (picked){ h += pickedItem(r, id, mine); return; }
       h += '<div class="item">'
         + '<div class="it-top"><span class="it-time">'+esc(timeLabel(r.at))+'</span><span class="it-name">'+esc(r.name)+'</span><span class="tag">'+esc((RATES[r.rate]||RATES.toka).label)+'</span>'+(r.pending ? '<span class="tag wait">未送信</span>' : '')+'</div>'
         + (r.aim ? '<div class="it-aim">'+esc(r.aim)+'</div>'+(r.det ? '<div class="it-det">'+esc(detLabel(r.det))+'</div>' : '') : '<div class="it-aim none">狙い目なし</div>')
@@ -1328,12 +1546,29 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     });
     el.innerHTML = h;
   }
+  // 拾った台の行（決定111）：金額はない。打つは同じグループの誰でも押せる。切り替え中は出さない
+  function pickedItem(r, id, mine){
+    return '<div class="item">'
+      + '<div class="it-top"><span class="it-time">'+esc(timeLabel(r.at))+'</span><span class="it-name">'+esc(r.name)+'</span>'+(r.pending ? '<span class="tag wait">未送信</span>' : '')+'</div>'
+      + (r.aim ? '<div class="it-aim">'+esc(r.aim)+'</div>'+(r.det ? '<div class="it-det">'+esc(detLabel(r.det))+'</div>' : '') : '<div class="it-aim none">狙い目なし</div>')
+      + '<div class="it-res"><span class="tag">まだ打っていません</span>'
+      + (confirmId===r.id ? '' : '<span class="it-act">'+(G ? '' : '<button type="button" class="btn sm" data-act="play" data-id="'+id+'">打つ</button>')
+          + (mine ? '<button type="button" class="btn sm" data-act="edit" data-id="'+id+'">直す</button><button type="button" class="btn sm" data-act="del" data-id="'+id+'">消す</button>' : '')+'</span>')
+      + '</div>'
+      + '<div class="it-who">'+(r.pick ? '<span><em>拾った</em>'+esc(r.pick)+'</span>' : '')+'<span><em>記録</em>'+esc(r.who || '—')+'</span></div>'
+      + (confirmId===r.id
+          ? '<div class="confirm"><span>この記録を消しますか？（みんなの一覧からも消えます）</span><button type="button" class="btn sm danger" data-act="yes" data-id="'+id+'">消す</button><button type="button" class="btn sm" data-act="no" data-id="'+id+'">やめる</button></div>'
+          : '')
+      + '</div>';
+  }
+  document.querySelectorAll('input[name="ls-tab"]').forEach(function(x){ x.addEventListener('change', function(){ setListTab(x.value); renderList(); }); });
   $('ls-who').addEventListener('change', function(){ listMax = 150; renderList(); });
   $('ls-more').addEventListener('click', function(){ listMax += 150; renderList(); });
   $('list').addEventListener('click', function(e){
     var b = e.target.closest('button[data-act]'); if (!b) return;
     var id = b.getAttribute('data-id'), act = b.getAttribute('data-act');
     if (act==='edit') return startEdit(id);
+    if (act==='play') return startPlay(id);
     if (act==='del'){ confirmId = id; return renderList(); }
     if (act==='no'){ confirmId = null; return renderList(); }
     if (act==='yes'){
@@ -1347,13 +1582,15 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   /* ---------- 月の収支: the team total and each member (the one who recorded = played), or by 拾った人 ---------- */
   var month = fmtAt(new Date()).slice(0, 7);
   // 渡した台か（決定108と同じ見分け方）：拾った人に名前があり、打った人と違う台。「自分」は渡した台にしない。打った人が空で拾った人に名前があれば渡した台
-  function isGiven(r){ var k = norm(r.pick || ''); return !!k && !isSelf(r.pick) && k!==norm(r.by || ''); }
+  // 拾っただけの行（決定111）は打った人が空でも渡した台にしない
+  function isGiven(r){ var k = norm(r.pick || ''); return !r.picked && !!k && !isSelf(r.pick) && k!==norm(r.by || ''); }
   var NO_PICK = '拾った人なし';
   // n = 打った台 (one record = one machine played), days = 稼働日数 (days with at least one record; user 2026-10-24).
   // 拾った人ごとの分け方では、n はその人が拾った台の全部の数で、yen・win・plays は渡した台の分だけ（決定109）。
   // gave＝拾って渡した台：拾った人がこの人で、打った人がほかの人の台（見分け方は isGiven）。
-  // found＝自分で拾って自分で打った台（古い「自分」も入れる）。打った人が空の記録は、記録した人に読み替えない。メンバーごとの分け方のときだけ数える。
+  // found＝自分で拾って自分で打った台（古い「自分」も入れる）と、まだ打っていない拾っただけの台（決定111）。打った人が空の記録は、記録した人に読み替えない。メンバーごとの分け方のときだけ数える。
   // 1つの記録は found か gave のどちらか片方にだけ入り、グラフの拾った台は2つを足した数（決定109。足すのは renderWork）
+  // 拾っただけの行は、拾った台のほかどこにも入らない（チームの合計・40%・1人あたり・1台あたり・稼働日数・渡した台）
   function monthSums(all, m, key, names){
     var team = {n:0, win:0, yen:0, days:0, gave:0}, by = {}, out = [], tdays = {}, pick = key==='pick';
     // 拾った人 is free words: the same name written in full/half width or with spaces counts as one
@@ -1361,12 +1598,13 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     function person(name){ return {name:name, n:0, win:0, yen:0, days:0, found:0, gave:0, plays:[], seen:{}}; }
     (names || []).forEach(function(n){ by[kf(n)] = person(n); out.push(by[kf(n)]); });
     all.forEach(function(r){
-      if (r.at.slice(0, 7)!==m) return;
+      if (r.at.slice(0, 7)!==m || (r.picked && !pick)) return;
       // 拾った人ごとの行：古い「自分」は打った人の行へ（グラフの数え方と同じ）。打った人が空の「自分」は「拾った人なし」の行へ
       var c = calc(r), who = pick ? ((isSelf(r.pick) ? r.by : r.pick) || NO_PICK) : (r.by || '—'), k = kf(who), d = r.at.slice(0, 10);
       if (!by[k]){ by[k] = person(who); out.push(by[k]); }
       var p = by[k], given = pick && isGiven(r);
       p.n++;
+      if (r.picked) return;   // 拾っただけの行は、拾った人ごとの拾った台の数にだけ入れる
       if (!p.seen[d]){ p.seen[d] = 1; p.days++; }
       if (given) p.gave++;
       // 渡した台の絞りは人ごとの足し込みだけに入れる（user 2026-11-06 「計算に組み込むのは渡した台のみ」）。
@@ -1384,6 +1622,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
       all.forEach(function(r){
         if (r.at.slice(0, 7)!==m || !r.pick) return;
         var g = byNorm[norm(r.pick)], played = norm(r.by || '');
+        if (r.picked){ if (g) g.found++; return; }
         if (g && isGiven(r)){ g.gave++; team.gave++; }
         else if (played && (norm(r.pick)===played || isSelf(r.pick))) by[r.by].found++;
       });
@@ -1402,7 +1641,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   function daySums(all, m, who){
     var out = {};
     all.forEach(function(r){
-      if (r.at.slice(0, 7)!==m || (who && r.by!==who)) return;
+      if (r.at.slice(0, 7)!==m || r.picked || (who && r.by!==who)) return;
       var d = r.at.slice(0, 10), c = calc(r), x = out[d] || (out[d] = {yen:0, n:0, win:0, plays:[]});
       x.yen += c.yen; x.n++; if (c.yen>0) x.win++; x.plays.push(r);
     });
@@ -1424,11 +1663,17 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     $('mon-next').disabled = month>=fmtAt(new Date()).slice(0, 7);
     var all = recs(), key = document.querySelector('input[name="mon-by"]:checked').value, s = monthSums(all, month, key, key==='by' ? activeNames() : []), t = s.team;
     var members = activeNames().length, sh = shareOf(t.yen, members);
-    $('mon-sum').innerHTML = '<small>チームの合計</small><b class="'+cls(t.yen)+'">'+esc(signed(t.yen, '円'))+'</b>'
-      + '<div class="share"><span>合計の40%</span><b class="'+cls(sh.share)+'">'+esc(signed(sh.share, '円'))+'</b>'
-      + (sh.each!=null ? '<span>1人あたり（÷'+members+'人）</span><b class="'+cls(sh.each)+'">'+esc(signed(sh.each, '円'))+'</b>' : '') + '</div>'
+    // 最初のグループ以外は「総利益」。個別の人にチームの字を出さない（決定111）
+    var sumName = isFirst() ? 'チームの合計' : '総利益';
+    $('mon-sub').textContent = isFirst() ? 'チームと一人ずつ' : '全体と一人ずつ';
+    $('mon-hint-sum').textContent = sumName;
+    $('mon-sum').innerHTML = '<small>'+sumName+'</small><b class="'+cls(t.yen)+'">'+esc(signed(t.yen, '円'))+'</b>'
+      // 合計の40%と1人あたりは、最初のグループだけ（決定111）
+      + (isFirst() ? '<div class="share"><span>合計の40%</span><b class="'+cls(sh.share)+'">'+esc(signed(sh.share, '円'))+'</b>'
+      + (sh.each!=null ? '<span>1人あたり（÷'+members+'人）</span><b class="'+cls(sh.each)+'">'+esc(signed(sh.each, '円'))+'</b>' : '') + '</div>' : '')
       + '<span class="sum-meta"><span>稼働 '+t.days+'日</span><span>打った台 '+t.n+'台</span><span>勝ち '+t.win+'台</span>'+(t.n ? '<span>1台あたり '+esc(signed(roundHalfAway(t.yen/t.n), '円'))+'</span>' : '')
       + '<span>拾って渡した台 '+monthSums(all, month, 'by', activeNames()).team.gave+'台</span></span>';
+    $('mon-hint-40').hidden = !isFirst();
     renderCal(all); renderWork(all);
     var max = 1; s.people.forEach(function(p){ max = Math.max(max, Math.abs(p.yen)); });
     $('mon-people').innerHTML = s.people.length ? s.people.map(function(p){
@@ -1510,6 +1755,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   function groups(all, aims){
     var by = {}, out = [];
     all.forEach(function(r){   // newest first
+      if (r.picked) return;   // 拾っただけの行は入れない（決定111）
       var mk = mKey(r), aim = r.aim ? (aimAliasOf(mk, r.aim, aims) || r.aim) : '', k = mk + '|' + norm(aim), c = calc(r);
       if (!by[k]){ by[k] = {mk:mk, name:r.name, aim:aim, n:0, win:0, yen:0, last:r.at, plays:[], subs:[], sby:{}}; out.push(by[k]); }
       var g = by[k], dk = aim ? detKey(r.det) : '';
@@ -1525,7 +1771,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   }
   function fillRankMachines(all){
     var sel = $('rk-machine'), cur = sel.value, has = {};
-    all.forEach(function(r){ has[mKey(r)] = 1; });
+    all.forEach(function(r){ if (!r.picked) has[mKey(r)] = 1; });
     var opts = allMachines().filter(function(m){ return has[m.key]; });
     sel.innerHTML = '<option value="">すべての台</option>' + opts.map(function(o){ return '<option value="'+esc(o.key)+'">'+esc(o.label)+'</option>'; }).join('');
     sel.value = cur; if (sel.value!==cur) sel.value = '';
@@ -1566,7 +1812,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   document.querySelectorAll('input[name="rk-sort"]').forEach(function(x){ x.addEventListener('change', renderRank); });
 
   /* ---------- 設定・メンバー (the 管理 person adds members and sets each one's 合言葉) ---------- */
-  var memberRows = null, admOpen = null;
+  var memberRows = null, memberGroups = [], admOpen = null, moveSeq = 0;
   function linkFor(key){ return location.origin + location.pathname + '?k=' + encodeURIComponent(key); }
   function renderSet(fetch){
     $('set-me').innerHTML = S.me ? 'この端末は <b>' + esc(S.me.name) + '</b> さん' + (S.me.admin ? '（管理）' : '') + 'で使っています。' : '';
@@ -1577,16 +1823,60 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
       $('adm-link').hidden = true; admOpen = null;
       $('adm-list').innerHTML = '<p class="hint">読み込み中…</p>';
       call('members', {}).then(function(r){
-        if (r.ok){ memberRows = r.members; renderMembers(); }
+        if (r.ok){ takeMembers(r); renderMembers(); }
         else $('adm-list').innerHTML = '<p class="err">' + esc(r.error || 'うまくいきませんでした') + '</p>';
       }, function(){ $('adm-list').innerHTML = '<p class="err">つながりません。電波のある所で、もう一度開いてください。</p>'; });
     } else renderMembers();
   }
+  // メンバーの一覧とグループの一覧（決定111）。前の受け口には groups がないので、そのときはグループの欄を出さない
+  function takeMembers(r){ memberRows = r.members; memberGroups = r.groups || memberGroups; fillAddGroups(); }
+  function groupOf(m){ return memberGroups.filter(function(x){ return String(x.id)===String(m.g); })[0] || null; }
+  function teamOptions(skip){ return memberGroups.filter(function(x){ return !x.solo && String(x.id)!==String(skip); }).map(function(x){ return '<option value="'+esc(x.id)+'">'+esc(x.name)+'</option>'; }).join(''); }
+  function fillAddGroups(){
+    var box = $('adm-group-box'), sel = $('adm-group'), cur = sel.value;
+    box.hidden = !memberGroups.length;
+    if (box.hidden) return;
+    sel.innerHTML = teamOptions(null) + '<option value="new">新しいグループ</option><option value="solo">個別（その人1人のグループ）</option>';
+    sel.value = cur; if (sel.value!==cur) sel.selectedIndex = 0;
+    $('adm-gname').hidden = sel.value!=='new';
+  }
+  $('adm-group').addEventListener('change', function(){ $('adm-gname').hidden = $('adm-group').value!=='new'; });
+  // 直す画面のグループの欄。今のグループのままなら空を送る（変えない）
+  function groupField(m){
+    if (!memberGroups.length || m.view) return '';
+    var g = groupOf(m), solo = !!(g && g.solo);
+    return '<div class="field"><label>グループ</label><select class="sel" data-f="group"><option value="">今のまま（'+esc(g ? groupLabel(g) : '')+'）</option>'
+      + teamOptions(m.g) + '<option value="new">新しいグループ</option>' + (solo ? '' : '<option value="solo">個別（その人1人のグループ）</option>') + '</select>'
+      + '<input class="tin" data-f="gname" type="text" maxlength="20" autocomplete="off" placeholder="新しいグループの呼び名" aria-label="新しいグループの呼び名" hidden>'
+      + '<div class="mv" data-f="move" hidden></div></div>';
+  }
+  // グループを移す前に、動く件数を月ごとに出して、一緒に移すかを選んでもらう（moveCount は表を変えない）
+  function showMove(box, name){
+    var el = box.querySelector('[data-f="move"]'), seq = ++moveSeq;
+    el.hidden = false; el.innerHTML = '<p class="hint">動く件数を読み込み中…</p>';
+    call('moveCount', {target:name}).then(function(r){
+      if (seq!==moveSeq) return;
+      if (!r.ok){ el.innerHTML = '<p class="err">' + esc(r.error || 'うまくいきませんでした') + '</p>'; return; }
+      if (!r.total){ el.innerHTML = '<p class="hint">今までの記録はありません。</p>'; return; }
+      el.innerHTML = '<p class="chips-h">今までの記録（全部で '+r.total+'件）</p><ul>' + (r.months || []).map(function(x){
+        return '<li>'+esc(monthLabel(x.month))+'：打った台 '+x.played+'件・拾った台 '+x.picked+'件・消した記録 '+x.deleted+'件</li>';
+      }).join('') + '</ul><label class="chk"><input type="checkbox" data-f="moverec">今までの記録も一緒に移す（全部で '+r.total+'件）</label>'
+        + '<p class="hint">移すと、過去の月の数が動くことがあります。移さないと、今までの記録は前のグループに残ります。</p>';
+    }, function(){ if (seq===moveSeq) el.innerHTML = '<p class="err">つながりません。電波のある所で、もう一度どうぞ。</p>'; });
+  }
+  $('adm-list').addEventListener('change', function(e){
+    if (e.target.getAttribute('data-f')!=='group') return;
+    var box = e.target.closest('.mem-edit'), v = e.target.value;
+    box.querySelector('[data-f="gname"]').hidden = v!=='new';
+    moveSeq++;
+    if (v) showMove(box, admOpen); else { var el = box.querySelector('[data-f="move"]'); el.hidden = true; el.innerHTML = ''; }
+  });
   function renderMembers(){
     if (!memberRows) return;
     $('adm-list').innerHTML = memberRows.map(function(m){
       var me = S.me && m.name===S.me.name, n = esc(m.name);
-      return '<div class="mem"><div class="mem-top"><b>'+n+'</b>'+(m.admin ? '<span class="tag">管理</span>' : '')+(m.view ? '<span class="tag view">見るだけ</span>' : '')+(m.active ? '' : '<span class="tag wait">止めています</span>')+(me ? '<span class="tag">自分</span>' : '')+'</div>'
+      var mg = groupOf(m);
+      return '<div class="mem"><div class="mem-top"><b>'+n+'</b>'+(mg && !m.view ? '<span class="tag">'+esc(groupLabel(mg))+'</span>' : '')+(m.admin ? '<span class="tag">管理</span>' : '')+(m.view ? '<span class="tag view">見るだけ</span>' : '')+(m.active ? '' : '<span class="tag wait">止めています</span>')+(me ? '<span class="tag">自分</span>' : '')+'</div>'
         + '<div class="acts" style="flex-wrap:wrap"><button type="button" class="btn sm" data-mact="link" data-name="'+n+'">リンクを送る</button><button type="button" class="btn sm" data-mact="open" data-name="'+n+'">直す</button></div>'
         + (admOpen===m.name ? '<div class="mem-edit">'
             + '<div class="field"><label>名前</label><input class="tin" data-f="name" type="text" maxlength="20" value="'+n+'" autocomplete="off"></div>'
@@ -1594,6 +1884,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
             + (me ? '' : '<label class="chk"><input type="checkbox" data-f="admin"'+(m.admin ? ' checked' : '')+'>管理もできる人にする</label>'
                        + '<label class="chk"><input type="checkbox" data-f="view"'+(m.view ? ' checked' : '')+'>見るだけの人にする（狙い目だけ）</label>'
                        + '<label class="chk"><input type="checkbox" data-f="stop"'+(m.active ? '' : ' checked')+'>止める（この人の合言葉では開けなくする）</label>')
+            + groupField(m)
             + '<p class="err" data-f="err" hidden></p>'
             + '<div class="acts"><button type="button" class="btn sm" data-mact="close" data-name="'+n+'">やめる</button><button type="button" class="btn sm main" data-mact="save" data-name="'+n+'">保存</button></div>'
             + '<p class="hint">合言葉を変えると、前のリンクでは開けなくなります。新しいリンクを送り直してください。名前を変えると、前の記録の名前も変わります。</p>'
@@ -1633,6 +1924,11 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
       if (f('stop') && f('stop').checked===m.active) p.active = f('stop').checked ? '0' : '1';
       if (f('view') && f('view').checked!==!!m.view) p.view = f('view').checked ? '1' : '0';   // 決定70
       if (f('view') && f('view').checked && f('admin').checked){ f('err').textContent = '管理と見るだけは、一緒にできません'; f('err').hidden = false; return; }
+      if (f('group') && f('group').value){   // 決定111：グループを移す。今までの記録を一緒に移すかは本人が選ぶ
+        p.group = f('group').value;
+        if (p.group==='new'){ p.groupName = f('gname').value.trim(); if (!p.groupName){ f('err').textContent = '新しいグループの呼び名を入れてください'; f('err').hidden = false; return; } }
+        if (f('moverec') && f('moverec').checked) p.moveRecords = '1';
+      }
       if (Object.keys(p).length===1){ admOpen = null; return renderMembers(); }
       b.disabled = true;
       call('memberEdit', p).then(function(r){
@@ -1641,8 +1937,8 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
         // 決定70：見るだけにしたのに印が返ってこない＝受け口（Apps Script）が前の版。その人はふつうのメンバーのままなので、知らせる
         var now = (r.members || []).filter(function(x){ return norm(x.name)===norm(nn); })[0];
         if (p.view==='1' && !(now && now.view)){ memberRows = r.members; renderMembers(); toast('見るだけの印が付きませんでした（受け口が前の版です）'); reload(); return; }
-        memberRows = r.members; admOpen = null; renderMembers();
-        toast('保存しました');
+        takeMembers(r); admOpen = null; renderMembers();
+        toast('保存しました' + (r.moved!=null ? '（記録 ' + r.moved + '件を一緒に移しました）' : ''));
         if (p.newKey || p.view) showLink(nn, nk, !!(now && now.view));
         reload();
       }, function(){ b.disabled = false; f('err').textContent = 'つながりません。もう一度どうぞ。'; f('err').hidden = false; });
@@ -1660,15 +1956,20 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     var asView = $('adm-view').checked, p = {name:name, key:key, admin:$('adm-admin').checked ? '1' : '0'};   // 決定70：見るだけは view=1
     if (asView && $('adm-admin').checked){ err.textContent = '管理と見るだけは、一緒にできません'; err.hidden = false; return; }
     if (asView) p.view = '1';
+    if (!asView && memberGroups.length){   // 決定111：足すときにグループを選ぶ
+      p.group = $('adm-group').value;
+      if (p.group==='new'){ p.groupName = $('adm-gname').value.trim(); if (!p.groupName){ err.textContent = '新しいグループの呼び名を入れてください'; err.hidden = false; return; } }
+    }
     b.disabled = true; err.hidden = true;
     call('memberAdd', p).then(function(r){
       b.disabled = false;
       if (!r.ok){ err.textContent = r.error || 'うまくいきませんでした'; err.hidden = false; return; }
-      memberRows = r.members; renderMembers();
+      takeMembers(r); renderMembers();
       // 決定70：見るだけで足したのに印が返ってこない＝受け口（Apps Script）が前の版。その人はふつうのメンバーで入ったので、リンクを出さずに知らせる
       var now = (r.members || []).filter(function(x){ return norm(x.name)===norm(name); })[0];
       if (asView && !(now && now.view)){ err.textContent = '見るだけの印が付きませんでした（受け口が前の版です）。この人は今ふつうのメンバーで入っているので、上の一覧の「直す」で止めてください'; err.hidden = false; reload(); return; }
-      $('adm-name').value = ''; $('adm-key').value = ''; $('adm-admin').checked = false; $('adm-view').checked = false;
+      $('adm-name').value = ''; $('adm-key').value = ''; $('adm-admin').checked = false; $('adm-view').checked = false; $('adm-gname').value = '';
+      if (memberGroups.length){ $('adm-group').selectedIndex = 0; $('adm-gname').hidden = $('adm-group').value!=='new'; }
       showLink(name, key, asView);
       reload();
     }, function(){ b.disabled = false; err.textContent = 'つながりません。もう一度どうぞ。'; err.hidden = false; });
@@ -1734,7 +2035,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
       var a = pickRows().filter(function(x){ return x.key===pkOpen; })[0], input = el.querySelector('[data-f="to"]'), err = el.querySelector('[data-f="err"]');
       if (!a) return;
       b.disabled = true; err.hidden = true;
-      call('pickMerge', {from:a.text, to:a.self ? '' : input.value.trim()}).then(function(r){
+      call('pickMerge', {from:a.text, to:a.self ? '' : input.value.trim(), g:G ? G.id : null}).then(function(r){
         b.disabled = false;
         if (!r.ok){ err.textContent = r.error || 'うまくいきませんでした'; err.hidden = false; return; }
         pkOpen = null; renderPicks();
@@ -1998,7 +2299,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   $('if-q').addEventListener('input', function(){ renderInfo(); });
 
   function refresh(){
-    status(); renderOld();
+    status(); renderOld(); renderGroupBar(); renderStuck(); renderReadFail();
     if (!editing) fillMachines();
     if (view==='rec') renderForm();
     if (view==='list') renderList();
@@ -2019,7 +2320,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   (function(){
     var k = '';
     try { k = keyFrom(new URL(location.href).searchParams.get('k') ? location.href : ''); } catch(e){}
-    if (k){ if (k!==load(LS_KEY)){ S.me = null; S.members = []; S.picks = []; S.aliases = []; S.aims = []; S.machines = []; S.recs = []; } store(LS_KEY, k); }
+    if (k){ if (k!==load(LS_KEY)){ S.me = null; S.members = []; S.picks = []; S.aliases = []; S.aims = []; S.machines = []; S.recs = []; S.view = null; S.groups = []; } store(LS_KEY, k); }
     S.key = k || load(LS_KEY) || '';
   })();
   // a home-screen app comes back from the background without reloading: look again then, and send what is left
@@ -2042,7 +2343,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   'use strict';
   // BUILD＝この index.html の BUILD の値を空（''）にした中身の SHA-256 の頭12字。sw.js の BUILD・version.json の build と同じ値にする
   // （2026-10-31 から。前の組み立ての道具 build.py は消えたので、この決め方にした）
-  var BUILD = '606e16dc427c', CACHE = 'neraicho-app-v1', lastCheck = 0;
+  var BUILD = 'def0b003d8ff', CACHE = 'neraicho-app-v1', lastCheck = 0;
   if (!('serviceWorker' in navigator)) return;
   var bar = document.getElementById('app-update');
   document.body.insertBefore(bar, document.body.firstChild);   // above the page, so it never covers the machine select or tabs
