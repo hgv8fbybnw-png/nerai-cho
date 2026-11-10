@@ -1648,6 +1648,8 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     var k = norm(r.pick || ''), b = norm(r.by || '');
     return !r.picked && !!k && !!b && !isSelf(r.pick) && k!==b && isMember(r.pick) && isMember(r.by);
   }
+  // 拾った人ごとの金額は、メンバーかどうかを見ない（渡した台の数は isGiven のまま）
+  function isHanded(r){ var k = norm(r.pick || ''); return !r.picked && !!k && !isSelf(r.pick) && k!==norm(r.by || ''); }
   var NO_PICK = '拾った人なし';
   // n = 打った台 (one record = one machine played), days = 稼働日数 (days with at least one record; user 2026-10-24).
   // 拾った人ごとの分け方では、n はその人が拾った台の全部の数で、yen・win・plays は渡した台の分だけ（決定109）。
@@ -1666,7 +1668,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
       // 拾った人ごとの行：古い「自分」は打った人の行へ（グラフの数え方と同じ）。打った人が空の「自分」は「拾った人なし」の行へ
       var c = calc(r), who = pick ? ((isSelf(r.pick) ? r.by : r.pick) || NO_PICK) : (r.by || '—'), k = kf(who), d = r.at.slice(0, 10);
       if (!by[k]){ by[k] = person(who); out.push(by[k]); }
-      var p = by[k], given = pick && isGiven(r);
+      var p = by[k], given = pick && isHanded(r);
       p.n++;
       if (r.picked) return;   // 拾っただけの行は、拾った人ごとの拾った台の数にだけ入れる
       if (!p.seen[d]){ p.seen[d] = 1; p.days++; }
@@ -2455,7 +2457,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   'use strict';
   // BUILD＝この index.html の BUILD の値を空（''）にした中身の SHA-256 の頭12字。sw.js の BUILD・version.json の build と同じ値にする
   // （2026-10-31 から。前の組み立ての道具 build.py は消えたので、この決め方にした）
-  var BUILD = 'd5e991d8f9c9', CACHE = 'neraicho-app-v1', lastCheck = 0;
+  var BUILD = 'df5c3982b913', CACHE = 'neraicho-app-v1', lastCheck = 0;
   if (!('serviceWorker' in navigator)) return;
   var bar = document.getElementById('app-update');
   document.body.insertBefore(bar, document.body.firstChild);   // above the page, so it never covers the machine select or tabs
