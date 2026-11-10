@@ -348,15 +348,24 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
 .if-more>div{display:flex;flex-direction:column;gap:6px;padding-top:8px;font-size:14px}
 .if-more dt{font-weight:700}
 .if-more dd{margin:0 0 6px;color:var(--muted);font-size:13px}
+/* リセット台一覧（2026-11-10 オーナー）：1台ごとのカード。狙い目の画面の .aim-h・.bd・.fl をそのまま使う */
+.rs-list{display:flex;flex-direction:column;gap:10px}
+.rs-m{gap:8px}
+.rs-m h2{font-size:17px;overflow-wrap:anywhere}
+.rs-m.dim{opacity:.7}
+.rs-m .aim-h b{font-size:14px}
+.rs-m .aim-h span{font-size:16px}
+.rs-m .fl{font-size:15px;font-weight:700}
+.rs-none{font-size:13px;color:var(--muted)}
 
 /* bottom bar + toast */
 .dock{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);z-index:5}
-.nav{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(6,1fr);padding:0 4px env(safe-area-inset-bottom, 0px)}
-/* タブが6つなので、幅320でも字を短くせず入るように、字の大きさを画面の幅で合わせる（決定116） */
+.nav{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(7,1fr);padding:0 4px env(safe-area-inset-bottom, 0px)}
+/* タブが7つなので、幅320でも字を短くせず入るように、字の大きさを画面の幅で合わせる（決定116） */
 .nav button{font:inherit;font-size:clamp(9px,2.9vw,11px);font-weight:700;line-height:1.2;border:0;background:transparent;color:var(--muted);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:54px;padding:6px 1px;touch-action:manipulation;white-space:nowrap;min-width:0}
 .nav button svg{width:24px;height:24px}
-/* 切り替え中は「記録する」を出さないので、5つで並べる（決定111・116） */
-.nav.five{grid-template-columns:repeat(5,1fr)}
+/* 切り替え中は「記録する」を出さないので、6つで並べる（決定111・116） */
+.nav.six{grid-template-columns:repeat(6,1fr)}
 .nav button[aria-current="page"]{color:var(--accent)}
 .nav button:focus-visible{outline:3px solid var(--accent);outline-offset:-3px;border-radius:10px}
 .toast{position:fixed;left:16px;right:16px;bottom:calc(66px + env(safe-area-inset-bottom, 0px));max-width:528px;margin:0 auto;z-index:6;display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--ink);color:var(--bg);border-radius:12px;padding:6px 6px 6px 14px;font-size:14px;font-weight:700}
@@ -516,6 +525,16 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
 
   <!-- 狙い目（台ごとの天井・打ち始めの線） -->
   <!-- ★決定70（2026-10-31）：この section は、狙い目だけのページ（mi/index.html）にも同じものを写してある。直すときは2か所とも直す -->
+  <!-- リセット台一覧（2026-11-10 オーナー）：中身は合言葉が合った人にだけ渡すデータから出す。ここには書かない -->
+  <section id="view-reset" class="view" aria-labelledby="reset-title" hidden>
+    <header class="top"><div class="brand"><small>リセット後の天井・ボーダー</small><h1 id="reset-title">リセット台一覧</h1></div></header>
+    <div class="block">
+      <input id="rs-q" class="tin" type="search" autocomplete="off" placeholder="台の名前で探す（ひらがなでも）" aria-label="台の名前で探す">
+    </div>
+    <p id="rs-state" class="empty" hidden></p>
+    <div id="rs-list" class="rs-list"></div>
+  </section>
+
   <section id="view-info" class="view" aria-labelledby="info-title" hidden>
     <header class="top"><div class="brand"><small>台ごとの天井・ゾーン・pt</small><h1 id="info-title">狙い目</h1></div></header>
     <div id="if-pick" class="view">
@@ -572,7 +591,11 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
 
 <div class="dock" id="dock" hidden>
   <nav class="nav" aria-label="画面の切り替え">
-    <!-- 狙い目はいちばん左（2026-10-24 ユーザー「1番左に」） -->
+    <!-- リセット台は狙い目の左（2026-11-10 オーナー「狙い目の左に別タブで作成」）。その次の狙い目は 2026-10-24 ユーザー「1番左に」 -->
+    <button type="button" data-view="reset">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 1 0 2.4-5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6.5 2.8v4h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>リセット台</span>
+    </button>
     <button type="button" data-view="info">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 1.5v4M12 18.5v4M1.5 12h4M18.5 12h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       <span>狙い目</span>
@@ -893,7 +916,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   });
 
   /* ---------- screen switch ---------- */
-  var view = 'rec', VIEWS = ['key', 'rec', 'list', 'month', 'rank', 'info', 'set'];
+  var view = 'rec', VIEWS = ['key', 'rec', 'list', 'month', 'rank', 'reset', 'info', 'set'];
   function show(v){
     if (v==='rec' && G && !editing) v = 'list';   // 切り替え中は足す・打つを出さない（直すだけ開ける）
     view = v;
@@ -907,6 +930,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     if (v==='list') renderList();
     if (v==='month') renderMonth();
     if (v==='rank') renderRank();
+    if (v==='reset') renderReset();
     if (v==='info') renderInfo();
     if (v==='set') renderSet(true);
     renderGroupBar(); renderStuck(); renderReadFail();
@@ -924,7 +948,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     var box = $('grp'), list = S.groups || [], on = !!(S.me && S.me.admin && list.length>1 && view!=='key');
     box.hidden = !on;
     var nav = document.querySelector('.nav'), rec = nav.querySelector('button[data-view="rec"]');
-    rec.hidden = !!G; nav.classList.toggle('five', !!G);
+    rec.hidden = !!G; nav.classList.toggle('six', !!G);
     if (!on) return;
     var sel = $('grp-sel'), sig = JSON.stringify(list), cur = G ? String(G.id) : String(S.me.group);
     if (sig!==grpSig){ grpSig = sig; sel.innerHTML = list.map(function(x){ return '<option value="'+esc(x.id)+'">'+esc(groupLabel(x))+'</option>'; }).join(''); }
@@ -2184,10 +2208,11 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
      groups:[{t, u, src, rows:[{l, c (現金・非等価の線), m (持ちメダル・等価の線), n (unit when not G), e (やめる所), x (no number),
      see, memo, src, am (朝)}]}], others:[[name, text, src]], yame, terms:[[word, meaning]]} — made by make_info.py */
   var infoBusy = false, infoErr = '', infoSel = load(LS_INFO_M) || '';
+  function drawInfo(){ if (view==='info') renderInfo(); if (view==='reset') renderReset(); }
   function loadInfo(){
     if (infoBusy || !S.key || !S.infoVer || (S.info && S.info.ver===S.infoVer)) return;
     infoBusy = true; infoErr = '';
-    if (view==='info') renderInfo();
+    drawInfo();
     call('info', {}, 60000).then(function(r){
       infoBusy = false;
       if (r.ok && Array.isArray(r.machines)){
@@ -2196,8 +2221,8 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
       } else if (r.鍵ちがい){
         return lockOut('合言葉が変わったか、止められています。管理の人に確かめてください。');
       } else infoErr = r.error || 'とれませんでした';
-      if (view==='info') renderInfo();
-    }, function(){ infoBusy = false; infoErr = 'つながりません'; if (view==='info') renderInfo(); });
+      drawInfo();
+    }, function(){ infoBusy = false; infoErr = 'つながりません'; drawInfo(); });
   }
   // the opening line, as the notes write it: 231G〜 / 9pt〜; no line = —
   function infoLine(v, n){ return v==null ? '' : v + (n==null ? 'G' : n) + '〜'; }
@@ -2340,6 +2365,51 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   });
   $('if-q').addEventListener('input', function(){ renderInfo(); });
 
+  /* ---------- リセット台一覧（2026-11-10 オーナー「狙い目の左に別タブで作成」）：台の情報から、リセット後の天井・ボーダー・
+     徘徊の行を抜き出して台ごとに並べる。データは狙い目と同じもの（このページには書かない）で、台が足されるとここにも自動で出る。
+     徘徊の行は「リセ」を含む行と、朝イチで始まる行（「朝イチは含まない」のような行は出さない） ---------- */
+  var RESET_WORD = /リセ/, RESET_LINE = /リセ|^朝イチ/;
+  // 狙い目の名前から「（リセット後・短縮）」を外す。「天井」だけになるときは「リセット後の天井」
+  function resetCeil(s){
+    var t = String(s).replace('（リセット後・短縮）', '').replace('・短縮）', '）');
+    return t==='天井' ? 'リセット後の天井' : t;
+  }
+  // ボーダーの行の名前から「リセット後」を外す（0スルー など）。何も残らないときは「リセット後」
+  function resetRow(s){
+    return String(s).replace(/^リセット後・?|・リセット後$|（リセット後）$/g, '').replace(/^（(.*)）$/, '$1') || 'リセット後';
+  }
+  function resetOf(m){
+    var ceil = [], rows = [];
+    (m.nerai || []).forEach(function(a){
+      if (RESET_WORD.test(a.name)) ceil.push(a);
+      (a.rows || []).forEach(function(r){ if (RESET_WORD.test(r.l)) rows.push(Object.assign({}, r, {l:resetRow(r.l), am:0})); });
+    });
+    return {ceil:ceil, rows:rows, lines:infoLines(m.focus).concat(infoLines(m.focus_x)).filter(function(s){ return RESET_LINE.test(s); })};
+  }
+  function renderReset(){
+    var st = $('rs-state'), list = $('rs-list');
+    if (!S.info){
+      st.hidden = false; list.innerHTML = '';
+      st.textContent = infoBusy ? '読みこみ中です（はじめてのときは少しかかります）' : '狙い目の中身がとれませんでした。電波のある所で開き直してください';
+      return;
+    }
+    var ms = infoMachines().filter(function(m){ var d = resetOf(m); return d.ceil.length || d.rows.length || d.lines.length; });
+    var found = infoFind(ms, $('rs-q').value), row = '', h = '';
+    $('reset-title').textContent = 'リセット台一覧（' + ms.length + '台）';
+    st.hidden = found.length>0; st.textContent = 'その名前の台は入っていません';
+    found.forEach(function(x){
+      var r = kanaRow(x.yomi), d = resetOf(x);
+      if (r!==row){ row = r; h += '<div class="if-kana">' + esc(r) + '</div>'; }
+      h += '<div class="block rs-m' + (x.dim===true ? ' dim' : '') + '"><h2>' + esc(x.short) + '</h2>'
+        + d.ceil.map(function(a){ return '<div class="aim-h"><b>' + esc(resetCeil(a.name)) + '</b>' + (a.val ? '<span>' + esc(a.val) + '</span>' : '') + '</div>'; }).join('')
+        + (d.rows.length ? borderTable(d.rows) : d.lines.length ? '' : '<p class="rs-none">ボーダーの数字はまだなし</p>')
+        + (d.lines.length ? lineList(d.lines) : '')
+        + '</div>';
+    });
+    list.innerHTML = h;
+  }
+  $('rs-q').addEventListener('input', function(){ renderReset(); });
+
   function refresh(){
     status(); renderOld(); renderGroupBar(); renderStuck(); renderReadFail();
     if (!editing) fillMachines();
@@ -2385,7 +2455,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   'use strict';
   // BUILD＝この index.html の BUILD の値を空（''）にした中身の SHA-256 の頭12字。sw.js の BUILD・version.json の build と同じ値にする
   // （2026-10-31 から。前の組み立ての道具 build.py は消えたので、この決め方にした）
-  var BUILD = '561f2e03632f', CACHE = 'neraicho-app-v1', lastCheck = 0;
+  var BUILD = 'd5e991d8f9c9', CACHE = 'neraicho-app-v1', lastCheck = 0;
   if (!('serviceWorker' in navigator)) return;
   var bar = document.getElementById('app-update');
   document.body.insertBefore(bar, document.body.firstChild);   // above the page, so it never covers the machine select or tabs
