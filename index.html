@@ -522,6 +522,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   <section id="view-reset" class="view" aria-labelledby="reset-title" hidden>
     <header class="top"><div class="brand"><small>リセット後の天井・ボーダー</small><h1 id="reset-title">リセット台一覧</h1></div></header>
     <div id="rs-pick" class="view">
+      <div id="rs-common" class="block if-common" hidden></div>
       <div class="block">
         <input id="rs-q" class="tin" type="search" autocomplete="off" placeholder="台の名前で探す（ひらがなでも）" aria-label="台の名前で探す">
       </div>
@@ -532,7 +533,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   </section>
 
   <section id="view-info" class="view" aria-labelledby="info-title" hidden>
-    <header class="top"><div class="brand"><small>台ごとの天井・ゾーン・pt</small><h1 id="info-title">狙い目</h1></div></header>
+    <header class="top"><div class="brand"><small>台ごとの天井・ゾーン・pt</small><h1 id="info-title">リセ後</h1></div></header>
     <div id="if-pick" class="view">
       <!-- 全台共通（決定67・68）と、その下の用語集のボタン（決定69）：中身は合言葉が合った人にだけ渡すデータから出す。ここには書かない -->
       <div id="if-common" class="block if-common" hidden></div>
@@ -587,14 +588,14 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
 
 <div class="dock" id="dock" hidden>
   <nav class="nav" aria-label="画面の切り替え">
-    <!-- リセット台は狙い目の左（2026-11-10 オーナー「狙い目の左に別タブで作成」）。その次の狙い目は 2026-10-24 ユーザー「1番左に」 -->
+    <!-- リセット台は狙い目の左（2026-11-10 オーナー「狙い目の左に別タブで作成」）。その次の狙い目は 2026-10-24 ユーザー「1番左に」。狙い目のタブの名前は 2026-11-10 オーナーの頼みで「リセ後」 -->
     <button type="button" data-view="reset">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 1 0 2.4-5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6.5 2.8v4h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <span>リセット台</span>
     </button>
     <button type="button" data-view="info">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 1.5v4M12 18.5v4M1.5 12h4M18.5 12h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      <span>狙い目</span>
+      <span>リセ後</span>
     </button>
     <button type="button" data-view="rec">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M13 7l4 4" fill="none" stroke="currentColor" stroke-width="2"/></svg>
@@ -2276,7 +2277,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     $('if-pick').hidden = !!m || terms; $('if-view').hidden = !m && !terms;
     if (terms) return renderInfoTerms(tm);
     if (m) return renderInfoMachine(m);
-    var st = $('if-state'), list = $('if-list'), cm = $('if-common'), cg = infoCommon();
+    var st = $('if-state'), list = $('if-list'), cm = $('if-common'), cg = commonRest();
     cm.hidden = !cg.length && !tm.length;
     cm.innerHTML = cm.hidden ? '' : '<h2>全台共通</h2>' + cg.map(function(g){
       var t = infoLines(g.t);
@@ -2317,6 +2318,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
       }).join('') + '</div>';
   }
   function renderInfoMachine(m){
+    m = restOf(m);   // リセットの内容はリセット台のタブへ移した。mi/ にはリセット台がないので、この1行は写さない
     var h = '<div class="if-top"><button type="button" class="btn" id="if-back">‹ 台の一覧</button><h2>' + esc(m.short) + '</h2></div>';
     // 決定67・68：見出しのすぐ下・「狙い目」の前に、徘徊で見るところ（focus）と特記（focus_x）。どちらもない台は今までどおり
     var f = infoLines(m.focus), fx = infoLines(m.focus_x);
@@ -2376,14 +2378,50 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   function resetRow(s){
     return String(s).replace(/^リセット後・?|・リセット後$|（リセット後）$/g, '').replace(/^（(.*)）$/, '$1') || 'リセット後';
   }
+  /* 2026-11-10 オーナー「全台の情報からリセットの内容をリセット台に移して、移した情報はリセ後から消して」：何がリセットの内容かはここで決め、
+     リセット台（resetOf）とリセ後（restOf）が同じ見分けを使う。データは変えない（狙い目だけのページ mi/ はリセット台がないので今までどおり全部出す）。
+     狙い目は、名前にリセが入れば丸ごと移す。ほかの狙い目は、リセが入った行・説明だけ移して、名前と残りはリセ後に残す。
+     「、」「／」でつないだ文は、リセが入った切れ端だけ移す（駆け抜け表記、リセ後170g以上 など） */
+  function splitReset(s, sep, re){
+    var p = String(s).split(sep);
+    return {reset:p.filter(function(x){ return re.test(x); }).join(sep), rest:p.filter(function(x){ return !re.test(x); }).join(sep)};
+  }
+  function splitNote(n){
+    if (RESET_WORD.test(n[0])) return {reset:n, rest:null};
+    var t = splitReset(n[1], '、', RESET_WORD);
+    return {reset:t.reset ? [n[0], t.reset] : null, rest:t.rest ? [n[0], t.rest] : null};
+  }
+  // head＝リセット台に出す見出しと説明、rows＝リセット台に出す行、rest＝リセ後に残す狙い目（丸ごと移すときは null）
+  function splitAim(a){
+    var rows = a.rows || [], notes = a.notes || [];
+    if (RESET_WORD.test(a.name)) return {head:{name:a.name, val:a.val, notes:notes}, rows:rows, rest:null};
+    var ns = notes.map(splitNote), v = splitReset(a.val==null ? '' : a.val, '／', RESET_WORD);
+    var rn = ns.map(function(x){ return x.reset; }).filter(Boolean);
+    return {head:rn.length || v.reset ? {name:a.name, val:v.reset || a.val, notes:rn} : null,
+      rows:rows.filter(function(r){ return RESET_WORD.test(r.l); }),
+      rest:Object.assign({}, a, {val:v.rest, notes:ns.map(function(x){ return x.rest; }).filter(Boolean), rows:rows.filter(function(r){ return !RESET_WORD.test(r.l); })})};
+  }
   function resetOf(m){
     var ceil = [], rows = [];
     (m.nerai || []).forEach(function(a){
-      if (RESET_WORD.test(a.name)) ceil.push(a);
-      (a.rows || []).forEach(function(r){ if (RESET_WORD.test(r.l)) rows.push(Object.assign({}, r, {l:resetRow(r.l), am:0})); });
+      var d = splitAim(a);
+      if (d.head) ceil.push(d.head);
+      d.rows.forEach(function(r){ rows.push(Object.assign({}, r, {l:resetRow(r.l), am:0})); });
     });
-    return {ceil:ceil, rows:rows, lines:infoLines(m.focus).concat(infoLines(m.focus_x)).filter(function(s){ return RESET_LINE.test(s); })};
+    return {ceil:ceil, rows:rows, lines:infoLines(m.focus).concat(infoLines(m.focus_x)).map(function(s){ return splitReset(s, '、', RESET_LINE).reset; }).filter(Boolean)};
   }
+  function restOf(m){
+    function left(v){ return infoLines(v).map(function(s){ return splitReset(s, '、', RESET_LINE).rest; }).filter(Boolean); }
+    return Object.assign({}, m, {focus:left(m.focus), focus_x:left(m.focus_x), nerai:m.nerai && m.nerai.map(function(a){ return splitAim(a).rest; }).filter(Boolean)});
+  }
+  // 全台共通の枠の行も同じ。リセの行はリセット台の一覧の上に出し、行がなくなった見出しはリセ後に出さない
+  function commonRest(){
+    return infoCommon().map(function(g){
+      var t = infoLines(g.t), l = t.filter(function(s){ return !RESET_LINE.test(s); });
+      return l.length===t.length ? g : l.length ? Object.assign({}, g, {t:l}) : null;
+    }).filter(Boolean);
+  }
+  function commonReset(){ return infoCommon().reduce(function(a, g){ return a.concat(infoLines(g.t).filter(function(s){ return RESET_LINE.test(s); })); }, []); }
   /* 2026-11-10 オーナー「スクロールしないと探せなく…狙い目と同じように設計して」：一覧は狙い目と同じ台の名前のボタンで、押すとその台の画面。
      一覧に出るのはリセットの情報がある台だけ。開いている台はスマホに覚える（狙い目と同じ） */
   var LS_RESET_M = 'neraicho.resetMachine', resetSel = load(LS_RESET_M) || '';
@@ -2393,7 +2431,9 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     $('reset-title').textContent = 'リセット台一覧' + (ms.length ? '（' + ms.length + '台）' : '');
     $('rs-pick').hidden = !!m; $('rs-view').hidden = !m;
     if (m) return renderResetMachine(m);
-    var st = $('rs-state'), list = $('rs-list');
+    var st = $('rs-state'), list = $('rs-list'), cm = $('rs-common'), cr = commonReset();
+    cm.hidden = !cr.length;
+    cm.innerHTML = cm.hidden ? '' : '<h2>全台共通</h2><div class="cm-g">' + lineList(cr) + '</div>';
     if (!S.info){
       st.hidden = false; list.innerHTML = '';
       st.textContent = infoBusy ? '読みこみ中です（はじめてのときは少しかかります）' : '狙い目の中身がとれませんでした。電波のある所で開き直してください';
@@ -2411,7 +2451,8 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   function renderResetMachine(m){
     var d = resetOf(m), h = '<div class="if-top"><button type="button" class="btn" id="rs-back">‹ 台の一覧</button><h2>' + esc(m.short) + '</h2></div>';
     if (d.lines.length) h += '<div class="if-focus"><h3>徘徊で見るところ</h3>' + lineList(d.lines) + '</div>';
-    var aim = d.ceil.map(function(a){ return '<div class="aim-h"><b>' + esc(resetCeil(a.name)) + '</b>' + (a.val ? '<span>' + esc(a.val) + '</span>' : '') + '</div>'; }).join('')
+    var aim = d.ceil.map(function(a){ return '<div class="aim-h"><b>' + esc(resetCeil(a.name)) + '</b>' + (a.val ? '<span>' + esc(a.val) + '</span>' : '') + '</div>'
+      + a.notes.map(function(n){ return '<p class="aim-n"><b>' + esc(n[0]) + '▶︎</b>' + esc(n[1]) + '</p>'; }).join(''); }).join('')
       + (d.rows.length ? borderTable(d.rows) : d.lines.length ? '' : '<p class="rs-none">ボーダーの数字はまだなし</p>');
     if (aim) h += '<div class="block"><h2>狙い目</h2><div class="aim">' + aim + '</div></div>';
     $('rs-view').innerHTML = h;
@@ -2473,7 +2514,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   'use strict';
   // BUILD＝この index.html の BUILD の値を空（''）にした中身の SHA-256 の頭12字。sw.js の BUILD・version.json の build と同じ値にする
   // （2026-10-31 から。前の組み立ての道具 build.py は消えたので、この決め方にした）
-  var BUILD = '4897dac980d4', CACHE = 'neraicho-app-v1', lastCheck = 0;
+  var BUILD = '5649f27c0402', CACHE = 'neraicho-app-v1', lastCheck = 0;
   if (!('serviceWorker' in navigator)) return;
   var bar = document.getElementById('app-update');
   document.body.insertBefore(bar, document.body.firstChild);   // above the page, so it never covers the machine select or tabs
