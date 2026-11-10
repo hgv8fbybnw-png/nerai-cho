@@ -348,14 +348,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
 .if-more>div{display:flex;flex-direction:column;gap:6px;padding-top:8px;font-size:14px}
 .if-more dt{font-weight:700}
 .if-more dd{margin:0 0 6px;color:var(--muted);font-size:13px}
-/* リセット台一覧（2026-11-10 オーナー）：1台ごとのカード。狙い目の画面の .aim-h・.bd・.fl をそのまま使う */
-.rs-list{display:flex;flex-direction:column;gap:10px}
-.rs-m{gap:8px}
-.rs-m h2{font-size:17px;overflow-wrap:anywhere}
-.rs-m.dim{opacity:.7}
-.rs-m .aim-h b{font-size:14px}
-.rs-m .aim-h span{font-size:16px}
-.rs-m .fl{font-size:15px;font-weight:700}
+/* リセット台一覧（2026-11-10 オーナー「狙い目と同じように設計して」）：一覧のボタンも台の画面も狙い目の部品（.if-list・.if-m・.if-top・.if-focus・.aim・.bd）をそのまま使う */
 .rs-none{font-size:13px;color:var(--muted)}
 
 /* bottom bar + toast */
@@ -528,11 +521,14 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   <!-- リセット台一覧（2026-11-10 オーナー）：中身は合言葉が合った人にだけ渡すデータから出す。ここには書かない -->
   <section id="view-reset" class="view" aria-labelledby="reset-title" hidden>
     <header class="top"><div class="brand"><small>リセット後の天井・ボーダー</small><h1 id="reset-title">リセット台一覧</h1></div></header>
-    <div class="block">
-      <input id="rs-q" class="tin" type="search" autocomplete="off" placeholder="台の名前で探す（ひらがなでも）" aria-label="台の名前で探す">
+    <div id="rs-pick" class="view">
+      <div class="block">
+        <input id="rs-q" class="tin" type="search" autocomplete="off" placeholder="台の名前で探す（ひらがなでも）" aria-label="台の名前で探す">
+      </div>
+      <p id="rs-state" class="empty" hidden></p>
+      <div id="rs-list" class="if-list"></div>
     </div>
-    <p id="rs-state" class="empty" hidden></p>
-    <div id="rs-list" class="rs-list"></div>
+    <div id="rs-view" class="view" hidden></div>
   </section>
 
   <section id="view-info" class="view" aria-labelledby="info-title" hidden>
@@ -2388,28 +2384,48 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     });
     return {ceil:ceil, rows:rows, lines:infoLines(m.focus).concat(infoLines(m.focus_x)).filter(function(s){ return RESET_LINE.test(s); })};
   }
+  /* 2026-11-10 オーナー「スクロールしないと探せなく…狙い目と同じように設計して」：一覧は狙い目と同じ台の名前のボタンで、押すとその台の画面。
+     一覧に出るのはリセットの情報がある台だけ。開いている台はスマホに覚える（狙い目と同じ） */
+  var LS_RESET_M = 'neraicho.resetMachine', resetSel = load(LS_RESET_M) || '';
+  function resetMachines(){ return infoMachines().filter(function(m){ var d = resetOf(m); return d.ceil.length || d.rows.length || d.lines.length; }); }
   function renderReset(){
+    var ms = resetMachines(), m = ms.filter(function(x){ return x.id===resetSel; })[0];
+    $('reset-title').textContent = 'リセット台一覧' + (ms.length ? '（' + ms.length + '台）' : '');
+    $('rs-pick').hidden = !!m; $('rs-view').hidden = !m;
+    if (m) return renderResetMachine(m);
     var st = $('rs-state'), list = $('rs-list');
     if (!S.info){
       st.hidden = false; list.innerHTML = '';
       st.textContent = infoBusy ? '読みこみ中です（はじめてのときは少しかかります）' : '狙い目の中身がとれませんでした。電波のある所で開き直してください';
       return;
     }
-    var ms = infoMachines().filter(function(m){ var d = resetOf(m); return d.ceil.length || d.rows.length || d.lines.length; });
     var found = infoFind(ms, $('rs-q').value), row = '', h = '';
-    $('reset-title').textContent = 'リセット台一覧（' + ms.length + '台）';
     st.hidden = found.length>0; st.textContent = 'その名前の台は入っていません';
     found.forEach(function(x){
-      var r = kanaRow(x.yomi), d = resetOf(x);
+      var r = kanaRow(x.yomi);
       if (r!==row){ row = r; h += '<div class="if-kana">' + esc(r) + '</div>'; }
-      h += '<div class="block rs-m' + (x.dim===true ? ' dim' : '') + '"><h2>' + esc(x.short) + '</h2>'
-        + d.ceil.map(function(a){ return '<div class="aim-h"><b>' + esc(resetCeil(a.name)) + '</b>' + (a.val ? '<span>' + esc(a.val) + '</span>' : '') + '</div>'; }).join('')
-        + (d.rows.length ? borderTable(d.rows) : d.lines.length ? '' : '<p class="rs-none">ボーダーの数字はまだなし</p>')
-        + (d.lines.length ? lineList(d.lines) : '')
-        + '</div>';
+      h += '<button type="button" class="if-m' + (x.dim===true ? ' dim' : '') + '" data-rs="' + esc(x.id) + '">' + esc(x.short) + '</button>';
     });
     list.innerHTML = h;
   }
+  function renderResetMachine(m){
+    var d = resetOf(m), h = '<div class="if-top"><button type="button" class="btn" id="rs-back">‹ 台の一覧</button><h2>' + esc(m.short) + '</h2></div>';
+    if (d.lines.length) h += '<div class="if-focus"><h3>徘徊で見るところ</h3>' + lineList(d.lines) + '</div>';
+    var aim = d.ceil.map(function(a){ return '<div class="aim-h"><b>' + esc(resetCeil(a.name)) + '</b>' + (a.val ? '<span>' + esc(a.val) + '</span>' : '') + '</div>'; }).join('')
+      + (d.rows.length ? borderTable(d.rows) : d.lines.length ? '' : '<p class="rs-none">ボーダーの数字はまだなし</p>');
+    if (aim) h += '<div class="block"><h2>狙い目</h2><div class="aim">' + aim + '</div></div>';
+    $('rs-view').innerHTML = h;
+  }
+  $('rs-list').addEventListener('click', function(e){
+    var b = e.target.closest('[data-rs]'); if (!b) return;
+    resetSel = b.getAttribute('data-rs'); store(LS_RESET_M, resetSel);
+    renderReset(); window.scrollTo(0, 0);
+  });
+  $('rs-view').addEventListener('click', function(e){
+    if (!e.target.closest('#rs-back')) return;
+    resetSel = ''; store(LS_RESET_M, '');
+    renderReset(); window.scrollTo(0, 0);
+  });
   $('rs-q').addEventListener('input', function(){ renderReset(); });
 
   function refresh(){
@@ -2457,7 +2473,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   'use strict';
   // BUILD＝この index.html の BUILD の値を空（''）にした中身の SHA-256 の頭12字。sw.js の BUILD・version.json の build と同じ値にする
   // （2026-10-31 から。前の組み立ての道具 build.py は消えたので、この決め方にした）
-  var BUILD = 'df5c3982b913', CACHE = 'neraicho-app-v1', lastCheck = 0;
+  var BUILD = 'fabbb36d306b', CACHE = 'neraicho-app-v1', lastCheck = 0;
   if (!('serviceWorker' in navigator)) return;
   var bar = document.getElementById('app-update');
   document.body.insertBefore(bar, document.body.firstChild);   // above the page, so it never covers the machine select or tabs

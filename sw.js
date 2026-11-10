@@ -9,7 +9,7 @@
  *   消すのは自分の箱（neraicho- で始まる名前）だけ。
  * ★ 「更新する」はページから cache:'reload' で取りにくる。ここで控えを返すと古い版をまた入れてしまうので、ネットに通す。
  */
-var BUILD = 'df5c3982b913';
+var BUILD = 'fabbb36d306b';
 var CACHE = 'neraicho-app-v1';
 var PAGE = new URL('./', self.registration.scope).href;
 var STATIC = ['manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
