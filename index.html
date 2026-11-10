@@ -570,7 +570,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
       <p id="adm-err" class="err" role="alert" hidden></p>
       <div class="acts"><button type="button" id="adm-add" class="btn main">足す</button></div>
       <p class="hint">足したら、その人専用のリンクが出ます。本人に送って、iPhoneの Safari で開いてもらい、共有ボタン →「ホーム画面に追加」をしてもらってください。合言葉を打たずに開けます。</p>
-      <p class="hint">「見るだけ」の人は、狙い目だけのページで狙い目タブだけを見られます。記録は見られない・入れられない、1人あたりの人数にも入りません。リンクは狙い目だけのページのものが出ます。</p>
+      <p class="hint">「見るだけ」の人は、狙い目だけのページでリセット台とリセ後のタブだけを見られます。記録は見られない・入れられない、1人あたりの人数にも入りません。リンクは狙い目だけのページのものが出ます。</p>
     </div>
     <div id="pk" class="block" hidden>
       <h2>拾った人の名前の整理</h2>
@@ -2318,7 +2318,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
       }).join('') + '</div>';
   }
   function renderInfoMachine(m){
-    m = restOf(m);   // リセットの内容はリセット台のタブへ移した。mi/ にはリセット台がないので、この1行は写さない
+    m = restOf(m);   // リセットの内容はリセット台のタブへ移した
     var h = '<div class="if-top"><button type="button" class="btn" id="if-back">‹ 台の一覧</button><h2>' + esc(m.short) + '</h2></div>';
     // 決定67・68：見出しのすぐ下・「狙い目」の前に、徘徊で見るところ（focus）と特記（focus_x）。どちらもない台は今までどおり
     var f = infoLines(m.focus), fx = infoLines(m.focus_x);
@@ -2367,7 +2367,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
 
   /* ---------- リセット台一覧（2026-11-10 オーナー「狙い目の左に別タブで作成」）：台の情報から、リセット後の天井・ボーダー・
      徘徊の行を抜き出して台ごとに並べる。データは狙い目と同じもの（このページには書かない）で、台が足されるとここにも自動で出る。
-     徘徊の行は「リセ」を含む行と、朝イチで始まる行（「朝イチは含まない」のような行は出さない） ---------- */
+     徘徊の行は「リセ」を含む行と、朝イチで始まる行（「朝イチは含まない」のような行は出さない）。★ここから $('rs-q') の行までは mi/index.html にも写してある。直すときは2か所とも直す ---------- */
   var RESET_WORD = /リセ/, RESET_LINE = /リセ|^朝イチ/;
   // 狙い目の名前から「（リセット後・短縮）」を外す。「天井」だけになるときは「リセット後の天井」
   function resetCeil(s){
@@ -2379,7 +2379,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     return String(s).replace(/^リセット後・?|・リセット後$|（リセット後）$/g, '').replace(/^（(.*)）$/, '$1') || 'リセット後';
   }
   /* 2026-11-10 オーナー「全台の情報からリセットの内容をリセット台に移して、移した情報はリセ後から消して」：何がリセットの内容かはここで決め、
-     リセット台（resetOf）とリセ後（restOf）が同じ見分けを使う。データは変えない（狙い目だけのページ mi/ はリセット台がないので今までどおり全部出す）。
+     リセット台（resetOf）とリセ後（restOf）が同じ見分けを使う。データは変えない。
      狙い目は、名前にリセが入れば丸ごと移す。ほかの狙い目は、リセが入った行・説明だけ移して、名前と残りはリセ後に残す。
      「、」「／」でつないだ文は、リセが入った切れ端だけ移す（駆け抜け表記、リセ後170g以上 など） */
   function splitReset(s, sep, re){
@@ -2514,7 +2514,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   'use strict';
   // BUILD＝この index.html の BUILD の値を空（''）にした中身の SHA-256 の頭12字。sw.js の BUILD・version.json の build と同じ値にする
   // （2026-10-31 から。前の組み立ての道具 build.py は消えたので、この決め方にした）
-  var BUILD = '5649f27c0402', CACHE = 'neraicho-app-v1', lastCheck = 0;
+  var BUILD = 'eb72a9d598c1', CACHE = 'neraicho-app-v1', lastCheck = 0;
   if (!('serviceWorker' in navigator)) return;
   var bar = document.getElementById('app-update');
   document.body.insertBefore(bar, document.body.firstChild);   // above the page, so it never covers the machine select or tabs
