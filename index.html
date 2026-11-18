@@ -88,6 +88,11 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
 .chip:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .seg{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .seg.seg3{grid-template-columns:repeat(3,1fr)}
+/* ランキングの期間（2026-11-18 オーナー）：全部・今月・先月・3か月を1列に並べ、日付で選ぶは下の段いっぱいに */
+.seg.seg5{grid-template-columns:repeat(4,1fr)}
+.seg.seg5 label:last-of-type{grid-column:1/-1}
+.rk-days{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:6px 10px}
+.rk-days label{font-size:14px;font-weight:700;color:var(--muted)}
 .seg input{position:absolute;opacity:0;pointer-events:none}
 .seg label{text-align:center;padding:4px 6px;border:1px solid var(--line);border-radius:10px;cursor:pointer;font-size:14px;font-weight:700;line-height:1.35;background:var(--bg);user-select:none;min-height:42px;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .seg label small{display:block;font-size:11px;font-weight:400;opacity:.8}
@@ -507,6 +512,15 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     <header class="top"><div class="brand"><small>台の狙い目ごと（みんなの記録）</small><h1 id="rank-title">ランキング</h1></div></header>
     <div class="block rk-ctl">
       <select id="rk-machine" class="sel" aria-label="台をしぼる"></select>
+      <div class="seg seg5" role="radiogroup" aria-label="期間">
+        <input type="radio" name="rk-span" id="rk-all" value="all" checked><label for="rk-all">全部</label>
+        <input type="radio" name="rk-span" id="rk-m0" value="m0"><label for="rk-m0">今月</label>
+        <input type="radio" name="rk-span" id="rk-m1" value="m1"><label for="rk-m1">先月</label>
+        <input type="radio" name="rk-span" id="rk-m3" value="m3"><label for="rk-m3">3か月</label>
+        <input type="radio" name="rk-span" id="rk-day" value="day"><label for="rk-day">日付で選ぶ</label>
+      </div>
+      <div id="rk-days" class="rk-days" hidden><label for="rk-from">いつから</label><input id="rk-from" class="tin" type="date"><label for="rk-to">いつまで</label><input id="rk-to" class="tin" type="date"></div>
+      <p id="rk-span-say" class="hint" hidden></p>
       <div class="seg" role="radiogroup" aria-label="並べ方">
         <input type="radio" name="rk-sort" id="rk-avg" value="avg" checked><label for="rk-avg">1回あたりの収支</label>
         <input type="radio" name="rk-sort" id="rk-sum" value="sum"><label for="rk-sum">合計の収支</label>
@@ -1801,13 +1815,29 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     sel.innerHTML = '<option value="">すべての台</option>' + opts.map(function(o){ return '<option value="'+esc(o.key)+'">'+esc(o.label)+'</option>'; }).join('');
     sel.value = cur; if (sel.value!==cur) sel.value = '';
   }
+  /* 期間（2026-11-18 オーナー「ランキングのところ期間設定できるようにして欲しい」。全部・今月・先月・3か月・日付で選ぶ）：
+     打った日（at の日付）で絞る。最初は全部（前と同じ）。3か月は今月と前の2か月。台を選ぶ欄は期間で絞らない */
+  function rankSpan(){
+    var v = document.querySelector('input[name="rk-span"]:checked').value, m = fmtAt(new Date()).slice(0, 7);
+    if (v==='m0') return {v:v, from:m+'-01', to:m+'-31'};
+    if (v==='m1'){ var p = shiftMonth(m, -1); return {v:v, from:p+'-01', to:p+'-31'}; }
+    if (v==='m3') return {v:v, from:shiftMonth(m, -2)+'-01', to:m+'-31'};
+    if (v==='day') return {v:v, from:$('rk-from').value, to:$('rk-to').value};
+    return {v:v, from:'', to:''};
+  }
+  function inSpan(r, sp){ var d = String(r.at || '').slice(0, 10); return (!sp.from || d>=sp.from) && (!sp.to || d<=sp.to); }
+  function ymLabel(d){ return +d.slice(0, 4) + '年' + +d.slice(5, 7) + '月'; }
   function renderRank(){
     var all = recs();
     fillRankMachines(all);
-    var only = $('rk-machine').value, sort = document.querySelector('input[name="rk-sort"]:checked').value;
-    var list = groups(all, S.aims).filter(function(g){ return !only || g.mk===only; });
+    var only = $('rk-machine').value, sort = document.querySelector('input[name="rk-sort"]:checked').value, sp = rankSpan();
+    $('rk-days').hidden = sp.v!=='day';
+    $('rk-span-say').hidden = !(sp.v==='m0' || sp.v==='m1' || sp.v==='m3');
+    $('rk-span-say').textContent = sp.v==='m3' ? '期間：' + ymLabel(sp.from) + '〜' + ymLabel(sp.to) : sp.from ? '期間：' + ymLabel(sp.from) : '';
+    var list = groups(all.filter(function(r){ return inSpan(r, sp); }), S.aims).filter(function(g){ return !only || g.mk===only; });
     var el = $('rank');
-    if (!list.length){ el.innerHTML = '<div class="empty">まだ記録がありません。記録がたまると、狙い目ごとの順位が出ます。</div>'; return; }
+    if (sp.from && sp.to && sp.from>sp.to){ el.innerHTML = '<div class="empty">「いつから」の日付が「いつまで」より後になっています。</div>'; return; }
+    if (!list.length){ el.innerHTML = '<div class="empty">' + (sp.from || sp.to ? 'この期間の記録はありません。' : 'まだ記録がありません。記録がたまると、狙い目ごとの順位が出ます。') + '</div>'; return; }
     list.sort(function(a, b){
       var x = sort==='sum' ? b.yen - a.yen : b.avg - a.avg;
       return x || b.n - a.n || (a.last<b.last ? 1 : a.last>b.last ? -1 : 0);
@@ -1834,6 +1864,13 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     }).join('');
   }
   $('rk-machine').addEventListener('change', renderRank);
+  document.querySelectorAll('input[name="rk-span"]').forEach(function(x){ x.addEventListener('change', function(){
+    // 日付で選ぶを初めて押したときは、今月の1日〜今日を入れておく
+    if (x.value==='day' && !$('rk-from').value && !$('rk-to').value){ var t = fmtAt(new Date()).slice(0, 10); $('rk-from').value = t.slice(0, 8) + '01'; $('rk-to').value = t; }
+    renderRank();
+  }); });
+  $('rk-from').addEventListener('change', renderRank);
+  $('rk-to').addEventListener('change', renderRank);
   document.querySelectorAll('input[name="rk-sort"]').forEach(function(x){ x.addEventListener('change', renderRank); });
 
   /* ---------- 設定・メンバー (the 管理 person adds members and sets each one's 合言葉) ---------- */
@@ -2168,7 +2205,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   window.__neraicho = {calc:calc, norm:norm, groups:groups, monthSums:monthSums, applyQueue:applyQueue, keyFrom:keyFrom, fmtAt:fmtAt, pickList:pickList, recs:recs,
     resolvePick:resolvePick, timeLabel:timeLabel, shortDay:shortDay, hasTime:hasTime, byNewest:byNewest,
     parseFields:parseFields, fieldsText:fieldsText, detText:detText, detLabel:detLabel, detKey:detKey, aimList:aimList, resolveAim:resolveAim,
-    aimFields:aimFields, yomiKey:yomiKey, byYomi:byYomi, allMachines:allMachines, shareOf:shareOf, daySums:daySums, compactYen:compactYen};
+    aimFields:aimFields, yomiKey:yomiKey, byYomi:byYomi, allMachines:allMachines, shareOf:shareOf, daySums:daySums, compactYen:compactYen, inSpan:inSpan};
 
   /* ---------- start ---------- */
   if (!canStore) $('no-store').hidden = false;
@@ -2198,7 +2235,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   'use strict';
   // BUILD＝この index.html の BUILD の値を空（''）にした中身の SHA-256 の頭12字。sw.js の BUILD・version.json の build と同じ値にする
   // （2026-10-31 から。前の組み立ての道具 build.py は消えたので、この決め方にした）
-  var BUILD = 'e8815349b311', CACHE = 'neraicho-app-v1', lastCheck = 0;
+  var BUILD = '5510538d9119', CACHE = 'neraicho-app-v1', lastCheck = 0;
   if (!('serviceWorker' in navigator)) return;
   var bar = document.getElementById('app-update');
   document.body.insertBefore(bar, document.body.firstChild);   // above the page, so it never covers the machine select or tabs
