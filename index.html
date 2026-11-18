@@ -1096,7 +1096,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   function aimAliasOf(key, aim, aims){ var k = norm(aim); for (var i=0; i<(aims || []).length; i++){ var a = aims[i]; if (a.k===key && a.to && norm(a.aim)===k) return a.to; } return null; }
   // a 台 whose 狙い目 go in the order the owner wrote (owner 2026-11-18 「ゴッド＝並びを修正したい」, 「ゴッドだけ決めた順」); the rest of that 台's come after
   var AIM_ORDER = {million_god: ['引き戻し', '設定', 'リセ', '赤７後', '天井後', '単発後通常', '単発後通常以外', '2連後通常', '2連後通常以外',
-    '3連後通常', '3連後通常以外', '4連後通常', '4連後通常以外', '有利区間切断狙い']};
+    '3連後通常', '3連後通常以外', '有利区間切断狙い']};
   // the 狙い目 of one 台: the sheet's list and the records' (a merged one counts as where it went); most played first
   function aimList(key, all, aims){
     var by = {}, list = [], order = (AIM_ORDER.hasOwnProperty(key) ? AIM_ORDER[key] : []).map(norm);
@@ -2270,7 +2270,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   'use strict';
   // BUILD＝この index.html の BUILD の値を空（''）にした中身の SHA-256 の頭12字。sw.js の BUILD・version.json の build と同じ値にする
   // （2026-10-31 から。前の組み立ての道具 build.py は消えたので、この決め方にした）
-  var BUILD = 'c76e2548f8aa', CACHE = 'neraicho-app-v1', lastCheck = 0;
+  var BUILD = 'eff8d8a1af3c', CACHE = 'neraicho-app-v1', lastCheck = 0;
   if (!('serviceWorker' in navigator)) return;
   var bar = document.getElementById('app-update');
   document.body.insertBefore(bar, document.body.firstChild);   // above the page, so it never covers the machine select or tabs
