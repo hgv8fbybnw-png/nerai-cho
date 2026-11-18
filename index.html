@@ -353,12 +353,12 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
 
 /* bottom bar + toast */
 .dock{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);z-index:5}
-.nav{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(7,1fr);padding:0 4px env(safe-area-inset-bottom, 0px)}
+.nav{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);padding:0 4px env(safe-area-inset-bottom, 0px)}
 /* タブが7つなので、幅320でも字を短くせず入るように、字の大きさを画面の幅で合わせる（決定116） */
 .nav button{font:inherit;font-size:clamp(9px,2.9vw,11px);font-weight:700;line-height:1.2;border:0;background:transparent;color:var(--muted);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:54px;padding:6px 1px;touch-action:manipulation;white-space:nowrap;min-width:0}
 .nav button svg{width:24px;height:24px}
 /* 切り替え中は「記録する」を出さないので、6つで並べる（決定111・116） */
-.nav.six{grid-template-columns:repeat(6,1fr)}
+.nav.four{grid-template-columns:repeat(4,1fr)}
 .nav button[aria-current="page"]{color:var(--accent)}
 .nav button:focus-visible{outline:3px solid var(--accent);outline-offset:-3px;border-radius:10px}
 .toast{position:fixed;left:16px;right:16px;bottom:calc(66px + env(safe-area-inset-bottom, 0px));max-width:528px;margin:0 auto;z-index:6;display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--ink);color:var(--bg);border-radius:12px;padding:6px 6px 6px 14px;font-size:14px;font-weight:700}
@@ -516,35 +516,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     <div id="rank" class="list"></div>
   </section>
 
-  <!-- 狙い目（台ごとの天井・打ち始めの線） -->
-  <!-- ★決定70（2026-10-31）：この section は、狙い目だけのページ（mi/index.html）にも同じものを写してある。直すときは2か所とも直す -->
-  <!-- リセット台一覧（2026-11-10 オーナー）：中身は合言葉が合った人にだけ渡すデータから出す。ここには書かない -->
-  <section id="view-reset" class="view" aria-labelledby="reset-title" hidden>
-    <header class="top"><div class="brand"><small>リセット後の天井・ボーダー</small><h1 id="reset-title">リセット台一覧</h1></div></header>
-    <div id="rs-pick" class="view">
-      <div id="rs-common" class="block if-common" hidden></div>
-      <div class="block">
-        <input id="rs-q" class="tin" type="search" autocomplete="off" placeholder="台の名前で探す（ひらがなでも）" aria-label="台の名前で探す">
-      </div>
-      <p id="rs-state" class="empty" hidden></p>
-      <div id="rs-list" class="if-list"></div>
-    </div>
-    <div id="rs-view" class="view" hidden></div>
-  </section>
-
-  <section id="view-info" class="view" aria-labelledby="info-title" hidden>
-    <header class="top"><div class="brand"><small>台ごとの天井・ゾーン・pt</small><h1 id="info-title">リセ後</h1></div></header>
-    <div id="if-pick" class="view">
-      <!-- 全台共通（決定67・68）と、その下の用語集のボタン（決定69）：中身は合言葉が合った人にだけ渡すデータから出す。ここには書かない -->
-      <div id="if-common" class="block if-common" hidden></div>
-      <div class="block">
-        <input id="if-q" class="tin" type="search" autocomplete="off" placeholder="台の名前で探す（ひらがなでも）" aria-label="台の名前で探す">
-      </div>
-      <p id="if-state" class="empty" hidden></p>
-      <div id="if-list" class="if-list"></div>
-    </div>
-    <div id="if-view" class="view" hidden></div>
-  </section>
+  <!-- リセット台・リセ後のタブは 2026-11-18 オーナーの頼みで消した。狙い目は狙い目だけのページ（mi/）にだけ残る -->
 
   <!-- 設定 -->
   <section id="view-set" class="view" aria-labelledby="set-title" hidden>
@@ -588,15 +560,6 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
 
 <div class="dock" id="dock" hidden>
   <nav class="nav" aria-label="画面の切り替え">
-    <!-- リセット台は狙い目の左（2026-11-10 オーナー「狙い目の左に別タブで作成」）。その次の狙い目は 2026-10-24 ユーザー「1番左に」。狙い目のタブの名前は 2026-11-10 オーナーの頼みで「リセ後」 -->
-    <button type="button" data-view="reset">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 1 0 2.4-5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6.5 2.8v4h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      <span>リセット台</span>
-    </button>
-    <button type="button" data-view="info">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 1.5v4M12 18.5v4M1.5 12h4M18.5 12h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      <span>リセ後</span>
-    </button>
     <button type="button" data-view="rec">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M13 7l4 4" fill="none" stroke="currentColor" stroke-width="2"/></svg>
       <span>記録する</span>
@@ -695,8 +658,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   (function(){
     var c = loadJSON(LS_CACHE, null);
     if (c && Array.isArray(c.records)){ S.me = c.me || null; S.members = c.members || []; S.picks = c.picks || []; S.aliases = c.aliases || []; S.aims = c.aims || []; S.machines = c.machines || []; S.recs = c.records; S.infoVer = c.infoVer || ''; S.view = c.view || null; }
-    var inf = loadJSON(LS_INFO, null);
-    if (inf && inf.ver && Array.isArray(inf.machines)) S.info = inf;
+    try { localStorage.removeItem(LS_INFO); } catch(e){}   // 台の情報はもう使わない（前の版の控えを消す）
     var q = loadJSON(LS_QUEUE, []);
     S.queue = Array.isArray(q) ? q : [];
   })();
@@ -784,7 +746,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
       if (at!==gNow()){ status(); return; }   // 頼んだあとに切り替えの答えが入った。別のグループの答えなので入れない
       if (r.ok){
         takeAll(r);
-        saveCache(); refresh(); flush(); loadInfo();
+        saveCache(); refresh(); flush();
         return;
       }
       if (r.鍵ちがい) return lockOut('合言葉が変わったか、止められています。管理の人に確かめてください。');
@@ -913,7 +875,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   });
 
   /* ---------- screen switch ---------- */
-  var view = 'rec', VIEWS = ['key', 'rec', 'list', 'month', 'rank', 'reset', 'info', 'set'];
+  var view = 'rec', VIEWS = ['key', 'rec', 'list', 'month', 'rank', 'set'];
   function show(v){
     if (v==='rec' && G && !editing) v = 'list';   // 切り替え中は足す・打つを出さない（直すだけ開ける）
     view = v;
@@ -927,8 +889,6 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     if (v==='list') renderList();
     if (v==='month') renderMonth();
     if (v==='rank') renderRank();
-    if (v==='reset') renderReset();
-    if (v==='info') renderInfo();
     if (v==='set') renderSet(true);
     renderGroupBar(); renderStuck(); renderReadFail();
     window.scrollTo(0, 0);
@@ -945,7 +905,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     var box = $('grp'), list = S.groups || [], on = !!(S.me && S.me.admin && list.length>1 && view!=='key');
     box.hidden = !on;
     var nav = document.querySelector('.nav'), rec = nav.querySelector('button[data-view="rec"]');
-    rec.hidden = !!G; nav.classList.toggle('six', !!G);
+    rec.hidden = !!G; nav.classList.toggle('four', !!G);
     if (!on) return;
     var sel = $('grp-sel'), sig = JSON.stringify(list), cur = G ? String(G.id) : String(S.me.group);
     if (sig!==grpSig){ grpSig = sig; sel.innerHTML = list.map(function(x){ return '<option value="'+esc(x.id)+'">'+esc(groupLabel(x))+'</option>'; }).join(''); }
@@ -2194,281 +2154,6 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   $('set-reload').addEventListener('click', function(){ reload(); renderSet(true); toast('読み込み直しています'); });
   $('set-switch').addEventListener('click', function(){ lockOut(''); });
 
-  /* ★決定70（2026-10-31）：ここから「$('if-q')」の行までは、狙い目だけのページ（mi/index.html）にも写してある（loadInfo だけは mi/ に合わせて
-     書きかえた。all を使えないので、控えの版を have で送る）。台の出し方・全台共通・用語集を直すときは、2か所とも直す。
-     ほかに mi/ へ文字のまま写した所（一覧は mi/index.html のいちばん上）：CSS の :root〜.warn・.field〜.tin:focus・.acts〜.err・.tag・.empty・
-     .app-update の2行／JS の API・$〜canStore・norm・hira・SMALL・yomiKey・call・keyFrom・いちばん下の「更新する」の作り */
-  /* ---------- 狙い目（2026-10-24 ユーザー「この記録ツールに狙い目タブの追加をしたい。狙い目は台ごとの天井情報（リセット、
-     上位CZ失敗などの特殊天井短縮条件含む）ゾーン狙い pt狙い」） ----------
-     The content is 鬣犬's per-machine data (built from the team's notes), so it is NOT in this public page: the sheet
-     hands it only to a member (action "info"), and "all" carries just its version (infoVer). The phone keeps a copy
-     (LS_INFO, so it also opens with no signal in the hall) and fetches it again only when the version changes.
-     A machine: {id, name, short, yomi, ceil:[[name, val, gets, sub, src]], cond:[[when, ceil, src]],
-     groups:[{t, u, src, rows:[{l, c (現金・非等価の線), m (持ちメダル・等価の線), n (unit when not G), e (やめる所), x (no number),
-     see, memo, src, am (朝)}]}], others:[[name, text, src]], yame, terms:[[word, meaning]]} — made by make_info.py */
-  var infoBusy = false, infoErr = '', infoSel = load(LS_INFO_M) || '';
-  function drawInfo(){ if (view==='info') renderInfo(); if (view==='reset') renderReset(); }
-  function loadInfo(){
-    if (infoBusy || !S.key || !S.infoVer || (S.info && S.info.ver===S.infoVer)) return;
-    infoBusy = true; infoErr = '';
-    drawInfo();
-    call('info', {}, 60000).then(function(r){
-      infoBusy = false;
-      if (r.ok && Array.isArray(r.machines)){
-        S.info = {ver:r.ver, machines:r.machines};
-        store(LS_INFO, JSON.stringify(S.info));
-      } else if (r.鍵ちがい){
-        return lockOut('合言葉が変わったか、止められています。管理の人に確かめてください。');
-      } else infoErr = r.error || 'とれませんでした';
-      drawInfo();
-    }, function(){ infoBusy = false; infoErr = 'つながりません'; drawInfo(); });
-  }
-  // the opening line, as the notes write it: 231G〜 / 9pt〜; no line = —
-  function infoLine(v, n){ return v==null ? '' : v + (n==null ? 'G' : n) + '〜'; }
-  // the 50音 row a machine is listed under (its よみ without dakuten): あ, か, さ … or その他
-  var KANA_ROWS = ['あいうえお', 'かきくけこ', 'さしすせそ', 'たちつてと', 'なにぬねの', 'はひふへほ', 'まみむめも', 'やゆよ', 'らりるれろ', 'わをん'];
-  function kanaRow(yomi){
-    var c = yomiKey(yomi)[0].charAt(0);
-    for (var i=0; i<KANA_ROWS.length; i++) if (KANA_ROWS[i].indexOf(c)>=0) return KANA_ROWS[i].charAt(0) + '行';
-    return 'その他';
-  }
-  // search by the name as written or by its reading; katakana and hiragana, full and half width all match
-  function infoFind(list, q){
-    var k = norm(hira(q));
-    if (!k) return list;
-    return list.filter(function(m){ return norm(hira(m.name)).indexOf(k)>=0 || norm(hira(m.short)).indexOf(k)>=0 || norm(hira(m.yomi)).indexOf(k)>=0; });
-  }
-  /* 決定67・68（2026-10-31）：台の配列の先頭に、特別な台「全台共通」（id が _common）が来る。一覧の台にも検索の結果にも出さず、
-     一覧のいちばん上の枠に、その common（[{h 見出し, t [行]}]）を出す。出どころ（src）は画面に出さない。
-     1台ごとの focus（徘徊で見るところ）・focus_x（特記）は文字の配列、dim が true の台は狙わない台（一覧で薄い色）。
-     中身はデータから出すだけ（このページには書かない）。新しい欄がない古い形のデータでも、今までどおりに出る */
-  var INFO_COMMON = '_common';
-  // 文字の配列として読む（空の行は出さない）
-  function infoLines(v){ return (Array.isArray(v) ? v : v==null ? [] : [v]).filter(function(s){ return s!=null && String(s).trim()!==''; }); }
-  function infoMachines(){ return S.info ? S.info.machines.filter(function(m){ return m && m.id!==INFO_COMMON; }) : []; }
-  function infoCommonMachine(){
-    var ms = S.info ? S.info.machines : [];
-    for (var i=0; i<ms.length; i++) if (ms[i] && ms[i].id===INFO_COMMON) return ms[i];
-    return null;
-  }
-  function infoCommon(){
-    var c = infoCommonMachine();
-    return c ? (Array.isArray(c.common) ? c.common : []).filter(function(g){ return g && (g.h || infoLines(g.t).length); }) : [];
-  }
-  /* 決定69（2026-10-31）：全台共通の台に terms（用語集。[{w 言葉, d [説明の行], src 出どころ}]）が来る。common の項目に go（押すと
-     飛ぶ言葉）があり、用語集にその言葉があれば、その項目は押せる1行（見出し：行 ›）にして、押すと用語集の画面のその言葉の所へ飛ぶ。
-     枠の下に「用語集 ›」のボタン。用語集の画面は台の画面と同じ作り（「‹ 台の一覧」で戻る）。出どころ（src）は画面に出さない。
-     terms がない古い形のデータでは、ボタンも押せる行も出さず、今までどおりに出る。中身はデータから出すだけ（このページには書かない） */
-  var INFO_TERMS = '_terms';   // 用語集を開いているときの infoSel（台の id とは重ならない）
-  function infoTerms(){
-    var c = infoCommonMachine();
-    return (c && Array.isArray(c.terms) ? c.terms : []).filter(function(t){ return t && t.w!=null && String(t.w).trim()!==''; });
-  }
-  function termIndex(tm, w){ for (var i=0; i<tm.length; i++) if (tm[i].w===w) return i; return -1; }
-  function lineList(a){ return '<ul class="fl">' + a.map(function(s){ return '<li>' + esc(s) + '</li>'; }).join('') + '</ul>'; }
-  function infoMachine(id){
-    var ms = infoMachines();
-    for (var i=0; i<ms.length; i++) if (ms[i].id===id) return ms[i];
-    return null;
-  }
-  function renderInfo(){
-    var tm = infoTerms(), terms = infoSel===INFO_TERMS && tm.length>0;
-    var m = terms ? null : infoMachine(infoSel);
-    $('if-pick').hidden = !!m || terms; $('if-view').hidden = !m && !terms;
-    if (terms) return renderInfoTerms(tm);
-    if (m) return renderInfoMachine(m);
-    var st = $('if-state'), list = $('if-list'), cm = $('if-common'), cg = commonRest();
-    cm.hidden = !cg.length && !tm.length;
-    cm.innerHTML = cm.hidden ? '' : '<h2>全台共通</h2>' + cg.map(function(g){
-      var t = infoLines(g.t);
-      if (g.go!=null && termIndex(tm, g.go)>=0)   // 決定69：押すと用語集のその言葉へ
-        return '<button type="button" class="cm-go" data-go="' + esc(g.go) + '"><span>' + (g.h ? '<b>' + esc(g.h) + '</b>：' : '')
-          + t.map(esc).join('<br>') + '</span><i aria-hidden="true">›</i></button>';
-      return '<div class="cm-g">' + (g.h ? '<h3>' + esc(g.h) + '</h3>' : '') + (t.length ? lineList(t) : '') + '</div>';
-    }).join('') + (tm.length ? '<button type="button" class="btn" id="if-terms-open">用語集 ›</button>' : '');
-    if (!S.info){
-      st.hidden = false; list.innerHTML = '';
-      st.textContent = infoBusy ? '読みこみ中です（はじめてのときは少しかかります）'
-        : !S.infoVer ? (S.loading ? '読みこみ中です' : '狙い目の中身がまだありません。電波のある所で開き直してください')
-        : '狙い目の中身がとれませんでした（' + (infoErr || 'つながりません') + '）。電波のある所で開き直してください';
-      return;
-    }
-    var found = infoFind(infoMachines(), $('if-q').value), row = '', h = '';
-    st.hidden = found.length>0; st.textContent = 'その名前の台は入っていません';
-    found.forEach(function(x){
-      var r = kanaRow(x.yomi);
-      if (r!==row){ row = r; h += '<div class="if-kana">' + esc(r) + '</div>'; }
-      h += '<button type="button" class="if-m' + (x.dim===true ? ' dim' : '') + '" data-im="' + esc(x.id) + '">' + esc(x.short) + '</button>';
-    });
-    list.innerHTML = h;
-  }
-  /* 2026-10-24 ユーザー「狙い目っていうのは天井1000gとか100ゾーンとかCZ7スルーとかグールpt9-12ptとかそれが狙い目で、
-     今狙い目で書いてくれているのは狙い目に対してのボーダーね」「その狙い目を見ながら徘徊して考えながらエナできるように」
-     「短くなる時▶︎リセット時、上位AT後、浮世絵雨以上 こんな感じでまとめて」「他に天井が変わる時の情報をなくして」：
-     台の画面は「狙い目」の並び。狙い目ごとに 値・ひとこと（見出し▶︎文）・ボーダー（現金／持ちメダル）。
-     その前の「細かい文字全部いらない」も守る（説明・出どころの印は出さない。推測の線だけ小さく「推測」） */
-  function guessTag(s){ return /推測/.test(s || '') ? '<span class="src">推測</span>' : ''; }
-  // the borders of one 狙い目 as a small table: name | 現金 | 持ちメダル, one line each (many fit on a phone in the hall)
-  function borderTable(rows){
-    function cell(v, n){ return v==null ? '<b class="none">線なし</b>' : '<b>' + esc(infoLine(v, n)) + '</b>'; }
-    return '<div class="bd"><span class="bd-h">ボーダー</span><span class="bd-h">現金</span><span class="bd-h">持ちメダル</span>'
-      + rows.map(function(r){
-        return '<span class="bd-l">' + esc(r.l) + (r.am ? '<span class="tag">朝</span>' : '') + guessTag(r.src) + (r.e ? '<i>' + esc(r.e) + '</i>' : '') + '</span>'
-          + (r.x ? '<b class="none">—</b><b class="none">—</b>' : cell(r.c, r.n) + cell(r.m, r.n));
-      }).join('') + '</div>';
-  }
-  function renderInfoMachine(m){
-    m = restOf(m);   // リセットの内容はリセット台のタブへ移した
-    var h = '<div class="if-top"><button type="button" class="btn" id="if-back">‹ 台の一覧</button><h2>' + esc(m.short) + '</h2></div>';
-    // 決定67・68：見出しのすぐ下・「狙い目」の前に、徘徊で見るところ（focus）と特記（focus_x）。どちらもない台は今までどおり
-    var f = infoLines(m.focus), fx = infoLines(m.focus_x);
-    if (f.length) h += '<div class="if-focus"><h3>徘徊で見るところ</h3>' + lineList(f) + '</div>';
-    if (fx.length) h += '<div class="if-focus x"><h3>特記</h3>' + lineList(fx) + '</div>';
-    if (!m.nerai){   // the phone still holds the content of the version before the 狙い目 rewrite
-      $('if-view').innerHTML = h + '<p class="empty">新しい中身を読みこみ中です。電波のある所で開き直してください。</p>';
-      return;
-    }
-    h += '<div class="block"><h2>狙い目</h2>' + m.nerai.map(function(a){
-      return '<div class="aim"><div class="aim-h"><b>' + esc(a.name) + '</b>' + (a.val ? '<span>' + esc(a.val) + '</span>' : '') + '</div>'
-        + a.notes.map(function(n){ return '<p class="aim-n"><b>' + esc(n[0]) + '▶︎</b>' + esc(n[1]) + '</p>'; }).join('')
-        + (a.rows.length ? borderTable(a.rows) : '')
-        + '</div>';
-    }).join('') + '</div>';
-    $('if-view').innerHTML = h;
-  }
-  // 決定69：用語集の画面（台の画面と同じ作り）。言葉を太字の見出しに、その下に説明の行
-  function renderInfoTerms(tm){
-    $('if-view').innerHTML = '<div class="if-top"><button type="button" class="btn" id="if-back">‹ 台の一覧</button><h2>用語集</h2></div>'
-      + '<div class="block if-terms">' + tm.map(function(t, i){
-        return '<div class="tm" id="if-tm-' + i + '"><h3>' + esc(t.w) + '</h3>'
-          + infoLines(t.d).map(function(s){ return '<p>' + esc(s) + '</p>'; }).join('') + '</div>';
-      }).join('') + '</div>';
-  }
-  // 決定69：全台共通の枠の押せる行（go）→ 用語集のその言葉の所へ／「用語集 ›」→ 用語集のいちばん上へ
-  $('if-common').addEventListener('click', function(e){
-    var g = e.target.closest('[data-go]');
-    if (!g && !e.target.closest('#if-terms-open')) return;
-    infoSel = INFO_TERMS; store(LS_INFO_M, infoSel);
-    renderInfo();
-    var i = g ? termIndex(infoTerms(), g.getAttribute('data-go')) : -1, el = i>=0 ? $('if-tm-' + i) : null;
-    if (el) el.scrollIntoView({block:'start'}); else window.scrollTo(0, 0);
-  });
-  $('if-list').addEventListener('click', function(e){
-    var b = e.target.closest('[data-im]'); if (!b) return;
-    infoSel = b.getAttribute('data-im'); store(LS_INFO_M, infoSel);
-    renderInfo(); window.scrollTo(0, 0);
-  });
-  $('if-view').addEventListener('click', function(e){
-    if (!e.target.closest('#if-back')) return;
-    infoSel = ''; store(LS_INFO_M, '');
-    renderInfo(); window.scrollTo(0, 0);
-  });
-  $('if-q').addEventListener('input', function(){ renderInfo(); });
-
-  /* ---------- リセット台一覧（2026-11-10 オーナー「狙い目の左に別タブで作成」）：台の情報から、リセット後の天井・ボーダー・
-     徘徊の行を抜き出して台ごとに並べる。データは狙い目と同じもの（このページには書かない）で、台が足されるとここにも自動で出る。
-     徘徊の行は「リセ」を含む行と、朝イチで始まる行（「朝イチは含まない」のような行は出さない）。★ここから $('rs-q') の行までは mi/index.html にも写してある。直すときは2か所とも直す ---------- */
-  var RESET_WORD = /リセ/, RESET_LINE = /リセ|^朝イチ/;
-  // 狙い目の名前から「（リセット後・短縮）」を外す。「天井」だけになるときは「リセット後の天井」
-  function resetCeil(s){
-    var t = String(s).replace('（リセット後・短縮）', '').replace('・短縮）', '）');
-    return t==='天井' ? 'リセット後の天井' : t;
-  }
-  // ボーダーの行の名前から「リセット後」を外す（0スルー など）。何も残らないときは「リセット後」
-  function resetRow(s){
-    return String(s).replace(/^リセット後・?|・リセット後$|（リセット後）$/g, '').replace(/^（(.*)）$/, '$1') || 'リセット後';
-  }
-  /* 2026-11-10 オーナー「全台の情報からリセットの内容をリセット台に移して、移した情報はリセ後から消して」：何がリセットの内容かはここで決め、
-     リセット台（resetOf）とリセ後（restOf）が同じ見分けを使う。データは変えない。
-     狙い目は、名前にリセが入れば丸ごと移す。ほかの狙い目は、リセが入った行・説明だけ移して、名前と残りはリセ後に残す。
-     「、」「／」でつないだ文は、リセが入った切れ端だけ移す（駆け抜け表記、リセ後170g以上 など） */
-  function splitReset(s, sep, re){
-    var p = String(s).split(sep);
-    return {reset:p.filter(function(x){ return re.test(x); }).join(sep), rest:p.filter(function(x){ return !re.test(x); }).join(sep)};
-  }
-  function splitNote(n){
-    if (RESET_WORD.test(n[0])) return {reset:n, rest:null};
-    var t = splitReset(n[1], '、', RESET_WORD);
-    return {reset:t.reset ? [n[0], t.reset] : null, rest:t.rest ? [n[0], t.rest] : null};
-  }
-  // head＝リセット台に出す見出しと説明、rows＝リセット台に出す行、rest＝リセ後に残す狙い目（丸ごと移すときは null）
-  function splitAim(a){
-    var rows = a.rows || [], notes = a.notes || [];
-    if (RESET_WORD.test(a.name)) return {head:{name:a.name, val:a.val, notes:notes}, rows:rows, rest:null};
-    var ns = notes.map(splitNote), v = splitReset(a.val==null ? '' : a.val, '／', RESET_WORD);
-    var rn = ns.map(function(x){ return x.reset; }).filter(Boolean);
-    return {head:rn.length || v.reset ? {name:a.name, val:v.reset || a.val, notes:rn} : null,
-      rows:rows.filter(function(r){ return RESET_WORD.test(r.l); }),
-      rest:Object.assign({}, a, {val:v.rest, notes:ns.map(function(x){ return x.rest; }).filter(Boolean), rows:rows.filter(function(r){ return !RESET_WORD.test(r.l); })})};
-  }
-  function resetOf(m){
-    var ceil = [], rows = [];
-    (m.nerai || []).forEach(function(a){
-      var d = splitAim(a);
-      if (d.head) ceil.push(d.head);
-      d.rows.forEach(function(r){ rows.push(Object.assign({}, r, {l:resetRow(r.l), am:0})); });
-    });
-    return {ceil:ceil, rows:rows, lines:infoLines(m.focus).concat(infoLines(m.focus_x)).map(function(s){ return splitReset(s, '、', RESET_LINE).reset; }).filter(Boolean)};
-  }
-  function restOf(m){
-    function left(v){ return infoLines(v).map(function(s){ return splitReset(s, '、', RESET_LINE).rest; }).filter(Boolean); }
-    return Object.assign({}, m, {focus:left(m.focus), focus_x:left(m.focus_x), nerai:m.nerai && m.nerai.map(function(a){ return splitAim(a).rest; }).filter(Boolean)});
-  }
-  // 全台共通の枠の行も同じ。リセの行はリセット台の一覧の上に出し、行がなくなった見出しはリセ後に出さない
-  function commonRest(){
-    return infoCommon().map(function(g){
-      var t = infoLines(g.t), l = t.filter(function(s){ return !RESET_LINE.test(s); });
-      return l.length===t.length ? g : l.length ? Object.assign({}, g, {t:l}) : null;
-    }).filter(Boolean);
-  }
-  function commonReset(){ return infoCommon().reduce(function(a, g){ return a.concat(infoLines(g.t).filter(function(s){ return RESET_LINE.test(s); })); }, []); }
-  /* 2026-11-10 オーナー「スクロールしないと探せなく…狙い目と同じように設計して」：一覧は狙い目と同じ台の名前のボタンで、押すとその台の画面。
-     一覧に出るのはリセットの情報がある台だけ。開いている台はスマホに覚える（狙い目と同じ） */
-  var LS_RESET_M = 'neraicho.resetMachine', resetSel = load(LS_RESET_M) || '';
-  function resetMachines(){ return infoMachines().filter(function(m){ var d = resetOf(m); return d.ceil.length || d.rows.length || d.lines.length; }); }
-  function renderReset(){
-    var ms = resetMachines(), m = ms.filter(function(x){ return x.id===resetSel; })[0];
-    $('reset-title').textContent = 'リセット台一覧' + (ms.length ? '（' + ms.length + '台）' : '');
-    $('rs-pick').hidden = !!m; $('rs-view').hidden = !m;
-    if (m) return renderResetMachine(m);
-    var st = $('rs-state'), list = $('rs-list'), cm = $('rs-common'), cr = commonReset();
-    cm.hidden = !cr.length;
-    cm.innerHTML = cm.hidden ? '' : '<h2>全台共通</h2><div class="cm-g">' + lineList(cr) + '</div>';
-    if (!S.info){
-      st.hidden = false; list.innerHTML = '';
-      st.textContent = infoBusy ? '読みこみ中です（はじめてのときは少しかかります）' : '狙い目の中身がとれませんでした。電波のある所で開き直してください';
-      return;
-    }
-    var found = infoFind(ms, $('rs-q').value), row = '', h = '';
-    st.hidden = found.length>0; st.textContent = 'その名前の台は入っていません';
-    found.forEach(function(x){
-      var r = kanaRow(x.yomi);
-      if (r!==row){ row = r; h += '<div class="if-kana">' + esc(r) + '</div>'; }
-      h += '<button type="button" class="if-m' + (x.dim===true ? ' dim' : '') + '" data-rs="' + esc(x.id) + '">' + esc(x.short) + '</button>';
-    });
-    list.innerHTML = h;
-  }
-  function renderResetMachine(m){
-    var d = resetOf(m), h = '<div class="if-top"><button type="button" class="btn" id="rs-back">‹ 台の一覧</button><h2>' + esc(m.short) + '</h2></div>';
-    if (d.lines.length) h += '<div class="if-focus"><h3>徘徊で見るところ</h3>' + lineList(d.lines) + '</div>';
-    var aim = d.ceil.map(function(a){ return '<div class="aim-h"><b>' + esc(resetCeil(a.name)) + '</b>' + (a.val ? '<span>' + esc(a.val) + '</span>' : '') + '</div>'
-      + a.notes.map(function(n){ return '<p class="aim-n"><b>' + esc(n[0]) + '▶︎</b>' + esc(n[1]) + '</p>'; }).join(''); }).join('')
-      + (d.rows.length ? borderTable(d.rows) : d.lines.length ? '' : '<p class="rs-none">ボーダーの数字はまだなし</p>');
-    if (aim) h += '<div class="block"><h2>狙い目</h2><div class="aim">' + aim + '</div></div>';
-    $('rs-view').innerHTML = h;
-  }
-  $('rs-list').addEventListener('click', function(e){
-    var b = e.target.closest('[data-rs]'); if (!b) return;
-    resetSel = b.getAttribute('data-rs'); store(LS_RESET_M, resetSel);
-    renderReset(); window.scrollTo(0, 0);
-  });
-  $('rs-view').addEventListener('click', function(e){
-    if (!e.target.closest('#rs-back')) return;
-    resetSel = ''; store(LS_RESET_M, '');
-    renderReset(); window.scrollTo(0, 0);
-  });
-  $('rs-q').addEventListener('input', function(){ renderReset(); });
-
   function refresh(){
     status(); renderOld(); renderGroupBar(); renderStuck(); renderReadFail();
     if (!editing) fillMachines();
@@ -2483,8 +2168,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   window.__neraicho = {calc:calc, norm:norm, groups:groups, monthSums:monthSums, applyQueue:applyQueue, keyFrom:keyFrom, fmtAt:fmtAt, pickList:pickList, recs:recs,
     resolvePick:resolvePick, timeLabel:timeLabel, shortDay:shortDay, hasTime:hasTime, byNewest:byNewest,
     parseFields:parseFields, fieldsText:fieldsText, detText:detText, detLabel:detLabel, detKey:detKey, aimList:aimList, resolveAim:resolveAim,
-    aimFields:aimFields, yomiKey:yomiKey, byYomi:byYomi, allMachines:allMachines, shareOf:shareOf, daySums:daySums, compactYen:compactYen,
-    infoLine:infoLine, kanaRow:kanaRow, infoFind:infoFind};
+    aimFields:aimFields, yomiKey:yomiKey, byYomi:byYomi, allMachines:allMachines, shareOf:shareOf, daySums:daySums, compactYen:compactYen};
 
   /* ---------- start ---------- */
   if (!canStore) $('no-store').hidden = false;
@@ -2514,7 +2198,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   'use strict';
   // BUILD＝この index.html の BUILD の値を空（''）にした中身の SHA-256 の頭12字。sw.js の BUILD・version.json の build と同じ値にする
   // （2026-10-31 から。前の組み立ての道具 build.py は消えたので、この決め方にした）
-  var BUILD = 'eb72a9d598c1', CACHE = 'neraicho-app-v1', lastCheck = 0;
+  var BUILD = 'e8815349b311', CACHE = 'neraicho-app-v1', lastCheck = 0;
   if (!('serviceWorker' in navigator)) return;
   var bar = document.getElementById('app-update');
   document.body.insertBefore(bar, document.body.firstChild);   // above the page, so it never covers the machine select or tabs
