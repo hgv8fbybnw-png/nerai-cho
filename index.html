@@ -84,6 +84,8 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
 .chips-h{font-size:12px;color:var(--muted);font-weight:700}
 .chip{font:inherit;font-size:14px;font-weight:700;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:6px 12px;min-height:38px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;touch-action:manipulation}
 .chip small{font-weight:400;color:var(--muted);margin-left:5px}
+.mhits{margin:2px 0 4px}
+.mhits .hint{align-self:center}
 .chip[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
 .chip:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .seg{display:grid;grid-template-columns:1fr 1fr;gap:6px}
@@ -414,6 +416,8 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     <div class="block">
       <div class="field">
         <label for="f-machine">台</label>
+        <input id="f-mq" class="tin" type="search" maxlength="40" placeholder="台の名前で探す（ひらがなでも）" autocomplete="off" aria-label="台の名前で探す">
+        <div id="f-mhits" class="chips mhits" hidden></div>
         <select id="f-machine" class="sel"></select>
         <div id="f-new-machine" class="mem-edit" hidden>
           <input id="f-custom" class="tin" type="text" maxlength="40" placeholder="台の名前" autocomplete="off" aria-label="新しい台の名前">
@@ -1352,17 +1356,44 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     $(id).addEventListener('change', update);
   });
   $('f-machine').addEventListener('change', function(){ if ($('f-machine').value==='+') $('f-custom').focus(); });
+  /* 台を名前で探す（2026-11-18 オーナー「台を選ぶだと時間がかかるので検索して見つけられるようにして欲しい」）：打った字が名前かよみに入っている台を
+     ボタンで出し、押すとその台を選ぶ（下の選ぶ欄でも今までどおり選べる）。ひらがな・カタカナ・濁点・小さい字・全角半角の違いは同じとみなす。
+     名前の頭から合う台を先に出す。見つからないときだけ、打った名前で新しい台を入れるボタンを出す（同じ台が別の名前で増えないように） */
+  function machineHits(q){
+    var qn = norm(q), qy = yomiKey(q)[0];
+    if (!qn) return [];
+    return allMachines().map(function(m){
+      var at = [norm(m.label).indexOf(qn), qy ? yomiKey(m.yomi)[0].indexOf(qy) : -1, qy ? yomiKey(m.label)[0].indexOf(qy) : -1]
+        .reduce(function(a, i){ return i<0 ? a : Math.min(a, i); }, 999);
+      return {m:m, at:at};
+    }).filter(function(x){ return x.at<999; }).sort(function(a, b){ return (a.at>0) - (b.at>0); }).slice(0, 12).map(function(x){ return x.m; });
+  }
+  function renderMachineHits(){
+    var q = $('f-mq').value.trim(), box = $('f-mhits'), hits = machineHits(q);
+    box.hidden = !q;
+    box.innerHTML = !q ? '' : hits.length ? hits.map(function(m){ return '<button type="button" class="chip" data-mkey="'+esc(m.key)+'">'+esc(m.label)+'</button>'; }).join('')
+      : '<span class="hint">見つかりません。</span><button type="button" class="chip" data-mkey="+">＋「'+esc(q)+'」を新しい台として入れる</button>';
+  }
+  $('f-mq').addEventListener('input', renderMachineHits);
+  $('f-mhits').addEventListener('click', function(e){
+    var b = e.target.closest('[data-mkey]'); if (!b) return;
+    var k = b.getAttribute('data-mkey');
+    if (k==='+') $('f-custom').value = $('f-mq').value.trim();
+    $('f-machine').value = k;
+    $('f-mq').value = ''; renderMachineHits();
+    $('f-machine').dispatchEvent(new Event('change'));
+  });
 
   function setWhen(){
     var r = editing ? byId(editing) : null;
     if (r) $('f-when').textContent = r.who ? '記録した人：' + r.who + (r.saved ? '（' + shortDay(r.saved) + '）' : '') : '';
   }
   // 打つ間は、台・狙い目・拾った人を変えられない（決定111）
-  function lockPlay(on){ ['f-machine', 'f-custom', 'f-yomi', 'f-aim', 'f-pick'].forEach(function(id){ $(id).disabled = on; }); }
+  function lockPlay(on){ ['f-mq', 'f-machine', 'f-custom', 'f-yomi', 'f-aim', 'f-pick'].forEach(function(id){ $(id).disabled = on; }); }
   function resetForm(){
     editing = null; playing = null; recMode = ''; atTouched = false; lockPlay(false);
     setNoTime(false);
-    fillMachines('');
+    fillMachines(''); $('f-mq').value = ''; renderMachineHits();
     $('f-custom').value = ''; $('f-yomi').value = ''; $('f-aim').value = ''; $('f-pick').value = ''; $('f-cash').value = ''; $('f-medal').value = ''; $('f-out').value = '';
     detVals = {}; newFields = null; feOpen = false; valsSig = ''; editExtra = []; $('aim-fe').innerHTML = '';
     rate = RATES[load(LS_RATE)] ? load(LS_RATE) : rate;
@@ -1468,7 +1499,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   function startEdit(id){
     var r = byId(id); if (!r || !canTouch(r)) return;
     editing = id; atTouched = true;
-    fillMachines(r.m ? r.m : mKey(r));
+    fillMachines(r.m ? r.m : mKey(r)); $('f-mq').value = ''; renderMachineHits();
     $('f-custom').value = ''; $('f-yomi').value = '';
     $('f-aim').value = r.aim || '';
     detVals = {}; editExtra = []; newFields = null; feOpen = false; valsSig = ''; $('aim-fe').innerHTML = '';
@@ -2205,7 +2236,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   window.__neraicho = {calc:calc, norm:norm, groups:groups, monthSums:monthSums, applyQueue:applyQueue, keyFrom:keyFrom, fmtAt:fmtAt, pickList:pickList, recs:recs,
     resolvePick:resolvePick, timeLabel:timeLabel, shortDay:shortDay, hasTime:hasTime, byNewest:byNewest,
     parseFields:parseFields, fieldsText:fieldsText, detText:detText, detLabel:detLabel, detKey:detKey, aimList:aimList, resolveAim:resolveAim,
-    aimFields:aimFields, yomiKey:yomiKey, byYomi:byYomi, allMachines:allMachines, shareOf:shareOf, daySums:daySums, compactYen:compactYen, inSpan:inSpan};
+    aimFields:aimFields, yomiKey:yomiKey, byYomi:byYomi, allMachines:allMachines, shareOf:shareOf, daySums:daySums, compactYen:compactYen, inSpan:inSpan, machineHits:machineHits};
 
   /* ---------- start ---------- */
   if (!canStore) $('no-store').hidden = false;
@@ -2235,7 +2266,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   'use strict';
   // BUILD＝この index.html の BUILD の値を空（''）にした中身の SHA-256 の頭12字。sw.js の BUILD・version.json の build と同じ値にする
   // （2026-10-31 から。前の組み立ての道具 build.py は消えたので、この決め方にした）
-  var BUILD = '5510538d9119', CACHE = 'neraicho-app-v1', lastCheck = 0;
+  var BUILD = 'd1a7a5c07b3d', CACHE = 'neraicho-app-v1', lastCheck = 0;
   if (!('serviceWorker' in navigator)) return;
   var bar = document.getElementById('app-update');
   document.body.insertBefore(bar, document.body.firstChild);   // above the page, so it never covers the machine select or tabs
