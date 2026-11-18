@@ -1094,13 +1094,17 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   // the same numbers in any order or width are the same
   function detKey(text){ return parseDet(text).map(function(p){ return norm(p[0]) + ':' + norm(p[1]); }).sort().join('|'); }
   function aimAliasOf(key, aim, aims){ var k = norm(aim); for (var i=0; i<(aims || []).length; i++){ var a = aims[i]; if (a.k===key && a.to && norm(a.aim)===k) return a.to; } return null; }
+  // a 台 whose 狙い目 go in the order the owner wrote (owner 2026-11-18 「ゴッド＝並びを修正したい」, 「ゴッドだけ決めた順」); the rest of that 台's come after
+  var AIM_ORDER = {million_god: ['引き戻し', '設定', 'リセ', '赤７後', '天井後', '単発後通常', '単発後通常以外', '2連後通常', '2連後通常以外',
+    '3連後通常', '3連後通常以外', '4連後通常', '4連後通常以外', '有利区間切断狙い']};
   // the 狙い目 of one 台: the sheet's list and the records' (a merged one counts as where it went); most played first
   function aimList(key, all, aims){
-    var by = {}, list = [];
+    var by = {}, list = [], order = (AIM_ORDER.hasOwnProperty(key) ? AIM_ORDER[key] : []).map(norm);
     function add(aim){ aim = aimAliasOf(key, aim, aims) || aim; var k = norm(aim); if (!k) return null; if (!by[k]){ by[k] = {key:k, text:aim, n:0, i:list.length}; list.push(by[k]); } return by[k]; }
+    function at(x){ var i = order.indexOf(x.key); return i<0 ? order.length : i; }
     (aims || []).forEach(function(a){ if (a.k===key && !a.to) add(a.aim); });
     all.slice().reverse().forEach(function(r){ if (r.aim && mKey(r)===key){ var x = add(r.aim); if (x) x.n++; } });
-    return list.sort(function(a, b){ return b.n - a.n || a.i - b.i; });
+    return list.sort(function(a, b){ return at(a) - at(b) || b.n - a.n || a.i - b.i; });
   }
   // the name a written 狙い目 is kept as (the same steps as the sheet): a merged one → where it went, a known one → the list's spelling
   function resolveAim(text, key, list, aims){
@@ -2266,7 +2270,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   'use strict';
   // BUILD＝この index.html の BUILD の値を空（''）にした中身の SHA-256 の頭12字。sw.js の BUILD・version.json の build と同じ値にする
   // （2026-10-31 から。前の組み立ての道具 build.py は消えたので、この決め方にした）
-  var BUILD = 'd1a7a5c07b3d', CACHE = 'neraicho-app-v1', lastCheck = 0;
+  var BUILD = 'c76e2548f8aa', CACHE = 'neraicho-app-v1', lastCheck = 0;
   if (!('serviceWorker' in navigator)) return;
   var bar = document.getElementById('app-update');
   document.body.insertBefore(bar, document.body.firstChild);   // above the page, so it never covers the machine select or tabs
