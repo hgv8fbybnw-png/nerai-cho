@@ -58,6 +58,7 @@ p{margin:0}
 .block{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:14px;min-width:0}
 .block h2{font-size:16px}
 .hint{color:var(--muted);font-size:13px;line-height:1.5}
+.hint:empty{display:none}
 .warn{background:var(--skip-soft);color:var(--skip);border-radius:var(--r);padding:10px 14px;font-size:14px;font-weight:700}
 .note{background:var(--accent-soft);border:1px solid var(--accent);border-radius:var(--r);padding:12px 14px;display:flex;flex-direction:column;gap:10px;font-size:14px}
 .note .acts{flex-wrap:wrap}
@@ -386,7 +387,6 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
       <p id="k-err" class="err" role="alert" hidden></p>
       <div id="k-mi" class="link-box" role="alert" hidden></div>
       <div class="acts"><button type="button" id="k-go" class="btn main">開く</button></div>
-      <p class="hint">合言葉は一人ずつ違います。管理の人からもらった合言葉を入れてください。もらったリンクをそのまま貼っても開けます。</p>
     </div>
   </section>
 
@@ -422,14 +422,13 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
         <div id="f-new-machine" class="mem-edit" hidden>
           <input id="f-custom" class="tin" type="text" maxlength="40" placeholder="台の名前" autocomplete="off" aria-label="新しい台の名前">
           <input id="f-yomi" class="tin" type="text" maxlength="40" placeholder="よみ（ひらがな）" autocomplete="off" aria-label="台の名前のよみ">
-          <p id="f-machine-say" class="hint">入れた台は、みんなの台の一覧に入ります。よみを入れると、一覧の50音の順の所に入ります。</p>
+          <p id="f-machine-say" class="hint"></p>
         </div>
       </div>
       <div class="field">
-        <span class="lbl" id="aim-lbl">狙い目<small>なくても記録できます</small></span>
-        <p id="aim-nomachine" class="hint">台を選ぶと、その台の狙い目が出ます。</p>
+        <span class="lbl" id="aim-lbl">狙い目</span>
         <div id="aim-past" hidden>
-          <p class="chips-h">この台の狙い目から選ぶ（みんなで共通・もう一度押すと外れます）</p>
+          <p class="chips-h">この台の狙い目から選ぶ</p>
           <div id="aim-chips" class="chips" role="group" aria-labelledby="aim-lbl"></div>
         </div>
         <input id="f-aim" class="tin" type="text" maxlength="80" placeholder="新しい狙い目は、ここに書く" autocomplete="off" aria-label="狙い目の名前">
@@ -439,13 +438,11 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
           <div id="aim-fe" class="fe" hidden></div>
         </div>
         <div id="aim-vals" class="vals" hidden></div>
-        <p class="hint">G数などの数は、狙い目の名前に入れずに、数の欄に入れてください（分かるものだけでよい）。ランキングでは、同じ狙い目の中で、数が同じものごとの成績が見られます。</p>
-        <p class="hint">台と狙い目の字は、ほかのグループの人にも見えます。人の名前を書かないでください。</p>
       </div>
       <div class="field">
-        <span class="lbl" id="pick-lbl">拾った人<small>なくても記録できます</small></span>
+        <span class="lbl" id="pick-lbl">拾った人</span>
         <div id="pick-past" hidden>
-          <p class="chips-h">前に入れた名前から選ぶ（みんなで共通・もう一度押すと外れます）</p>
+          <p class="chips-h">前に入れた名前から選ぶ</p>
           <div id="pick-chips" class="chips" role="group" aria-labelledby="pick-lbl"></div>
         </div>
         <input id="f-pick" class="tin" type="text" maxlength="20" placeholder="新しい名前は、ここに書く" autocomplete="off" aria-label="拾った人の名前">
@@ -501,14 +498,12 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     <div class="block">
       <h2>稼働日数・打った台・拾った台・渡した台・リセ・1g</h2>
       <div id="mon-work" class="wk"></div>
-      <p class="hint">「リセ」は狙い目の名前に「リセット」がつく台、「1g」は狙い目の名前に「即前兆確認」がつく台の数です。この2つに入る台は、「打った台」と「拾った台」には数えません。稼働日数は、その月に1台でも記録した日の数です。「拾った台」は、その人が拾った台の全部の数です（自分で打った台と、ほかの人が打った台と、まだ打っていない台を足した数。打った人が空の台も入ります）。「渡した台」は、そのうち同じグループのほかの人が打った台の数です。「渡した」を押しただけでは数えません。打った人が空の台と、メンバーでない人が拾った台も数えません。「拾った人」が空の台は数えません。棒の長さは、それぞれの列でいちばん多い人を基準にしています。</p>
     </div>
     <div class="seg" role="radiogroup" aria-label="分け方">
       <input type="radio" name="mon-by" id="mon-by-by" value="by" checked><label for="mon-by-by">メンバーごと</label>
       <input type="radio" name="mon-by" id="mon-by-pick" value="pick"><label for="mon-by-pick">拾った人ごと</label>
     </div>
     <div id="mon-people" class="list"></div>
-    <p class="hint"><span id="mon-hint-40">「合計の40%」はチームの合計に40%をかけた数、「1人あたり」はそれを今のメンバーの人数で割った数です。</span>「メンバーごと」は、その人が自分の合言葉で記録した収支です。「拾った人ごと」の金額は、その人が拾った台の収支です。自分で打った台も、ほかの人に渡した台も入ります。<span id="mon-hint-sum">チームの合計</span>は全部の打った台の合計です。まだ打っていない拾った台は入りません。収支は円で足しています（現金は換金の枚数で数えて、記録ごとの交換率で円にしてから足します）。押すと、その月の中身が出ます。</p>
   </section>
 
   <!-- ランキング -->
@@ -529,7 +524,6 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
         <input type="radio" name="rk-sort" id="rk-avg" value="avg" checked><label for="rk-avg">1回あたりの収支</label>
         <input type="radio" name="rk-sort" id="rk-sum" value="sum"><label for="rk-sum">合計の収支</label>
       </div>
-      <p class="hint">同じ台の同じ狙い目を1つにまとめて順位をつけます（G数などの数では分けません）。押すと、G数などの数が同じものごとの成績が出ます。狙い目を入れなかった記録は「狙い目なし」にまとめます。回数が少ないうちは、たまたまの当たり外れで順位が大きく動きます。</p>
     </div>
     <div id="rank" class="list"></div>
   </section>
@@ -542,7 +536,6 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     <div class="block">
       <p id="set-me"></p>
       <div class="acts" style="flex-wrap:wrap"><button type="button" id="set-reload" class="btn sm">読み込み直す</button><button type="button" id="set-switch" class="btn sm">合言葉を入れ直す</button></div>
-      <p class="hint">「合言葉を入れ直す」は、この端末でほかの人の合言葉に切りかえるときに使います。記録そのものは消えません。</p>
     </div>
     <div id="adm" class="block" hidden>
       <h2>メンバー</h2>
@@ -554,22 +547,18 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
         <div class="key-row"><input id="adm-key" class="tin" type="text" maxlength="40" autocomplete="off" autocapitalize="off" spellcheck="false"><button type="button" id="adm-gen" class="btn sm">おまかせで作る</button></div></div>
       <div class="field" id="adm-group-box" hidden><label for="adm-group">グループ</label><select id="adm-group" class="sel"></select>
         <input id="adm-gname" class="tin" type="text" maxlength="20" autocomplete="off" placeholder="新しいグループの呼び名" aria-label="新しいグループの呼び名" hidden>
-        <p class="hint">拾った台・打った台・月の収支・ランキングは、グループごとに分かれます。個別は、その人1人だけのグループです。</p></div>
+        </div>
       <label class="chk"><input type="checkbox" id="adm-admin">管理もできる人にする</label>
       <label class="chk"><input type="checkbox" id="adm-view">見るだけの人にする（狙い目だけ）</label>
       <p id="adm-err" class="err" role="alert" hidden></p>
       <div class="acts"><button type="button" id="adm-add" class="btn main">足す</button></div>
-      <p class="hint">足したら、その人専用のリンクが出ます。本人に送って、iPhoneの Safari で開いてもらい、共有ボタン →「ホーム画面に追加」をしてもらってください。合言葉を打たずに開けます。</p>
-      <p class="hint">「見るだけ」の人は、狙い目だけのページでリセット台とリセ後のタブだけを見られます。記録は見られない・入れられない、1人あたりの人数にも入りません。リンクは狙い目だけのページのものが出ます。</p>
     </div>
     <div id="pk" class="block" hidden>
       <h2>拾った人の名前の整理</h2>
-      <p class="hint">同じ人が別の名前で入っているときに、1つの名前にまとめます。前の記録の名前もまとめた名前に変わります。まとめた名前は、あとで誰かが書いても、まとめた先の名前で入ります。</p>
       <div id="pk-list" class="list"></div>
     </div>
     <div id="am" class="block" hidden>
       <h2>狙い目の整理</h2>
-      <p class="hint">台ごとに、狙い目の名前を変えたり、同じ狙い目をまとめたり、記録のときに入れる数（G数など）を決めたり、使わない狙い目を消したりします。名前を変えると、前の記録の狙い目も新しい名前に変わります。消せるのは記録のない狙い目だけです。まとめると、前の記録の狙い目もまとめた先に変わります（G数などの数はそのまま）。まとめた狙い目は、あとで誰かが書いても、まとめた先で入ります。</p>
       <select id="am-machine" class="sel" aria-label="整理する台"></select>
       <div id="am-list" class="list"></div>
     </div>
@@ -929,7 +918,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     if (sig!==grpSig){ grpSig = sig; sel.innerHTML = list.map(function(x){ return '<option value="'+esc(x.id)+'">'+esc(groupLabel(x))+'</option>'; }).join(''); }
     sel.value = cur;
     $('grp-say').hidden = !G;
-    if (G){ var now = list.filter(function(x){ return String(x.id)===String(G.id); })[0]; $('grp-say').textContent = '「' + (now ? groupLabel(now) : '') + '」の画面です。記録を足す・打つはできません（直す・消すはできます）。足すときは本人のグループに戻してください。'; }
+    if (G){ var now = list.filter(function(x){ return String(x.id)===String(G.id); })[0]; $('grp-say').textContent = '「' + (now ? groupLabel(now) : '') + '」の画面です。記録を足す・打つはできません。'; }
   }
   // 切り替えたあと、前のグループの選びを残さない
   function afterSwitch(){
@@ -1185,15 +1174,13 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   function formDet(fa){ return detText(formFields(fa).map(function(f){ return [f.name, String(detVals[f.name] || '').trim()]; })); }
   function renderAim(){
     var fa = formAim(), cur = norm(fa.aim);
-    $('aim-nomachine').hidden = !!fa.fm;
     $('aim-past').hidden = !fa.list.length || !!playing;
     $('aim-chips').innerHTML = fa.list.map(function(a){
       return '<button type="button" class="chip" data-aim="'+esc(a.text)+'" aria-pressed="'+(a.key===cur && cur ? 'true' : 'false')+'">'+esc(a.text)+(a.n ? '<small>'+a.n+'回</small>' : '')+'</button>';
     }).join('');
     var msg = '';
     if (fa.fm && fa.typed && aimAliasOf(fa.fm.key, fa.typed, S.aims)) msg = '「' + fa.typed + '」は「' + fa.aim + '」にまとめてあるので、「' + fa.aim + '」で記録します。';
-    else if (fa.isNew) msg = '「' + fa.typed + '」を、この台の新しい狙い目として、みんなの一覧に足します。'
-      + (/[0-9０-９]\s*[gGｇＧ]/.test(fa.typed) ? 'G数は名前に入れずに、数の欄に入れてください。' : '');
+    else if (fa.isNew) msg = '「' + fa.typed + '」を、この台の新しい狙い目として、みんなの一覧に足します。';
     $('aim-say').textContent = msg; $('aim-say').hidden = !msg;
     $('aim-fe-box').hidden = !fa.isNew;
     if (fa.isNew){
@@ -1211,7 +1198,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     box.hidden = !fields.length;
     if (sig===valsSig){ syncValChips(); return; }
     valsSig = sig;
-    box.innerHTML = '<p class="chips-h">数（分かるものだけ。選ぶものは、もう一度押すと外れます）</p>' + fields.map(function(f, i){
+    box.innerHTML = '<p class="chips-h">数</p>' + fields.map(function(f, i){
       var v = detVals[f.name] || '', id = 'fv-' + i;
       if (f.opts.length) return '<div class="vrow"><span class="mlbl" id="'+id+'">'+esc(f.name)+'</span><div class="chips" role="group" aria-labelledby="'+id+'">'
         + f.opts.map(function(o){ return '<button type="button" class="chip" data-vname="'+esc(f.name)+'" data-v="'+esc(o)+'" aria-pressed="'+(v===o ? 'true' : 'false')+'">'+esc(o)+'</button>'; }).join('') + '</div></div>';
@@ -1331,7 +1318,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     var fm = formMachine(), cash = num('f-cash'), medal = num('f-medal'), out = num('f-out'), kind = formKind(cash, medal, out), noMoney = kind==='pickEdit', onlyPick = recMode==='pick' && !editing && !playing;
     $('f-new-machine').hidden = $('f-machine').value!=='+';
     $('f-machine-say').textContent = fm && fm.known ? '「' + fm.name + '」は台の一覧にあります。その台として記録します。'
-      : '入れた台は、みんなの台の一覧に入ります。よみを入れると、一覧の50音の順の所に入ります。';
+      : '';
     renderAim(); pickChips();
     var res = $('f-res');
     $('f-at-box').hidden = $('f-rate-box').hidden = noMoney;
@@ -1339,11 +1326,11 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     $('at-lbl').textContent = kind==='pick' || noMoney ? '拾った日時' : '打った日時';
     if (!editing && !playing) $('f-save').textContent = kind==='pick' ? '拾った台に記録する' : '記録する';
     if (cash==null && medal==null && out==null){
-      res.innerHTML = '<span>収支</span><small>'+(kind==='pick' ? '投資と回収を入れないと、拾った台に入ります（収支には入りません）' : '投資と回収を入れると、ここに出ます')+'</small>';
+      res.innerHTML = '<span>収支</span>';
     } else {
       var c = calc({rate:rate, cash:cash||0, medal:medal||0, out:out||0});
       res.innerHTML = '<span>収支</span><b class="'+cls(c.coins)+'">'+esc(signed(c.coins, '枚'))+'</b><b class="'+cls(c.yen)+'">'+esc(signed(c.yen, '円'))+'</b>'
-        + (cash ? '<small>現金 '+n0(cash)+'円は '+n0(c.cashCoins)+'枚（換金'+RATES[rate].exch+'枚で数えます）</small>' : '');
+        + (cash ? '<small>現金 '+n0(cash)+'円は '+n0(c.cashCoins)+'枚</small>' : '');
     }
     var miss = [];
     if (!fm) miss.push('台');
@@ -1356,11 +1343,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     $('f-need').textContent = miss.length ? 'まだ入っていない：' + miss.join('・') : '';
     $('f-need').hidden = !miss.length;
     $('f-save').disabled = !!miss.length;
-    if (!editing && !playing) $('f-when').textContent = noTime()
-      ? '時間不明として、日にちだけ入れます。'
-      : atTouched
-      ? '日時は選んだものが入ります。「いまにする」で今にもどせます。'
-      : '日時は「いま」が入っています。あとから入れるときは、押して選び直してください。';
+    if (!editing && !playing) $('f-when').textContent = '';
   }
   ['f-machine', 'f-custom', 'f-yomi', 'f-aim', 'f-pick', 'f-cash', 'f-medal', 'f-out'].forEach(function(id){
     $(id).addEventListener('input', update);
@@ -1480,7 +1463,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     $('f-save').textContent = '打った台に入れる';
     $('f-cancel').hidden = false;
     show('rec');
-    $('f-when').textContent = '拾った日時：' + shortDay(r.at) + (r.who ? '（記録した人：' + r.who + '）' : '') + '。台・狙い目・拾った人は変えられません。';
+    $('f-when').textContent = '拾った日時：' + shortDay(r.at) + (r.who ? '（記録した人：' + r.who + '）' : '');
   }
   $('f-cancel').addEventListener('click', function(){ resetForm(); show('list'); });
 
@@ -1753,14 +1736,12 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     // 最初のグループ以外は「総利益」。個別の人にチームの字を出さない（決定111）
     var sumName = isFirst() ? 'チームの合計' : '総利益';
     $('mon-sub').textContent = isFirst() ? 'チームと一人ずつ' : '全体と一人ずつ';
-    $('mon-hint-sum').textContent = sumName;
     $('mon-sum').innerHTML = '<small>'+sumName+'</small><b class="'+cls(t.yen)+'">'+esc(signed(t.yen, '円'))+'</b>'
       // 合計の40%と1人あたりは、最初のグループだけ（決定111）
       + (isFirst() ? '<div class="share"><span>合計の40%</span><b class="'+cls(sh.share)+'">'+esc(signed(sh.share, '円'))+'</b>'
       + (sh.each!=null ? '<span>1人あたり（÷'+members+'人）</span><b class="'+cls(sh.each)+'">'+esc(signed(sh.each, '円'))+'</b>' : '') + '</div>' : '')
       + '<span class="sum-meta"><span>稼働 '+t.days+'日</span><span>打った台 '+t.n+'台</span><span>勝ち '+t.win+'台</span>'+(t.n ? '<span>1台あたり '+esc(signed(roundHalfAway(t.yen/t.n), '円'))+'</span>' : '')
       + '<span>拾って渡した台 '+monthSums(all, month, 'by', activeNames()).team.gave+'台</span></span>';
-    $('mon-hint-40').hidden = !isFirst();
     renderCal(all); renderWork(all);
     var max = 1; s.people.forEach(function(p){ max = Math.max(max, Math.abs(p.yen)); });
     $('mon-people').innerHTML = s.people.length ? s.people.map(function(p){
@@ -1801,7 +1782,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   }
   function renderCalDay(ds){
     var el = $('cal-day'), x = calDay ? ds[calDay] : null, who = calWho || 'みんな';
-    if (!calDay || calDay.slice(0, 7)!==month){ el.innerHTML = '<p class="hint">日にちを押すと、その日の中身が出ます。</p>'; return; }
+    if (!calDay || calDay.slice(0, 7)!==month){ el.innerHTML = ''; return; }
     if (!x){ el.innerHTML = '<p class="hint">'+esc(dayLabel(calDay))+'：'+esc(who)+'の記録はありません。</p>'; return; }
     var h = '<div class="cal-day-top"><b>'+esc(dayLabel(calDay)+'・'+who)+'</b><b class="'+cls(x.yen)+'">'+esc(signed(x.yen, '円'))+'</b></div><p class="hint">'+x.n+'台・勝ち'+x.win+'台</p>';
     if (!calWho){   // everyone: each member's day first
@@ -1834,7 +1815,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     $('mon-work').innerHTML = ppl.length ? '<span class="wk-h">稼働日数</span><span class="wk-h">打った台</span><span class="wk-h">拾った台</span><span class="wk-h">渡した台</span><span class="wk-h">リセ</span><span class="wk-h">1g</span>'
       + ppl.map(function(p){ return '<span class="wk-name">'+esc(p.name)+'</span>' + bar(p.days, md, p.days+'日') + bar(played(p), mn, played(p)+'台') + bar(picked(p), mf, picked(p)+'台') + bar(p.gave, mg, p.gave+'台')
         + bar(p.rs, mr, p.rs+'台') + bar(p.g1, m1, p.g1+'台'); }).join('')
-      : '<p class="hint" style="grid-column:1 / -1">メンバーを読み込むと、ここに一人ずつ出ます。</p>';
+      : '';
   }
   $('mon-prev').addEventListener('click', function(){ month = shiftMonth(month, -1); calDay = ''; renderMonth(); });
   $('mon-next').addEventListener('click', function(){ month = shiftMonth(month, 1); calDay = ''; renderMonth(); });
@@ -1901,7 +1882,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
       if (g.aim){
         // the numbers' groups, in the same order as the ranking; records without numbers last
         var subs = g.subs.slice().sort(function(a, b){ return (!a.key) - (!b.key) || val(b) - val(a) || b.n - a.n; });
-        inner = '<div class="rk-subs"><p class="chips-h">G数などの数ごと（押すと記録が出ます）</p>' + subs.map(function(x){
+        inner = '<div class="rk-subs"><p class="chips-h">G数などの数ごと</p>' + subs.map(function(x){
           return '<details class="rk-sub"><summary><span class="rk-main">'+(x.key ? '<b>'+esc(detLabel(x.det))+'</b>' : '<b class="none">数の記録なし</b>')
             + '<span class="rk-meta"><span>'+x.n+'回</span><span>勝ち'+x.win+'回</span><span>'+esc(other(x))+'</span></span></span>'
             + '<span class="rk-val"><b class="'+cls(val(x))+'">'+esc(signed(val(x), '円'))+'</b></span></summary>' + playsHTML(x.plays) + '</details>';
@@ -1974,8 +1955,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
       if (!r.total){ el.innerHTML = '<p class="hint">今までの記録はありません。</p>'; return; }
       el.innerHTML = '<p class="chips-h">今までの記録（全部で '+r.total+'件）</p><ul>' + (r.months || []).map(function(x){
         return '<li>'+esc(monthLabel(x.month))+'：打った台 '+x.played+'件・拾った台 '+x.picked+'件・消した記録 '+x.deleted+'件</li>';
-      }).join('') + '</ul><label class="chk"><input type="checkbox" data-f="moverec">今までの記録も一緒に移す（全部で '+r.total+'件）</label>'
-        + '<p class="hint">移すと、過去の月の数が動くことがあります。移さないと、今までの記録は前のグループに残ります。</p>';
+      }).join('') + '</ul><label class="chk"><input type="checkbox" data-f="moverec">今までの記録も一緒に移す（全部で '+r.total+'件）</label>';
     }, function(){ if (seq===moveSeq) el.innerHTML = '<p class="err">つながりません。電波のある所で、もう一度どうぞ。</p>'; });
   }
   $('adm-list').addEventListener('change', function(e){
@@ -2001,7 +1981,6 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
             + groupField(m)
             + '<p class="err" data-f="err" hidden></p>'
             + '<div class="acts"><button type="button" class="btn sm" data-mact="close" data-name="'+n+'">やめる</button><button type="button" class="btn sm main" data-mact="save" data-name="'+n+'">保存</button></div>'
-            + '<p class="hint">合言葉を変えると、前のリンクでは開けなくなります。新しいリンクを送り直してください。名前を変えると、前の記録の名前も変わります。</p>'
           + '</div>' : '')
         + '</div>';
     }).join('');
@@ -2010,8 +1989,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   function showLink(name, key, view){
     var url = view ? miLinkFor(key) : linkFor(key), box = $('adm-link');
     box.innerHTML = '<b>'+esc(name)+' さんのリンク'+(view ? '（狙い目だけ）' : '')+'</b><code>'+esc(url)+'</code>'
-      + '<div class="acts" style="flex-wrap:wrap">'+(navigator.share ? '<button type="button" class="btn sm" id="adm-share">送る</button>' : '')+'<button type="button" class="btn sm" id="adm-copy">コピー</button></div>'
-      + '<p class="hint">このリンクには合言葉が入っています。本人にだけ送ってください。</p>';
+      + '<div class="acts" style="flex-wrap:wrap">'+(navigator.share ? '<button type="button" class="btn sm" id="adm-share">送る</button>' : '')+'<button type="button" class="btn sm" id="adm-copy">コピー</button></div>';
     box.hidden = false;
     if ($('adm-share')) $('adm-share').addEventListener('click', function(){ navigator.share({title:view ? '狙い目' : '狙い目帳', url:url}).catch(function(){}); });
     $('adm-copy').addEventListener('click', function(){
@@ -2110,7 +2088,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
       if (pkOpen!==a.key) return h + '</div>';
       h += '<div class="mem-edit">';
       if (a.self) h += '<p>「自分」と入っている記録（'+a.n+'件）を、それぞれの打った人の名前にします。</p>';
-      else h += '<p class="chips-h">どの名前にまとめますか（押して選ぶか、下に書く）</p>'
+      else h += '<p class="chips-h">どの名前にまとめますか</p>'
         + '<div class="chips">' + rows.filter(function(x){ return !x.self && x.key!==a.key; }).map(function(x){
             return '<button type="button" class="chip" data-pkact="to" data-to="'+esc(x.text)+'" aria-pressed="false">'+esc(x.text)+'</button>';
           }).join('') + '</div>'
@@ -2191,12 +2169,12 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
       if (!open) return h + '<div class="acts" style="flex-wrap:wrap">' + AM_ACTS.map(function(x){ return '<button type="button" class="btn sm" data-amact="'+x[0]+'" data-key="'+k+'">'+x[1]+'</button>'; }).join('') + '</div></div>';
       var mode = amOpen.mode, go = mode==='merge' ? 'まとめる' : mode==='rename' ? '変える' : mode==='delete' ? '消す' : '保存';
       h += '<div class="mem-edit">';
-      if (mode==='merge') h += '<p class="chips-h">どの狙い目にまとめますか（押して選ぶか、下に書く）</p><div class="chips">'
+      if (mode==='merge') h += '<p class="chips-h">どの狙い目にまとめますか</p><div class="chips">'
         + list.filter(function(x){ return x.key!==a.key; }).map(function(x){ return '<button type="button" class="chip" data-amact="to" data-to="'+esc(x.text)+'" aria-pressed="false">'+esc(x.text)+'</button>'; }).join('') + '</div>'
         + '<input class="tin" data-f="to" type="text" maxlength="80" placeholder="まとめ先の狙い目（新しい名前でもよい）" autocomplete="off" aria-label="まとめ先の狙い目"><p class="hint" data-f="say"></p>';
       else if (mode==='rename') h += '<p class="chips-h">新しい名前</p><input class="tin" data-f="nm" type="text" maxlength="80" value="'+esc(amOpen.nm)+'" autocomplete="off" aria-label="新しい名前"><p class="hint" data-f="say"></p>';
-      else if (mode==='delete') h += '<p class="hint" data-f="say">' + (a.n ? 'この狙い目の記録が'+a.n+'件あるので消せません。ほかの狙い目に「まとめる」と、記録ごと移せます。' : '「'+esc(a.text)+'」を一覧から消します。元に戻せません。') + '</p>';
-      else h += '<div class="fe" data-f="fe"></div><p class="hint">記録のときに入れる数です。項目の名前を直すと、前の記録の数も新しい名前に移ります。消した項目の数は、前の記録に残ります。</p>';
+      else if (mode==='delete') h += '<p class="hint" data-f="say">' + (a.n ? 'この狙い目の記録が'+a.n+'件あるので消せません。' : '「'+esc(a.text)+'」を一覧から消します。元に戻せません。') + '</p>';
+      else h += '<div class="fe" data-f="fe"></div>';
       return h + '<p class="err" data-f="err" hidden></p>'
         + '<div class="acts"><button type="button" class="btn sm" data-amact="close">やめる</button>'
         + (mode==='delete' && a.n ? '' : '<button type="button" class="btn sm '+(mode==='delete' ? 'danger' : 'main')+'" data-amact="go">'+go+'</button>') + '</div></div></div>';
@@ -2314,7 +2292,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   'use strict';
   // BUILD＝この index.html の BUILD の値を空（''）にした中身の SHA-256 の頭12字。sw.js の BUILD・version.json の build と同じ値にする
   // （2026-10-31 から。前の組み立ての道具 build.py は消えたので、この決め方にした）
-  var BUILD = '958b981268d7', CACHE = 'neraicho-app-v1', lastCheck = 0;
+  var BUILD = '7d925bf3211a', CACHE = 'neraicho-app-v1', lastCheck = 0;
   if (!('serviceWorker' in navigator)) return;
   var bar = document.getElementById('app-update');
   document.body.insertBefore(bar, document.body.firstChild);   // above the page, so it never covers the machine select or tabs
