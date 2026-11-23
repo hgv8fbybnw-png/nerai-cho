@@ -569,7 +569,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     </div>
     <div id="am" class="block" hidden>
       <h2>狙い目の整理</h2>
-      <p class="hint">台ごとに、同じ狙い目をまとめたり、記録のときに入れる数（G数など）を決めたりします。まとめると、前の記録の狙い目もまとめた先に変わります（G数などの数はそのまま）。まとめた狙い目は、あとで誰かが書いても、まとめた先で入ります。</p>
+      <p class="hint">台ごとに、狙い目の名前を変えたり、同じ狙い目をまとめたり、記録のときに入れる数（G数など）を決めたり、使わない狙い目を消したりします。名前を変えると、前の記録の狙い目も新しい名前に変わります。消せるのは記録のない狙い目だけです。まとめると、前の記録の狙い目もまとめた先に変わります（G数などの数はそのまま）。まとめた狙い目は、あとで誰かが書いても、まとめた先で入ります。</p>
       <select id="am-machine" class="sel" aria-label="整理する台"></select>
       <div id="am-list" class="list"></div>
     </div>
@@ -1123,21 +1123,28 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   }
 
   /* the 入れる数 editor (a new 狙い目 in the form, and the 管理 screen): one row per number, typed (数字) or chosen from a list (選ぶ) */
+  // f.orig＝狙い目の整理で開いたときの項目の名前（名前を直すと、前の記録の数も新しい名前に移す。2026-11-23 オーナー「記述欄を消せる機能と修正できるように」）
   function feRow(f){
     var opt = f.opts.length>0;
-    return '<div class="fe-row"><input class="tin" data-fe="name" type="text" maxlength="12" value="'+esc(f.name)+'" placeholder="項目（例：G数）" autocomplete="off" aria-label="項目の名前">'
+    return '<div class="fe-row"'+(f.orig ? ' data-orig="'+esc(f.orig)+'"' : '')+'><input class="tin" data-fe="name" type="text" maxlength="12" value="'+esc(f.name)+'" placeholder="項目（例：G数）" autocomplete="off" aria-label="項目の名前">'
       + '<select class="sel" data-fe="kind" aria-label="入れ方"><option value="num"'+(opt ? '' : ' selected')+'>数字</option><option value="opt"'+(opt ? ' selected' : '')+'>選ぶ</option></select>'
       + '<button type="button" class="btn sm" data-fe="del" aria-label="この項目を消す">×</button>'
       + '<input class="tin fe-opts" data-fe="opts" type="text" maxlength="60" value="'+esc(f.opts.join('/'))+'" placeholder="選ぶもの（例：あり/なし）" autocomplete="off" aria-label="選ぶもの"'+(opt ? '' : ' hidden')+'></div>';
   }
   function feRender(box, fields){ box.innerHTML = fields.map(feRow).join('') + '<button type="button" class="btn sm" data-fe="add">＋ 項目を足す</button>'; }
+  // 1行ずつ parseFields と同じに読む（空・同じ名前の2つ目・9つ目からは入れない）。行の orig はそのまま持つ
   function feRead(box){
-    var out = [];
+    var out = [], seen = {};
     box.querySelectorAll('.fe-row').forEach(function(row){
       var name = cleanPart(row.querySelector('[data-fe="name"]').value, 12), opt = row.querySelector('[data-fe="kind"]').value==='opt';
-      if (name) out.push(name + (opt ? '[' + row.querySelector('[data-fe="opts"]').value.replace(/[、,，・\s　]+/g, '/') + ']' : ''));
+      if (!name) return;
+      var f = parseFields(name + (opt ? '[' + row.querySelector('[data-fe="opts"]').value.replace(/[、,，・\s　]+/g, '/') + ']' : ''))[0];
+      if (!f || seen[norm(f.name)] || out.length>=8) return;
+      seen[norm(f.name)] = 1;
+      if (row.getAttribute('data-orig')) f.orig = row.getAttribute('data-orig');
+      out.push(f);
     });
-    return parseFields(out.join('、'));
+    return out;
   }
   function feBind(box, onChange){
     box.addEventListener('input', function(){ onChange(feRead(box)); });
@@ -2153,14 +2160,19 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   });
 
   /* 狙い目の整理 (管理 only, user 2026-10-23 「現在あるものも整理して」): per 台, merge a 狙い目 into another (or rename it)
-     and change the numbers asked for it. The sheet does the change; the screen reads everything again afterwards. */
-  var amOpen = null;   // {key, mode:'merge'|'fields', fields}
+     and change the numbers asked for it. The sheet does the change; the screen reads everything again afterwards.
+     2026-11-23 オーナー「記述欄を消せる機能と修正できるように」（案を見て「この案で作る」）：名前を変える（前の記録も新しい名前に）・
+     消す（記録のない狙い目だけ）を足し、入れる数の項目の名前を直したら前の記録の数も新しい名前に移す（ren） */
+  var amOpen = null;   // {key, mode:'merge'|'rename'|'fields'|'delete', fields, nm}
+  var AM_ACTS = [['merge', 'まとめる'], ['rename', '名前を変える'], ['fields', '入れる数を変える'], ['delete', '消す']];
   function amMachines(){
     var has = {};
     S.aims.forEach(function(a){ if (!a.to) has[a.k] = 1; });
     recs().forEach(function(r){ if (r.aim) has[mKey(r)] = 1; });
     return allMachines().filter(function(m){ return has[m.key]; });
   }
+  // 入れる数の項目のうち、名前を直したもの：「元:新／…」（受け口の ren）
+  function amRenames(fields){ return fields.filter(function(f){ return f.orig && norm(f.orig)!==norm(f.name); }).map(function(f){ return f.orig + ':' + f.name; }).join('／'); }
   function renderAims(){
     var box = $('am'); box.hidden = !(S.me && S.me.admin);
     if (box.hidden) return;
@@ -2176,42 +2188,59 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
       var f = aimFields(key, a.text, S.aims, S.queue), k = esc(a.key), open = amOpen && amOpen.key===a.key;
       var h = '<div class="mem"><div class="mem-top"><b>'+esc(a.text)+'</b><span class="tag">'+a.n+'件</span></div>'
         + '<p class="hint">入れる数：'+esc(f.length ? f.map(function(x){ return x.name + (x.opts.length ? '（' + x.opts.join('/') + '）' : ''); }).join('・') : 'なし')+'</p>';
-      if (!open) return h + '<div class="acts" style="flex-wrap:wrap"><button type="button" class="btn sm" data-amact="merge" data-key="'+k+'">まとめる</button><button type="button" class="btn sm" data-amact="fields" data-key="'+k+'">入れる数を変える</button></div></div>';
+      if (!open) return h + '<div class="acts" style="flex-wrap:wrap">' + AM_ACTS.map(function(x){ return '<button type="button" class="btn sm" data-amact="'+x[0]+'" data-key="'+k+'">'+x[1]+'</button>'; }).join('') + '</div></div>';
+      var mode = amOpen.mode, go = mode==='merge' ? 'まとめる' : mode==='rename' ? '変える' : mode==='delete' ? '消す' : '保存';
       h += '<div class="mem-edit">';
-      if (amOpen.mode==='merge') h += '<p class="chips-h">どの狙い目にまとめますか（押して選ぶか、下に書く）</p><div class="chips">'
+      if (mode==='merge') h += '<p class="chips-h">どの狙い目にまとめますか（押して選ぶか、下に書く）</p><div class="chips">'
         + list.filter(function(x){ return x.key!==a.key; }).map(function(x){ return '<button type="button" class="chip" data-amact="to" data-to="'+esc(x.text)+'" aria-pressed="false">'+esc(x.text)+'</button>'; }).join('') + '</div>'
         + '<input class="tin" data-f="to" type="text" maxlength="80" placeholder="まとめ先の狙い目（新しい名前でもよい）" autocomplete="off" aria-label="まとめ先の狙い目"><p class="hint" data-f="say"></p>';
-      else h += '<div class="fe" data-f="fe"></div><p class="hint">記録のときに入れる数です。変えても、前の記録の数はそのまま残ります。</p>';
+      else if (mode==='rename') h += '<p class="chips-h">新しい名前</p><input class="tin" data-f="nm" type="text" maxlength="80" value="'+esc(amOpen.nm)+'" autocomplete="off" aria-label="新しい名前"><p class="hint" data-f="say"></p>';
+      else if (mode==='delete') h += '<p class="hint" data-f="say">' + (a.n ? 'この狙い目の記録が'+a.n+'件あるので消せません。ほかの狙い目に「まとめる」と、記録ごと移せます。' : '「'+esc(a.text)+'」を一覧から消します。元に戻せません。') + '</p>';
+      else h += '<div class="fe" data-f="fe"></div><p class="hint">記録のときに入れる数です。項目の名前を直すと、前の記録の数も新しい名前に移ります。消した項目の数は、前の記録に残ります。</p>';
       return h + '<p class="err" data-f="err" hidden></p>'
-        + '<div class="acts"><button type="button" class="btn sm" data-amact="close">やめる</button><button type="button" class="btn sm main" data-amact="go">'+(amOpen.mode==='merge' ? 'まとめる' : '保存')+'</button></div></div></div>';
+        + '<div class="acts"><button type="button" class="btn sm" data-amact="close">やめる</button>'
+        + (mode==='delete' && a.n ? '' : '<button type="button" class="btn sm '+(mode==='delete' ? 'danger' : 'main')+'" data-amact="go">'+go+'</button>') + '</div></div></div>';
     }).join('');
     input = el.querySelector('[data-f="to"]');
-    if (input){ input.value = keep; amSay(); }
+    if (input){ input.value = keep; }
+    amSay();
     var fe = el.querySelector('[data-f="fe"]');
     if (fe){ feRender(fe, amOpen.fields); feBind(fe, function(f){ amOpen.fields = f; }); }
   }
   function amSay(){
-    var el = $('am-list'), input = el.querySelector('[data-f="to"]'), key = $('am-machine').value;
-    if (!input || !amOpen) return;
-    var list = aimList(key, recs(), S.aims), a = list.filter(function(x){ return x.key===amOpen.key; })[0];
-    if (!a) return;
-    var to = input.value.trim(), res = resolveAim(to, key, list, S.aims), k = norm(res), bad = !to || to===a.text;
+    var el = $('am-list'), key = $('am-machine').value, go = el.querySelector('[data-amact="go"]');
+    if (!amOpen || (amOpen.mode!=='merge' && amOpen.mode!=='rename')) return;
+    var list = aimList(key, recs(), S.aims), a = list.filter(function(x){ return x.key===amOpen.key; })[0], say = el.querySelector('[data-f="say"]');
+    if (!a || !say) return;
+    if (amOpen.mode==='rename'){
+      var nm = amOpen.nm.trim(), kn = norm(nm), dup = list.filter(function(x){ return x.key===kn && x.key!==a.key; })[0], bad = !nm || nm===a.text || !!dup;
+      say.textContent = !nm || nm===a.text ? '' : dup ? '「' + dup.text + '」はもうあります。1つにするときは「まとめる」を使ってください。'
+        : '「' + a.text + '」を「' + nm + '」に変えます。この台の記録' + a.n + '件も新しい名前になります（G数などの数はそのまま）。';
+      if (go) go.disabled = bad;
+      return;
+    }
+    var input = el.querySelector('[data-f="to"]'); if (!input) return;
+    var to = input.value.trim(), res = resolveAim(to, key, list, S.aims), k = norm(res), bad2 = !to || to===a.text;
     el.querySelectorAll('[data-amact="to"]').forEach(function(b){ b.setAttribute('aria-pressed', k && norm(b.getAttribute('data-to'))===k ? 'true' : 'false'); });
-    el.querySelector('[data-f="say"]').textContent = bad ? '' : '「' + a.text + '」の記録' + a.n + '件を「' + res + '」に変えます（G数などの数はそのまま）。'
+    say.textContent = bad2 ? '' : '「' + a.text + '」の記録' + a.n + '件を「' + res + '」に変えます（G数などの数はそのまま）。'
       + (list.some(function(x){ return x.key===k; }) ? '' : '（「' + res + '」は新しい名前です）');
-    el.querySelector('[data-amact="go"]').disabled = bad;
+    if (go) go.disabled = bad2;
   }
   $('am-machine').addEventListener('change', function(){ amOpen = null; renderAims(); });
-  $('am-list').addEventListener('input', function(e){ if (e.target.getAttribute('data-f')==='to') amSay(); });
+  $('am-list').addEventListener('input', function(e){
+    var f = e.target.getAttribute('data-f');
+    if (f==='nm' && amOpen) amOpen.nm = e.target.value;
+    if (f==='to' || f==='nm') amSay();
+  });
   $('am-list').addEventListener('click', function(e){
     var b = e.target.closest('button[data-amact]'); if (!b) return;
     var act = b.getAttribute('data-amact'), el = $('am-list'), key = $('am-machine').value, list = aimList(key, recs(), S.aims);
-    if (act==='merge' || act==='fields'){
+    if (AM_ACTS.some(function(x){ return x[0]===act; })){
       var a = list.filter(function(x){ return x.key===b.getAttribute('data-key'); })[0]; if (!a) return;
       var old = el.querySelector('[data-f="to"]'); if (old) old.value = '';
-      amOpen = {key:a.key, mode:act, fields:aimFields(key, a.text, S.aims, S.queue)};
+      amOpen = {key:a.key, mode:act, nm:a.text, fields:aimFields(key, a.text, S.aims, S.queue).map(function(f){ return Object.assign({}, f, {orig:f.name}); })};
       renderAims();
-      var i = el.querySelector('[data-f="to"]') || el.querySelector('[data-fe="name"]'); if (i) i.focus();
+      var i = el.querySelector('[data-f="to"]') || el.querySelector('[data-f="nm"]') || el.querySelector('[data-fe="name"]'); if (i) i.focus();
       return;
     }
     if (act==='close'){ amOpen = null; return renderAims(); }
@@ -2219,15 +2248,20 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     if (act==='go' && amOpen){
       var a2 = list.filter(function(x){ return x.key===amOpen.key; })[0], m = allMachines().filter(function(x){ return x.key===key; })[0], err = el.querySelector('[data-f="err"]');
       if (!a2 || !m) return;
-      var mode = amOpen.mode, p = {m:m.m, name:m.label};
-      if (mode==='merge'){ p.from = a2.text; p.to = el.querySelector('[data-f="to"]').value.trim(); }
-      else { p.aim = a2.text; p.fields = fieldsText(amOpen.fields); }
+      var mode = amOpen.mode, p = {m:m.m, name:m.label}, how;
+      if (mode==='merge'){ how = 'aimMerge'; p.from = a2.text; p.to = el.querySelector('[data-f="to"]').value.trim(); }
+      else if (mode==='rename'){ how = 'aimRename'; p.from = a2.text; p.to = amOpen.nm.trim(); }
+      else if (mode==='delete'){ how = 'aimDelete'; p.aim = a2.text; }
+      else { how = 'aimFields'; p.aim = a2.text; p.fields = fieldsText(amOpen.fields); var ren = amRenames(amOpen.fields); if (ren) p.ren = ren; }
       b.disabled = true; err.hidden = true;
-      call(mode==='merge' ? 'aimMerge' : 'aimFields', p).then(function(r){
+      call(how, p).then(function(r){
         b.disabled = false;
         if (!r.ok){ err.textContent = r.error || 'うまくいきませんでした'; err.hidden = false; return; }
         amOpen = null; renderAims();
-        toast(mode==='merge' ? '「' + a2.text + '」を「' + r.to + '」にまとめました（' + r.件数 + '件）' : '「' + r.aim + '」の入れる数を変えました');
+        toast(mode==='merge' ? '「' + a2.text + '」を「' + r.to + '」にまとめました（' + r.件数 + '件）'
+          : mode==='rename' ? '「' + a2.text + '」を「' + r.to + '」に変えました（' + r.件数 + '件）'
+          : mode==='delete' ? '「' + a2.text + '」を消しました'
+          : '「' + r.aim + '」の入れる数を変えました' + (r.直した記録 ? '（記録' + r.直した記録 + '件の項目名も直しました）' : ''));
         reload();
       }, function(){ b.disabled = false; err.textContent = 'つながりません。もう一度どうぞ。'; err.hidden = false; });
     }
@@ -2280,7 +2314,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   'use strict';
   // BUILD＝この index.html の BUILD の値を空（''）にした中身の SHA-256 の頭12字。sw.js の BUILD・version.json の build と同じ値にする
   // （2026-10-31 から。前の組み立ての道具 build.py は消えたので、この決め方にした）
-  var BUILD = '24c958c30e0f', CACHE = 'neraicho-app-v1', lastCheck = 0;
+  var BUILD = '958b981268d7', CACHE = 'neraicho-app-v1', lastCheck = 0;
   if (!('serviceWorker' in navigator)) return;
   var bar = document.getElementById('app-update');
   document.body.insertBefore(bar, document.body.firstChild);   // above the page, so it never covers the machine select or tabs
