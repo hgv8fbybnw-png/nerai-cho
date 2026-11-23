@@ -94,6 +94,12 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
 /* ランキングの期間（2026-11-18 オーナー）：全部・今月・先月・3か月を1列に並べ、日付で選ぶは下の段いっぱいに */
 .seg.seg5{grid-template-columns:repeat(4,1fr)}
 .seg.seg5 label:last-of-type{grid-column:1/-1}
+/* ランキング（2026-11-23 オーナー）：上で収支・台数を選ぶ。台と地域は横に並べ、時間帯は5つを1列に */
+.seg.rk-kind label{min-height:46px;font-size:16px}
+.rk-two{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:8px}
+.seg.seg-t{grid-template-columns:repeat(5,minmax(0,1fr))}
+.seg.seg-t label{padding:4px 1px}
+.seg.seg-t label small{white-space:nowrap;font-size:10px;letter-spacing:-.04em}
 .rk-days{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:6px 10px}
 .rk-days label{font-size:14px;font-weight:700;color:var(--muted)}
 .seg input{position:absolute;opacity:0;pointer-events:none}
@@ -448,6 +454,12 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
         <input id="f-pick" class="tin" type="text" maxlength="20" placeholder="新しい名前は、ここに書く" autocomplete="off" aria-label="拾った人の名前">
         <p id="pick-new" class="hint" hidden></p>
       </div>
+      <div class="field" id="f-area-box">
+        <span class="lbl" id="area-lbl">地域</span>
+        <div id="area-chips" class="chips" role="group" aria-labelledby="area-lbl"></div>
+        <input id="f-area" class="tin" type="text" maxlength="20" placeholder="新しい地域の名前" autocomplete="off" aria-label="新しい地域の名前" hidden>
+        <p id="area-new" class="hint" hidden></p>
+      </div>
       <div class="field" id="f-at-box">
         <label for="f-at" id="at-lbl">打った日時</label>
         <div class="at-row"><input id="f-at" class="tin" type="datetime-local"><input id="f-day" class="tin" type="date" aria-labelledby="at-lbl" hidden><button type="button" id="f-now" class="btn sm">いまにする</button></div>
@@ -510,7 +522,14 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   <section id="view-rank" class="view" aria-labelledby="rank-title" hidden>
     <header class="top"><div class="brand"><small>台の狙い目ごと（みんなの記録）</small><h1 id="rank-title">ランキング</h1></div></header>
     <div class="block rk-ctl">
-      <select id="rk-machine" class="sel" aria-label="台をしぼる"></select>
+      <div class="seg rk-kind" role="radiogroup" aria-label="ランキングの種類">
+        <input type="radio" name="rk-kind" id="rk-yen" value="yen" checked><label for="rk-yen">収支</label>
+        <input type="radio" name="rk-kind" id="rk-cnt" value="cnt"><label for="rk-cnt">台数</label>
+      </div>
+      <div class="rk-two">
+        <select id="rk-machine" class="sel" aria-label="台をしぼる"></select>
+        <select id="rk-area" class="sel" aria-label="地域をしぼる"></select>
+      </div>
       <div class="seg seg5" role="radiogroup" aria-label="期間">
         <input type="radio" name="rk-span" id="rk-all" value="all" checked><label for="rk-all">全部</label>
         <input type="radio" name="rk-span" id="rk-m0" value="m0"><label for="rk-m0">今月</label>
@@ -520,9 +539,12 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
       </div>
       <div id="rk-days" class="rk-days" hidden><label for="rk-from">いつから</label><input id="rk-from" class="tin" type="date"><label for="rk-to">いつまで</label><input id="rk-to" class="tin" type="date"></div>
       <p id="rk-span-say" class="hint" hidden></p>
-      <div class="seg" role="radiogroup" aria-label="並べ方">
-        <input type="radio" name="rk-sort" id="rk-avg" value="avg" checked><label for="rk-avg">1回あたりの収支</label>
-        <input type="radio" name="rk-sort" id="rk-sum" value="sum"><label for="rk-sum">合計の収支</label>
+      <div class="seg seg-t" role="radiogroup" aria-label="時間帯">
+        <input type="radio" name="rk-time" id="rk-t0" value="" checked><label for="rk-t0">全部<small>時間帯</small></label>
+        <input type="radio" name="rk-time" id="rk-t1" value="am"><label for="rk-t1">朝<small>〜12時</small></label>
+        <input type="radio" name="rk-time" id="rk-t2" value="noon"><label for="rk-t2">昼<small>12〜17時</small></label>
+        <input type="radio" name="rk-time" id="rk-t3" value="eve"><label for="rk-t3">夕方<small>17〜20時</small></label>
+        <input type="radio" name="rk-time" id="rk-t4" value="night"><label for="rk-t4">夜<small>20時〜</small></label>
       </div>
     </div>
     <div id="rank" class="list"></div>
@@ -561,6 +583,12 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
       <h2>狙い目の整理</h2>
       <select id="am-machine" class="sel" aria-label="整理する台"></select>
       <div id="am-list" class="list"></div>
+    </div>
+    <div id="ar" class="block" hidden>
+      <h2>地域の整理</h2>
+      <div id="ar-list" class="list"></div>
+      <div class="key-row"><input id="ar-new" class="tin" type="text" maxlength="20" placeholder="足す地域の名前" autocomplete="off" aria-label="足す地域の名前"><button type="button" id="ar-add" class="btn sm">足す</button></div>
+      <p id="ar-err" class="err" role="alert" hidden></p>
     </div>
   </section>
 </div>
@@ -606,7 +634,8 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     hitoka: {label:'非等価',       sub:'1k46・換金52', rent:46, exch:52}
   };
   var LS_KEY = 'neraicho.key', LS_CACHE = 'neraicho.cache', LS_QUEUE = 'neraicho.queue', LS_RATE = 'neraicho.rate',
-      LS_OLD = 'neraicho.records', LS_OLD_DONE = 'neraicho.oldDone', LS_INFO = 'neraicho.info', LS_INFO_M = 'neraicho.infoMachine';
+      LS_OLD = 'neraicho.records', LS_OLD_DONE = 'neraicho.oldDone', LS_INFO = 'neraicho.info', LS_INFO_M = 'neraicho.infoMachine',
+      LS_AREA = 'neraicho.area';   // 2026-11-23：この端末で最後に使った地域（新しい記録で先に選んでおく）
   var $ = function(id){ return document.getElementById(id); };
   function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
   function load(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
@@ -658,13 +687,13 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
      S.recs is what the spreadsheet last said; S.queue holds what this phone did and has not sent yet. The screen always
      shows S.recs with the queue laid on top, so a record appears at once even with no signal in the hall. */
   var S = {key:'', me:null, members:[], picks:[], aliases:[], aims:[], machines:[], recs:[], queue:[], sending:null, loading:false, failed:'', retry:null,
-           info:null, infoVer:'', view:null, groups:[]};
+           info:null, infoVer:'', view:null, groups:[], areas:['新橋', '歌舞伎', '大野']};   // areas：地域の一覧（どのグループも同じ。2026-11-23）
   /* 管理の人がほかのグループを見ている間だけ {id, own:{本人のグループの中身}}。覚えない（開き直すと本人のグループに戻す。決定111）。
      切り替え中の S は見ているグループの中身で、本人のグループの中身は own に置いておく。viewSeq は切り替えのたびに増やし、前に頼んだ答えを捨てる */
   var G = null, viewSeq = 0;
   (function(){
     var c = loadJSON(LS_CACHE, null);
-    if (c && Array.isArray(c.records)){ S.me = c.me || null; S.members = c.members || []; S.picks = c.picks || []; S.aliases = c.aliases || []; S.aims = c.aims || []; S.machines = c.machines || []; S.recs = c.records; S.infoVer = c.infoVer || ''; S.view = c.view || null; }
+    if (c && Array.isArray(c.records)){ S.me = c.me || null; S.members = c.members || []; S.picks = c.picks || []; S.aliases = c.aliases || []; S.aims = c.aims || []; S.machines = c.machines || []; S.recs = c.records; S.infoVer = c.infoVer || ''; S.view = c.view || null; if (Array.isArray(c.areas)) S.areas = c.areas; }
     try { localStorage.removeItem(LS_INFO); } catch(e){}   // 台の情報はもう使わない（前の版の控えを消す）
     var q = loadJSON(LS_QUEUE, []);
     S.queue = Array.isArray(q) ? q : [];
@@ -672,10 +701,10 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   // 控えはいつも本人のグループの分だけ。ほかのグループの答えは書かない（決定111）
   function saveCache(){
     var o = G ? G.own : S;
-    store(LS_CACHE, JSON.stringify({me:S.me, members:o.members, picks:o.picks, aliases:o.aliases, aims:o.aims, machines:o.machines, records:o.recs, infoVer:o.infoVer, view:o.view}));
+    store(LS_CACHE, JSON.stringify({me:S.me, members:o.members, picks:o.picks, aliases:o.aliases, aims:o.aims, machines:o.machines, records:o.recs, infoVer:o.infoVer, view:o.view, areas:S.areas}));
   }
   // what the spreadsheet sent back with action "all"
-  function takeAll(r){ S.me = r.me; S.members = r.members || []; S.picks = r.picks || []; S.aliases = r.aliases || []; S.aims = r.aims || []; S.machines = r.machines || []; S.recs = r.records || []; S.infoVer = r.infoVer || ''; S.view = r.view || null; S.groups = r.groups || []; S.failed = ''; S.readErr = ''; }
+  function takeAll(r){ S.me = r.me; S.members = r.members || []; S.picks = r.picks || []; S.aliases = r.aliases || []; S.aims = r.aims || []; S.machines = r.machines || []; S.recs = r.records || []; S.infoVer = r.infoVer || ''; S.view = r.view || null; S.groups = r.groups || []; if (Array.isArray(r.areas)) S.areas = r.areas; S.failed = ''; S.readErr = ''; }
   // 合計の40%・1人あたりを出すのは最初のグループだけ（決定111。前の受け口には view がないので、そのときは今までどおり出す）
   function isFirst(){ return !S.view || !!S.view.first; }
   // 切り替え中の直す・消す（g の付いた操作）は控えに書かない。ほかのグループの字をスマホに残さないため（決定111）
@@ -856,7 +885,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     S.queue = S.queue.filter(function(x){ return x!==op; }); saveQueue();
     if (act==='add'){
       // ふつうの足す（新しい cid）。拾った人・台・狙い目は元の行のまま
-      var s = op.snap || {}, rec = Object.assign({}, op.rec, {m:s.m || '', name:s.name, aim:s.aim || '', det:op.rec.det!=null ? op.rec.det : s.det || '', pick:s.pick || ''});
+      var s = op.snap || {}, rec = Object.assign({}, op.rec, {m:s.m || '', name:s.name, aim:s.aim || '', det:op.rec.det!=null ? op.rec.det : s.det || '', pick:s.pick || '', area:op.rec.area!=null ? op.rec.area : s.area || ''});
       push({t:'add', cid:newCid(), rec:rec});
       return toast('打った記録として足しました');
     }
@@ -1278,6 +1307,39 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     $('f-pick').value = b.getAttribute('aria-pressed')==='true' ? '' : b.getAttribute('data-pick');
     update();
   });
+  /* 地域（2026-11-23 オーナー「記録する際に地域を入力、選択できるようにして欲しい」）：一覧の地域をボタンで選ぶ。選ばなくてもよい。
+     一覧にない地域は「＋ほかの地域」から書くと、みんなの一覧に足す。新しい記録では、この端末で最後に使った地域を先に選んでおく */
+  //   areaVal＝選んだ（書いた）地域。areaOther＝「＋ほかの地域」で書いている。areaOrig＝直す・打つ前の記録の地域。
+  //   最後に使った地域は、一覧にあるときだけ選んだことにする（一覧を読み込んだあとに一覧に入れば、そのとき選ばれる）
+  var areaVal = '', areaOther = false, areaOrig = '';
+  function areaKnown(v){ var k = norm(v || ''); if (!k) return ''; for (var i=0; i<S.areas.length; i++) if (norm(S.areas[i])===k) return S.areas[i]; return ''; }
+  function formArea(){ var v = String(areaVal || '').trim().replace(/[\s　]+/g, ' '); return !v ? '' : areaKnown(v) || (areaOther ? v : ''); }
+  function setArea(v){ areaVal = v || ''; areaOther = !!areaVal && !areaKnown(areaVal); $('f-area').value = areaOther ? areaVal : ''; }
+  function presetArea(){ areaVal = load(LS_AREA) || ''; areaOther = false; areaOrig = ''; $('f-area').value = ''; }
+  function areaChips(){
+    var v = formArea(), cur = norm(v), isNew = areaOther && !!v && !areaKnown(v);
+    $('area-chips').innerHTML = S.areas.map(function(a){
+      return '<button type="button" class="chip" data-area="'+esc(a)+'" aria-pressed="'+(cur && norm(a)===cur ? 'true' : 'false')+'">'+esc(a)+'</button>';
+    }).join('') + '<button type="button" class="chip" data-area="+" aria-pressed="'+(areaOther && (!v || isNew) ? 'true' : 'false')+'">＋ほかの地域</button>';
+    $('f-area').hidden = !areaOther;
+    var msg = isNew && norm(v)!==norm(areaOrig) ? '「' + v + '」を新しい地域として、みんなの一覧に足します。' : '';
+    $('area-new').hidden = !msg;
+    $('area-new').textContent = msg;
+  }
+  $('area-chips').addEventListener('click', function(e){
+    var b = e.target.closest('.chip'); if (!b) return;
+    var a = b.getAttribute('data-area');
+    if (a==='+'){
+      areaOther = !areaOther; $('f-area').value = ''; areaVal = '';
+      update();
+      if (areaOther) $('f-area').focus();
+      return;
+    }
+    // 選んである地域をもう一度押すと外す
+    setArea(b.getAttribute('aria-pressed')==='true' ? '' : a);
+    update();
+  });
+  $('f-area').addEventListener('input', function(){ areaVal = $('f-area').value; update(); });
 
   /* 打った日時. 時間不明 (user, 2026-10-20) swaps the date-and-time box for a date-only box; the record then keeps only the day. */
   var timeOff = false;
@@ -1319,7 +1381,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     $('f-new-machine').hidden = $('f-machine').value!=='+';
     $('f-machine-say').textContent = fm && fm.known ? '「' + fm.name + '」は台の一覧にあります。その台として記録します。'
       : '';
-    renderAim(); pickChips();
+    renderAim(); pickChips(); areaChips();
     var res = $('f-res');
     $('f-at-box').hidden = $('f-rate-box').hidden = noMoney;
     $('f-money').hidden = res.hidden = noMoney || onlyPick;
@@ -1392,6 +1454,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     detVals = {}; newFields = null; feOpen = false; valsSig = ''; editExtra = []; $('aim-fe').innerHTML = '';
     rate = RATES[load(LS_RATE)] ? load(LS_RATE) : rate;
     var rb = $('fr-'+rate); if (rb) rb.checked = true;
+    presetArea();   // 最後に使った地域（一覧にあるときだけ選ぶ）
     nowIfUntouched();
     $('rec-title').textContent = '記録する';
     $('f-save').textContent = '記録する';
@@ -1407,15 +1470,16 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     else if (!fm || !at || (cash==null && medal==null) || out==null) return update();
     var fa = formAim();
     var pick = resolvePick($('f-pick').value, formPlayer(), pickList(recs(), S.picks, S.aliases), S.aliases);
-    var data = {at:at, m:fm.m, name:fm.name, aim:fa.aim, det:fa.aim ? formDet(fa) : '', rate:rate, cash:cash||0, medal:medal||0, out:out||0, pick:pick};
+    var data = {at:at, m:fm.m, name:fm.name, aim:fa.aim, det:fa.aim ? formDet(fa) : '', rate:rate, cash:cash||0, medal:medal||0, out:out||0, pick:pick, area:formArea()};
     // 拾っただけ（決定111）：金額は持たない。拾った人が空なら記録した本人にする
-    if (kind==='pick') data = {picked:1, at:at, m:fm.m, name:fm.name, aim:fa.aim, det:data.det, rate:rate, pick:pick || (S.me ? S.me.name : '')};
-    if (kind==='pickEdit') data = {m:fm.m, name:fm.name, aim:fa.aim, det:data.det, pick:pick || formPlayer()};
+    if (kind==='pick') data = {picked:1, at:at, m:fm.m, name:fm.name, aim:fa.aim, det:data.det, rate:rate, pick:pick || (S.me ? S.me.name : ''), area:data.area};
+    if (kind==='pickEdit') data = {m:fm.m, name:fm.name, aim:fa.aim, det:data.det, pick:pick || formPlayer(), area:data.area};
     if (fa.isNew) data.fields = fieldsText(newFields || parseFields(DEF_FIELDS));   // a new 狙い目 goes to the list with these
     if (fm.isNew) data.yomi = formYomi(fm.name);
     if (editing){
       var r = byId(editing);
       if (r){
+        if (norm(data.area || '')===norm(r.area || '')) delete data.area;   // 地域を変えていなければ送らない（一覧から消した地域を足し直さない）
         var before = {}; Object.keys(data).forEach(function(k){ before[k] = r[k]; });
         changeRecord(r, data);
         var back = function(){ var x = again_(r); if (x) changeRecord(x, before); };
@@ -1426,6 +1490,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
       return;
     }
     var cid = newCid();
+    store(LS_AREA, data.area || '');
     push({t:'add', cid:cid, rec:data});
     var undo = function(){ var x = again_({id:'tmp_' + cid, cid:cid}); if (x) removeRecord(x); };
     undo.here = true;
@@ -1438,7 +1503,9 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   /* 打つ（決定111）：拾った台の行に投資と回収を入れて、打った台へ移す。打った人は受け口が確かめた本人にするので、ここからは送らない */
   function savePlay(at, cash, medal, out){
     if (!at || (cash==null && medal==null) || out==null || (!cash && !medal && !out)) return update();
-    var pl = playing, fa = formAim(), det = fa.aim ? formDet(fa) : '', rec = {at:at, rate:rate, cash:cash||0, medal:medal||0, out:out||0};
+    var pl = playing, fa = formAim(), det = fa.aim ? formDet(fa) : '', rec = {at:at, rate:rate, cash:cash||0, medal:medal||0, out:out||0, area:formArea()};
+    store(LS_AREA, rec.area);
+    if (norm(rec.area)===norm(pl.snap.area || '')) delete rec.area;   // 拾ったときの地域のままなら送らない（受け口が前の地域を残す）
     if (det!==pl.snap.det) rec.det = det;
     push({t:'play', ref:pl.id, rec:rec, snap:pl.snap});
     toast('打った台に入れました（' + timeLabel(at) + '・' + signed(calc(rec).yen, '円') + '）');
@@ -1448,10 +1515,12 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     var r = byId(id);
     if (!r || !r.picked || G) return;
     resetForm();
-    playing = {id:id, snap:{m:r.m || '', name:r.name, aim:r.aim || '', det:r.det || '', pick:r.pick || ''}};
+    playing = {id:id, snap:{m:r.m || '', name:r.name, aim:r.aim || '', det:r.det || '', pick:r.pick || '', area:r.area || ''}};
     lockPlay(true);
     fillMachines(r.m ? r.m : mKey(r));
     $('f-aim').value = r.aim || ''; $('f-pick').value = r.pick || '';
+    if (r.area) setArea(r.area);   // 拾ったときの地域（なければ最後に使った地域のまま）
+    areaOrig = r.area || '';
     parseDet(r.det).forEach(function(p){ detVals[p[0]] = p[1]; editExtra.push(p[0]); });
     rate = RATES[r.rate] ? r.rate : rate;
     if (pre){
@@ -1474,6 +1543,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     var same = S.queue.filter(function(op){ return op.t==='upd' && op.ref===r.id && op!==S.sending; })[0];
     if (same){ same.rec = Object.assign({}, same.rec, data); saveQueue(); refresh(); flush(); return; }
     var full = {}; ['at', 'm', 'name', 'aim', 'det', 'rate', 'cash', 'medal', 'out', 'pick'].forEach(function(k){ full[k] = data[k]!==undefined ? data[k] : k==='det' ? (r.det || '') : r[k]; });
+    if (data.area!==undefined) full.area = data.area;   // 2026-11-23：地域は変えたときだけ送る（送らなければ受け口は前の地域を残す）
     if (data.fields!=null) full.fields = data.fields;
     if (data.yomi) full.yomi = data.yomi;
     push({t:'upd', ref:r.id, rec:full, g:gNow()});
@@ -1504,6 +1574,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     $('f-medal').value = r.medal ? String(r.medal) : '';
     $('f-out').value = String(r.out);
     $('f-pick').value = r.pick || '';
+    setArea(r.area || ''); areaOrig = r.area || '';
     rate = RATES[r.rate] ? r.rate : 'toka';
     var rb = $('fr-'+rate); if (rb) rb.checked = true;
     $('rec-title').textContent = '記録を直す';
@@ -1567,7 +1638,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
       if (k!==last){ h += '<h2 class="day">'+esc(dayLabel(r.at))+'</h2>'; last = k; }
       if (picked){ h += pickedItem(r, id, mine); return; }
       h += '<div class="item">'
-        + '<div class="it-top"><span class="it-time">'+esc(timeLabel(r.at))+'</span><span class="it-name">'+esc(r.name)+'</span><span class="tag">'+esc((RATES[r.rate]||RATES.toka).label)+'</span>'+(r.pending ? '<span class="tag wait">未送信</span>' : '')+'</div>'
+        + '<div class="it-top"><span class="it-time">'+esc(timeLabel(r.at))+'</span><span class="it-name">'+esc(r.name)+'</span><span class="tag">'+esc((RATES[r.rate]||RATES.toka).label)+'</span>'+(r.area ? '<span class="tag">'+esc(r.area)+'</span>' : '')+(r.pending ? '<span class="tag wait">未送信</span>' : '')+'</div>'
         + (r.aim ? '<div class="it-aim">'+esc(r.aim)+'</div>'+(r.det ? '<div class="it-det">'+esc(detLabel(r.det))+'</div>' : '') : '<div class="it-aim none">狙い目なし</div>')
         + '<div class="it-res"><b class="'+cls(c.yen)+'">'+esc(signed(c.yen, '円'))+'</b><b class="'+cls(c.coins)+'">'+esc(signed(c.coins, '枚'))+'</b>'
         + (confirmId===r.id || !mine ? '' : '<span class="it-act"><button type="button" class="btn sm" data-act="edit" data-id="'+id+'">直す</button><button type="button" class="btn sm" data-act="del" data-id="'+id+'">消す</button></span>')
@@ -1584,7 +1655,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   // 拾った台の行（決定111）：金額はない。打つは同じグループの誰でも押せる。切り替え中は出さない
   function pickedItem(r, id, mine){
     return '<div class="item">'
-      + '<div class="it-top"><span class="it-time">'+esc(timeLabel(r.at))+'</span><span class="it-name">'+esc(r.name)+'</span>'+(r.pending ? '<span class="tag wait">未送信</span>' : '')+'</div>'
+      + '<div class="it-top"><span class="it-time">'+esc(timeLabel(r.at))+'</span><span class="it-name">'+esc(r.name)+'</span>'+(r.area ? '<span class="tag">'+esc(r.area)+'</span>' : '')+(r.pending ? '<span class="tag wait">未送信</span>' : '')+'</div>'
       + (r.aim ? '<div class="it-aim">'+esc(r.aim)+'</div>'+(r.det ? '<div class="it-det">'+esc(detLabel(r.det))+'</div>' : '') : '<div class="it-aim none">狙い目なし</div>')
       + '<div class="it-res"><span class="tag">まだ打っていません</span>'+(r.given ? '<span class="tag give">渡した</span>' : '')
       // 「渡した」は印だけで、数には使わない（決定116）。押せるのは入れた人と管理の人。切り替え中は札だけ
@@ -1824,15 +1895,20 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   /* ---------- ランキング: one row per (台 × 狙い目 name), everyone's records (user 2026-10-23 「G数とかなしの狙い目でつけて」);
      inside it, the records with the same numbers are put together (「G数とか同じものは同じにして詳細見えるように」) ---------- */
   function addPlay(g, r, c){ g.n++; g.yen += c.yen; if (c.yen>0) g.win++; g.plays.push({at:r.at, yen:c.yen, by:r.by}); }
+  /* 2026-11-23 オーナー「ヴァルブレイブの最強区間狙いはptごとに…東京グールの解放狙いもptごとに分類…当該などの細かいところは両者ともに分けなくて良い」：
+     この2つの狙い目の中は、pt の数だけで分ける（pt の入っていない記録は「pt なし」） */
+  var PT_AIMS = {'valvrave2|最強区間狙い':1, 'tokyo_ghoul|解放狙い':1};
+  function ptAim(mk, aim){ return !!PT_AIMS[mk + '|' + norm(aim)]; }
+  function ptDet(det){ var p = parseDet(det).filter(function(x){ return /pt/i.test(x[0]); })[0]; return p ? p[0] + ':' + p[1] : ''; }
   function groups(all, aims){
     var by = {}, out = [];
     all.forEach(function(r){   // newest first
       if (r.picked) return;   // 拾っただけの行は入れない（決定111）
       var mk = mKey(r), aim = r.aim ? (aimAliasOf(mk, r.aim, aims) || r.aim) : '', k = mk + '|' + norm(aim), c = calc(r);
-      if (!by[k]){ by[k] = {mk:mk, name:r.name, aim:aim, n:0, win:0, yen:0, last:r.at, plays:[], subs:[], sby:{}}; out.push(by[k]); }
-      var g = by[k], dk = aim ? detKey(r.det) : '';
+      if (!by[k]){ by[k] = {mk:mk, name:r.name, aim:aim, pt:!!aim && ptAim(mk, aim), n:0, win:0, yen:0, last:r.at, plays:[], subs:[], sby:{}}; out.push(by[k]); }
+      var g = by[k], dd = g.pt ? ptDet(r.det) : r.det, dk = aim ? detKey(dd) : '';
       addPlay(g, r, c);
-      if (!g.sby[dk]){ g.sby[dk] = {key:dk, det:dk ? r.det : '', n:0, win:0, yen:0, plays:[]}; g.subs.push(g.sby[dk]); }
+      if (!g.sby[dk]){ g.sby[dk] = {key:dk, det:dk ? dd : '', n:0, win:0, yen:0, plays:[]}; g.subs.push(g.sby[dk]); }
       addPlay(g.sby[dk], r, c);
     });
     out.forEach(function(g){ g.avg = roundHalfAway(g.yen / g.n); g.subs.forEach(function(x){ x.avg = roundHalfAway(x.yen / x.n); }); delete g.sby; });
@@ -1859,44 +1935,57 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     return {v:v, from:'', to:''};
   }
   function inSpan(r, sp){ var d = String(r.at || '').slice(0, 10); return (!sp.from || d>=sp.from) && (!sp.to || d<=sp.to); }
+  /* 時間帯（2026-11-23 オーナー「時間帯に分けたい」）：打った時刻で、朝〜12時・昼12〜17時・夕方17〜20時・夜20時〜。0〜4時は夜に入れる。
+     時間不明の記録は「全部」にだけ入る */
+  function timeBand(at){ if (!hasTime(at)) return ''; var h = +String(at).slice(11, 13); return h<5 || h>=20 ? 'night' : h<12 ? 'am' : h<17 ? 'noon' : 'eve'; }
+  // 地域で絞る欄：地域の一覧に、記録にだけ残っている地域（一覧から消した地域）を足す。今までの地域なしの記録は「すべての地域」にだけ入る
+  function fillRankAreas(all){
+    var sel = $('rk-area'), cur = sel.value, seen = {}, list = [];
+    S.areas.concat(all.filter(function(r){ return !r.picked && r.area; }).map(function(r){ return r.area; })).forEach(function(a){ var k = norm(a); if (k && !seen[k]){ seen[k] = 1; list.push(a); } });
+    sel.innerHTML = '<option value="">全地域</option>' + list.map(function(a){ return '<option value="'+esc(a)+'">'+esc(a)+'</option>'; }).join('');
+    sel.value = cur; if (sel.value!==cur) sel.value = '';
+  }
   function ymLabel(d){ return +d.slice(0, 4) + '年' + +d.slice(5, 7) + '月'; }
+  /* 2026-11-23 オーナー「打っている台の数のランキングを狙い目ごとに見れる場所を増やして欲しい／収支のランキングの1回あたりのランが不要で
+     各ランキング選択して見れるように見やすく」：上で収支（合計の収支の順）か台数（打った台の数の順）を選ぶ。台・地域・期間・時間帯で絞る */
   function renderRank(){
     var all = recs();
-    fillRankMachines(all);
-    var only = $('rk-machine').value, sort = document.querySelector('input[name="rk-sort"]:checked').value, sp = rankSpan();
+    fillRankMachines(all); fillRankAreas(all);
+    var only = $('rk-machine').value, area = $('rk-area').value, sp = rankSpan(),
+        cnt = document.querySelector('input[name="rk-kind"]:checked').value==='cnt', band = document.querySelector('input[name="rk-time"]:checked').value;
     $('rk-days').hidden = sp.v!=='day';
     $('rk-span-say').hidden = !(sp.v==='m0' || sp.v==='m1' || sp.v==='m3');
     $('rk-span-say').textContent = sp.v==='m3' ? '期間：' + ymLabel(sp.from) + '〜' + ymLabel(sp.to) : sp.from ? '期間：' + ymLabel(sp.from) : '';
-    var list = groups(all.filter(function(r){ return inSpan(r, sp); }), S.aims).filter(function(g){ return !only || g.mk===only; });
+    var list = groups(all.filter(function(r){ return inSpan(r, sp) && (!area || norm(r.area || '')===norm(area)) && (!band || timeBand(r.at)===band); }), S.aims)
+      .filter(function(g){ return !only || g.mk===only; });
     var el = $('rank');
     if (sp.from && sp.to && sp.from>sp.to){ el.innerHTML = '<div class="empty">「いつから」の日付が「いつまで」より後になっています。</div>'; return; }
-    if (!list.length){ el.innerHTML = '<div class="empty">' + (sp.from || sp.to ? 'この期間の記録はありません。' : 'まだ記録がありません。記録がたまると、狙い目ごとの順位が出ます。') + '</div>'; return; }
-    list.sort(function(a, b){
-      var x = sort==='sum' ? b.yen - a.yen : b.avg - a.avg;
-      return x || b.n - a.n || (a.last<b.last ? 1 : a.last>b.last ? -1 : 0);
-    });
-    function val(x){ return sort==='sum' ? x.yen : x.avg; }
-    function other(x){ return sort==='sum' ? '1回あたり '+signed(x.avg, '円') : '合計 '+signed(x.yen, '円'); }
+    if (!list.length){ el.innerHTML = '<div class="empty">' + (sp.from || sp.to || area || band || only ? 'この条件の記録はありません。' : 'まだ記録がありません。記録がたまると、狙い目ごとの順位が出ます。') + '</div>'; return; }
+    function order(a, b){ return (cnt ? b.n - a.n || b.yen - a.yen : b.yen - a.yen || b.n - a.n); }
+    list.sort(function(a, b){ return order(a, b) || (a.last<b.last ? 1 : a.last>b.last ? -1 : 0); });
+    function valHTML(x){ return cnt ? '<b>'+x.n+'台</b>' : '<b class="'+cls(x.yen)+'">'+esc(signed(x.yen, '円'))+'</b>'; }
+    function meta(x){ return cnt ? '<span>勝ち'+x.win+'台</span><span>'+esc('収支 '+signed(x.yen, '円'))+'</span>' : '<span>'+x.n+'台</span><span>勝ち'+x.win+'台</span>'; }
     el.innerHTML = list.map(function(g, i){
-      var main = val(g), inner;
+      var inner;
       if (g.aim){
-        // the numbers' groups, in the same order as the ranking; records without numbers last
-        var subs = g.subs.slice().sort(function(a, b){ return (!a.key) - (!b.key) || val(b) - val(a) || b.n - a.n; });
-        inner = '<div class="rk-subs"><p class="chips-h">G数などの数ごと</p>' + subs.map(function(x){
-          return '<details class="rk-sub"><summary><span class="rk-main">'+(x.key ? '<b>'+esc(detLabel(x.det))+'</b>' : '<b class="none">数の記録なし</b>')
-            + '<span class="rk-meta"><span>'+x.n+'回</span><span>勝ち'+x.win+'回</span><span>'+esc(other(x))+'</span></span></span>'
-            + '<span class="rk-val"><b class="'+cls(val(x))+'">'+esc(signed(val(x), '円'))+'</b></span></summary>' + playsHTML(x.plays) + '</details>';
+        // 数ごと（pt の狙い目は pt ごと）。並びは上の順位と同じ。数の記録なしは最後
+        var subs = g.subs.slice().sort(function(a, b){ return (!a.key) - (!b.key) || order(a, b); });
+        inner = '<div class="rk-subs"><p class="chips-h">'+(g.pt ? 'ptごと' : 'G数などの数ごと')+'</p>' + subs.map(function(x){
+          return '<details class="rk-sub"><summary><span class="rk-main">'+(x.key ? '<b>'+esc(detLabel(x.det))+'</b>' : '<b class="none">'+(g.pt ? 'pt なし' : '数の記録なし')+'</b>')
+            + '<span class="rk-meta">'+meta(x)+'</span></span>'
+            + '<span class="rk-val">'+valHTML(x)+'</span></summary>' + playsHTML(x.plays) + '</details>';
         }).join('') + '</div>';
       } else inner = playsHTML(g.plays);
       return '<details class="rk"><summary>'
         + '<span class="rk-no">'+(i+1)+'</span>'
         + '<span class="rk-main">'+(only ? '' : '<small>'+esc(g.name)+'</small>')+(g.aim ? '<b>'+esc(g.aim)+'</b>' : '<b class="none">狙い目なし</b>')
-        + '<span class="rk-meta"><span>'+g.n+'回</span><span>勝ち'+g.win+'回</span><span>'+esc(other(g))+'</span></span></span>'
-        + '<span class="rk-val"><b class="'+cls(main)+'">'+esc(signed(main, '円'))+'</b><small>'+(sort==='sum' ? '合計' : '1回あたり')+'</small></span>'
+        + '<span class="rk-meta">'+meta(g)+'</span></span>'
+        + '<span class="rk-val">'+valHTML(g)+'<small>'+(cnt ? '打った台' : '合計')+'</small></span>'
         + '</summary>' + inner + '</details>';
     }).join('');
   }
   $('rk-machine').addEventListener('change', renderRank);
+  $('rk-area').addEventListener('change', renderRank);
   document.querySelectorAll('input[name="rk-span"]').forEach(function(x){ x.addEventListener('change', function(){
     // 日付で選ぶを初めて押したときは、今月の1日〜今日を入れておく
     if (x.value==='day' && !$('rk-from').value && !$('rk-to').value){ var t = fmtAt(new Date()).slice(0, 10); $('rk-from').value = t.slice(0, 8) + '01'; $('rk-to').value = t; }
@@ -1904,7 +1993,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   }); });
   $('rk-from').addEventListener('change', renderRank);
   $('rk-to').addEventListener('change', renderRank);
-  document.querySelectorAll('input[name="rk-sort"]').forEach(function(x){ x.addEventListener('change', renderRank); });
+  document.querySelectorAll('input[name="rk-kind"], input[name="rk-time"]').forEach(function(x){ x.addEventListener('change', renderRank); });
 
   /* ---------- 設定・メンバー (the 管理 person adds members and sets each one's 合言葉) ---------- */
   var memberRows = null, memberGroups = [], admOpen = null, moveSeq = 0;
@@ -1912,7 +2001,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   function renderSet(fetch){
     $('set-me').innerHTML = S.me ? 'この端末は <b>' + esc(S.me.name) + '</b> さん' + (S.me.admin ? '（管理）' : '') + 'で使っています。' : '';
     $('adm').hidden = !(S.me && S.me.admin);
-    renderPicks(); renderAims();
+    renderPicks(); renderAims(); renderAreas();
     if (!(S.me && S.me.admin)) return;
     if (fetch){
       $('adm-link').hidden = true; admOpen = null;
@@ -2245,6 +2334,76 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     }
   });
 
+  /* 地域の整理（2026-11-23 オーナー「新橋、歌舞伎、大野なのでこの３つをとりあえず用意して記入編集削除できるように設計」。管理の人だけ）：
+     足す・名前を変える（前の記録の地域も新しい名前になる）・消す（一覧から外れる。前の記録の地域の字は残る）。地域の一覧はどのグループも同じ */
+  var arOpen = null;
+  function renderAreas(){
+    var box = $('ar'); box.hidden = !(S.me && S.me.admin);
+    if (box.hidden) return;
+    var el = $('ar-list');
+    if (arOpen && S.areas.indexOf(arOpen.area)<0) arOpen = null;
+    el.innerHTML = !S.areas.length ? '<p class="hint">地域はまだありません。</p>' : S.areas.map(function(a){
+      var h = '<div class="mem"><div class="mem-top"><b>'+esc(a)+'</b></div>';
+      if (!arOpen || arOpen.area!==a) return h + '<div class="acts"><button type="button" class="btn sm" data-aract="rename" data-area="'+esc(a)+'">名前を変える</button><button type="button" class="btn sm" data-aract="delete" data-area="'+esc(a)+'">消す</button></div></div>';
+      var del = arOpen.mode==='delete';
+      h += '<div class="mem-edit">' + (del ? '<p class="hint">「'+esc(a)+'」を地域の一覧から消します。前の記録の地域の字は、そのまま残ります。</p>'
+        : '<p class="chips-h">新しい名前</p><input class="tin" data-f="nm" type="text" maxlength="20" autocomplete="off" aria-label="新しい名前"><p class="hint" data-f="say"></p>');
+      return h + '<p class="err" data-f="err" hidden></p><div class="acts"><button type="button" class="btn sm" data-aract="close">やめる</button>'
+        + '<button type="button" class="btn sm '+(del ? 'danger' : 'main')+'" data-aract="go">'+(del ? '消す' : '変える')+'</button></div></div></div>';
+    }).join('');
+    var nm = el.querySelector('[data-f="nm"]'); if (nm) nm.value = arOpen.nm;
+    arSay();
+  }
+  function arSay(){
+    var el = $('ar-list'), say = el.querySelector('[data-f="say"]'), go = el.querySelector('[data-aract="go"]');
+    if (!arOpen || arOpen.mode!=='rename' || !say) return;
+    var nm = arOpen.nm.trim(), dup = S.areas.filter(function(x){ return x!==arOpen.area && norm(x)===norm(nm); })[0];
+    say.textContent = !nm || nm===arOpen.area ? '' : dup ? '「' + dup + '」はもうあります。' : '「' + arOpen.area + '」を「' + nm + '」に変えます。前の記録の地域も新しい名前になります。';
+    if (go) go.disabled = !nm || nm===arOpen.area || !!dup;
+  }
+  // 受け口の答えの地域の一覧を入れる。最後に使った地域・入れかけの地域も、名前を変えた・消したに合わせる
+  function takeAreas(r, from, to){
+    if (Array.isArray(r.areas)) S.areas = r.areas;
+    if (from && norm(load(LS_AREA) || '')===norm(from)) store(LS_AREA, to || '');
+    if (from && !editing && norm(areaVal)===norm(from)) setArea(to || '');
+    saveCache(); refresh();
+  }
+  $('ar-list').addEventListener('input', function(e){ if (e.target.getAttribute('data-f')==='nm' && arOpen){ arOpen.nm = e.target.value; arSay(); } });
+  $('ar-list').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-aract]'); if (!b) return;
+    var act = b.getAttribute('data-aract'), el = $('ar-list');
+    if (act==='rename' || act==='delete'){
+      arOpen = {area:b.getAttribute('data-area'), mode:act, nm:b.getAttribute('data-area')};
+      renderAreas();
+      var i = el.querySelector('[data-f="nm"]'); if (i) i.focus();
+      return;
+    }
+    if (act==='close'){ arOpen = null; return renderAreas(); }
+    if (act==='go' && arOpen){
+      var o = arOpen, err = el.querySelector('[data-f="err"]'), del = o.mode==='delete', to = o.nm.trim();
+      b.disabled = true; err.hidden = true;
+      call(del ? 'areaDelete' : 'areaRename', del ? {area:o.area} : {from:o.area, to:to}).then(function(r){
+        b.disabled = false;
+        if (!r.ok){ err.textContent = r.error || 'うまくいきませんでした'; err.hidden = false; return; }
+        arOpen = null;
+        if (del){ takeAreas(r, o.area, ''); toast('「' + o.area + '」を地域の一覧から消しました'); }
+        else { takeAreas(r, o.area, r.to); toast('「' + o.area + '」を「' + r.to + '」に変えました（記録' + r.件数 + '件）'); reload(); }
+      }, function(){ b.disabled = false; err.textContent = 'つながりません。もう一度どうぞ。'; err.hidden = false; });
+    }
+  });
+  $('ar-add').addEventListener('click', function(){
+    var b = $('ar-add'), v = $('ar-new').value.trim(), err = $('ar-err');
+    err.hidden = true;
+    if (!v){ err.textContent = '足す地域の名前を入れてください'; err.hidden = false; return; }
+    b.disabled = true;
+    call('areaAdd', {area:v}).then(function(r){
+      b.disabled = false;
+      if (!r.ok){ err.textContent = r.error || 'うまくいきませんでした'; err.hidden = false; return; }
+      $('ar-new').value = '';
+      takeAreas(r); toast('「' + r.area + '」を地域の一覧に足しました');
+    }, function(){ b.disabled = false; err.textContent = 'つながりません。もう一度どうぞ。'; err.hidden = false; });
+  });
+
   $('set-reload').addEventListener('click', function(){ reload(); renderSet(true); toast('読み込み直しています'); });
   $('set-switch').addEventListener('click', function(){ lockOut(''); });
 
@@ -2262,7 +2421,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   window.__neraicho = {calc:calc, norm:norm, groups:groups, monthSums:monthSums, applyQueue:applyQueue, keyFrom:keyFrom, fmtAt:fmtAt, pickList:pickList, recs:recs,
     resolvePick:resolvePick, timeLabel:timeLabel, shortDay:shortDay, hasTime:hasTime, byNewest:byNewest,
     parseFields:parseFields, fieldsText:fieldsText, detText:detText, detLabel:detLabel, detKey:detKey, aimList:aimList, resolveAim:resolveAim,
-    aimFields:aimFields, yomiKey:yomiKey, byYomi:byYomi, allMachines:allMachines, shareOf:shareOf, daySums:daySums, compactYen:compactYen, inSpan:inSpan, machineHits:machineHits};
+    aimFields:aimFields, yomiKey:yomiKey, byYomi:byYomi, allMachines:allMachines, shareOf:shareOf, daySums:daySums, compactYen:compactYen, inSpan:inSpan, machineHits:machineHits, timeBand:timeBand, ptDet:ptDet, formArea:formArea};
 
   /* ---------- start ---------- */
   if (!canStore) $('no-store').hidden = false;
@@ -2292,7 +2451,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   'use strict';
   // BUILD＝この index.html の BUILD の値を空（''）にした中身の SHA-256 の頭12字。sw.js の BUILD・version.json の build と同じ値にする
   // （2026-10-31 から。前の組み立ての道具 build.py は消えたので、この決め方にした）
-  var BUILD = '7d925bf3211a', CACHE = 'neraicho-app-v1', lastCheck = 0;
+  var BUILD = '2ab9781e4b37', CACHE = 'neraicho-app-v1', lastCheck = 0;
   if (!('serviceWorker' in navigator)) return;
   var bar = document.getElementById('app-update');
   document.body.insertBefore(bar, document.body.firstChild);   // above the page, so it never covers the machine select or tabs
