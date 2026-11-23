@@ -205,7 +205,7 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
 .cal-day .rk-plays{margin:0;border-top:0;padding:2px 0}
 .cal-day .rk-plays+.rk-plays{border-top:1px dashed var(--line);padding-top:6px}
 /* 稼働日数・打った台・拾った台・渡した台：名前を上の段に置き、その下に数ごとの棒の列を並べる。棒の長さの基準は列ごとに別 */
-.wk{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px 10px;font-size:13px}
+.wk{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px 6px;font-size:13px}
 .wk-h{font-size:12px;font-weight:700;color:var(--muted)}
 .wk-name{grid-column:1 / -1;margin-top:8px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .wk-bar{display:flex;flex-direction:column;gap:3px;min-width:0}
@@ -499,9 +499,9 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
       <div id="cal-day" class="cal-day" aria-live="polite"></div>
     </div>
     <div class="block">
-      <h2>稼働日数・打った台・拾った台・渡した台</h2>
+      <h2>稼働日数・打った台・拾った台・渡した台・リセ・1g</h2>
       <div id="mon-work" class="wk"></div>
-      <p class="hint">稼働日数は、その月に1台でも記録した日の数です。「拾った台」は、その人が拾った台の全部の数です（自分で打った台と、ほかの人が打った台と、まだ打っていない台を足した数。打った人が空の台も入ります）。「渡した台」は、そのうち同じグループのほかの人が打った台の数です。「渡した」を押しただけでは数えません。打った人が空の台と、メンバーでない人が拾った台も数えません。「拾った人」が空の台は数えません。棒の長さは、それぞれの列でいちばん多い人を基準にしています。</p>
+      <p class="hint">「リセ」は狙い目の名前に「リセット」がつく台、「1g」は狙い目の名前に「即前兆確認」がつく台の数です。この2つに入る台は、「打った台」と「拾った台」には数えません。稼働日数は、その月に1台でも記録した日の数です。「拾った台」は、その人が拾った台の全部の数です（自分で打った台と、ほかの人が打った台と、まだ打っていない台を足した数。打った人が空の台も入ります）。「渡した台」は、そのうち同じグループのほかの人が打った台の数です。「渡した」を押しただけでは数えません。打った人が空の台と、メンバーでない人が拾った台も数えません。「拾った人」が空の台は数えません。棒の長さは、それぞれの列でいちばん多い人を基準にしています。</p>
     </div>
     <div class="seg" role="radiogroup" aria-label="分け方">
       <input type="radio" name="mon-by" id="mon-by-by" value="by" checked><label for="mon-by-by">メンバーごと</label>
@@ -1663,11 +1663,16 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   // found＝自分で拾って自分で打った台（古い「自分」も入れる）と、まだ打っていない拾っただけの台（決定111）。打った人が空の記録は、記録した人に読み替えない。メンバーごとの分け方のときだけ数える。
   // 1つの記録は found か gave のどちらか片方にだけ入り、グラフの拾った台は2つを足した数（決定109。足すのは renderWork）
   // 拾っただけの行は、拾った台のほかどこにも入らない（チームの合計・40%・1人あたり・1台あたり・稼働日数・渡した台）
+  // 狙い目の名前で分ける台（2026-11-23 オーナー「リセの欄はリセットという名前がつく狙い目の台の数」「1gの欄は即前兆確認という名前がつく狙い目の台の数」
+  // 「その２つに該当する台は打った台と拾った台には計数しないで」）。'rs'＝リセ、'g1'＝1g、ほかは ''
+  var KIND_RS = norm('リセット'), KIND_G1 = norm('即前兆確認');
+  function aimKind(r){ var a = norm(r.aim || ''); return a.indexOf(KIND_RS)>=0 ? 'rs' : a.indexOf(KIND_G1)>=0 ? 'g1' : ''; }
+  // rs・g1＝その人が打ったリセ・1gの台。pickOut＝found と gave のうち、リセ・1gの台（グラフの拾った台から外す数。メンバーごとの分け方のときだけ）
   function monthSums(all, m, key, names){
     var team = {n:0, win:0, yen:0, days:0, gave:0}, by = {}, out = [], tdays = {}, pick = key==='pick';
     // 拾った人 is free words: the same name written in full/half width or with spaces counts as one
     var kf = pick ? function(v){ return norm(v); } : function(v){ return v; };
-    function person(name){ return {name:name, n:0, win:0, yen:0, days:0, found:0, gave:0, plays:[], seen:{}}; }
+    function person(name){ return {name:name, n:0, win:0, yen:0, days:0, found:0, gave:0, rs:0, g1:0, pickOut:0, plays:[], seen:{}}; }
     (names || []).forEach(function(n){ by[kf(n)] = person(n); out.push(by[kf(n)]); });
     all.forEach(function(r){
       if (r.at.slice(0, 7)!==m || (r.picked && !pick)) return;
@@ -1677,6 +1682,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
       var p = by[k], given = pick && isHanded(r);
       p.n++;
       if (r.picked) return;   // 拾っただけの行は、拾った人ごとの拾った台の数にだけ入れる
+      var kd = aimKind(r); if (kd) p[kd]++;
       if (!p.seen[d]){ p.seen[d] = 1; p.days++; }
       if (given) p.gave++;
       // 拾った人が空の台は、人ごとの金額にだけ入れない（台数だけ出す）。
@@ -1693,12 +1699,12 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
       out.forEach(function(p){ byNorm[norm(p.name)] = p; });
       all.forEach(function(r){
         if (r.at.slice(0, 7)!==m || !r.pick) return;
-        var g = byNorm[norm(r.pick)], played = norm(r.by || '');
-        if (r.picked){ if (g) g.found++; return; }
+        var g = byNorm[norm(r.pick)], played = norm(r.by || ''), out1 = aimKind(r) ? 1 : 0;
+        if (r.picked){ if (g){ g.found++; g.pickOut += out1; } return; }
         var own = isSelf(r.pick) || norm(r.pick)===played;
-        if (isGiven(r)){ team.gave++; if (g) g.gave++; }   // 止めた人がその月に打っていなくても、上の帯の数には入れる（決定116）
-        else if (g && !own) g.found++;   // 渡した台から外れた台も、拾った台の数には残す（決定116の読み7）
-        else if (played && own) by[r.by].found++;
+        if (isGiven(r)){ team.gave++; if (g){ g.gave++; g.pickOut += out1; } }   // 止めた人がその月に打っていなくても、上の帯の数には入れる（決定116）
+        else if (g && !own){ g.found++; g.pickOut += out1; }   // 渡した台から外れた台も、拾った台の数には残す（決定116の読み7）
+        else if (played && own){ by[r.by].found++; by[r.by].pickOut += out1; }
       });
     }
     out.forEach(function(p){ delete p.seen; });
@@ -1809,14 +1815,18 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
      user 2026-11-05 「それに拾った台数を用意して」）：名前を上に置き、その下に棒の列を4つ並べる。棒の長さの基準は列ごとに別。
      拾った台は、自分で打った台（found）と渡した台（gave）を足した数で、列の棒の基準も足した数で取る
      （決定109。user 2026-11-06 「拾った台数と渡した台数は合算していい」）。渡した台の列はそのまま残す */
+  /* リセ・1g（2026-11-23 オーナー）：狙い目の名前に「リセット」「即前兆確認」がつく台を、打った台・拾った台から外して別の列に出す（aimKind）。
+     渡した台の列はそのまま */
   function renderWork(all){
-    var order = activeNames(), ppl = monthSums(all, month, 'by', order).people, md = 0, mn = 0, mf = 0, mg = 0;
-    function picked(p){ return p.found + p.gave; }
+    var order = activeNames(), ppl = monthSums(all, month, 'by', order).people, md = 0, mn = 0, mf = 0, mg = 0, mr = 0, m1 = 0;
+    function played(p){ return p.n - p.rs - p.g1; }
+    function picked(p){ return p.found + p.gave - p.pickOut; }
     ppl.sort(function(a, b){ var i = order.indexOf(a.name), j = order.indexOf(b.name); return (i<0 ? 99 : i) - (j<0 ? 99 : j); });
-    ppl.forEach(function(p){ md = Math.max(md, p.days); mn = Math.max(mn, p.n); mf = Math.max(mf, picked(p)); mg = Math.max(mg, p.gave); });
+    ppl.forEach(function(p){ md = Math.max(md, p.days); mn = Math.max(mn, played(p)); mf = Math.max(mf, picked(p)); mg = Math.max(mg, p.gave); mr = Math.max(mr, p.rs); m1 = Math.max(m1, p.g1); });
     function bar(v, max, label){ return '<span class="wk-bar'+(v ? '' : ' none')+'"><span>'+label+'</span>'+(v ? '<i style="width:'+(v / max * 100).toFixed(1)+'%"></i>' : '')+'</span>'; }
-    $('mon-work').innerHTML = ppl.length ? '<span class="wk-h">稼働日数</span><span class="wk-h">打った台</span><span class="wk-h">拾った台</span><span class="wk-h">渡した台</span>'
-      + ppl.map(function(p){ return '<span class="wk-name">'+esc(p.name)+'</span>' + bar(p.days, md, p.days+'日') + bar(p.n, mn, p.n+'台') + bar(picked(p), mf, picked(p)+'台') + bar(p.gave, mg, p.gave+'台'); }).join('')
+    $('mon-work').innerHTML = ppl.length ? '<span class="wk-h">稼働日数</span><span class="wk-h">打った台</span><span class="wk-h">拾った台</span><span class="wk-h">渡した台</span><span class="wk-h">リセ</span><span class="wk-h">1g</span>'
+      + ppl.map(function(p){ return '<span class="wk-name">'+esc(p.name)+'</span>' + bar(p.days, md, p.days+'日') + bar(played(p), mn, played(p)+'台') + bar(picked(p), mf, picked(p)+'台') + bar(p.gave, mg, p.gave+'台')
+        + bar(p.rs, mr, p.rs+'台') + bar(p.g1, m1, p.g1+'台'); }).join('')
       : '<p class="hint" style="grid-column:1 / -1">メンバーを読み込むと、ここに一人ずつ出ます。</p>';
   }
   $('mon-prev').addEventListener('click', function(){ month = shiftMonth(month, -1); calDay = ''; renderMonth(); });
@@ -2270,7 +2280,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   'use strict';
   // BUILD＝この index.html の BUILD の値を空（''）にした中身の SHA-256 の頭12字。sw.js の BUILD・version.json の build と同じ値にする
   // （2026-10-31 から。前の組み立ての道具 build.py は消えたので、この決め方にした）
-  var BUILD = 'eff8d8a1af3c', CACHE = 'neraicho-app-v1', lastCheck = 0;
+  var BUILD = '24c958c30e0f', CACHE = 'neraicho-app-v1', lastCheck = 0;
   if (!('serviceWorker' in navigator)) return;
   var bar = document.getElementById('app-update');
   document.body.insertBefore(bar, document.body.firstChild);   // above the page, so it never covers the machine select or tabs
