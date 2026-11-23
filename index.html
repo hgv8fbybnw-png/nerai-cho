@@ -24,7 +24,7 @@
 :root{
   --bg:#F1F2F7; --surface:#FFFFFF; --ink:#151A2D; --muted:#596079; --line:#D8DBE6;
   --accent:#2B45C4; --accent-ink:#FFFFFF; --accent-soft:#E5E9FA;
-  --go:#13784A; --go-soft:#E1F2E8; --skip:#9A2B2B; --skip-soft:#F7E3E3;
+  --go:#13784A; --go-soft:#E1F2E8; --skip:#9A2B2B; --skip-soft:#F7E3E3; --goal:#E0302A;
   --font-body:"Hiragino Sans","Hiragino Kaku Gothic ProN","BIZ UDPGothic","Yu Gothic",Meiryo,"Noto Sans JP",system-ui,sans-serif;
   --font-num:system-ui,-apple-system,"Segoe UI",Roboto,"Hiragino Sans",sans-serif;
   --r:12px;
@@ -33,14 +33,14 @@
   :root:not([data-theme="light"]){
     --bg:#0E1120; --surface:#171B2D; --ink:#E6E8F2; --muted:#99A0B8; --line:#2A3049;
     --accent:#8A9FFF; --accent-ink:#0E1120; --accent-soft:#1D2547;
-    --go:#62CC94; --go-soft:#11301F; --skip:#F09090; --skip-soft:#381718;
+    --go:#62CC94; --go-soft:#11301F; --skip:#F09090; --skip-soft:#381718; --goal:#FF5A52;
     color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
   --bg:#0E1120; --surface:#171B2D; --ink:#E6E8F2; --muted:#99A0B8; --line:#2A3049;
   --accent:#8A9FFF; --accent-ink:#0E1120; --accent-soft:#1D2547;
-  --go:#62CC94; --go-soft:#11301F; --skip:#F09090; --skip-soft:#381718;
+  --go:#62CC94; --go-soft:#11301F; --skip:#F09090; --skip-soft:#381718; --goal:#FF5A52;
   color-scheme:dark;
 }
 [hidden]{display:none!important}
@@ -212,13 +212,18 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
 .cal-day .rk-plays{margin:0;border-top:0;padding:2px 0}
 .cal-day .rk-plays+.rk-plays{border-top:1px dashed var(--line);padding-top:6px}
 /* 稼働日数・打った台・拾った台・渡した台：名前を上の段に置き、その下に数ごとの棒の列を並べる。棒の長さの基準は列ごとに別 */
-.wk{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px 6px;font-size:13px}
+.wk{display:grid;grid-template-columns:repeat(6,minmax(0,1fr)) minmax(0,1.3fr);gap:4px 6px;font-size:13px}
 .wk-h{font-size:12px;font-weight:700;color:var(--muted)}
 .wk-name{grid-column:1 / -1;margin-top:8px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .wk-bar{display:flex;flex-direction:column;gap:3px;min-width:0}
 .wk-bar i{display:block;height:10px;border-radius:0 4px 4px 0;background:var(--accent)}
 .wk-bar span{font-family:var(--font-num);font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap}
 .wk-bar.none span{color:var(--muted);font-weight:400}
+/* pt の列（2026-11-23 オーナー「イメージは赤色縦棒」）：薄い帯の上に棒、基準値のところに赤い縦の線 */
+.wk-track{position:relative;display:block;height:10px;border-radius:0 4px 4px 0;background:var(--accent-soft)}
+.wk-track b{position:absolute;top:-4px;bottom:-4px;width:3px;margin-left:-1.5px;border-radius:2px;background:var(--goal)}
+.wk-goal{grid-column:1 / -1;display:flex;align-items:center;gap:6px;margin:10px 0 0;font-size:12px;font-weight:700;color:var(--muted)}
+.wk-goal i{display:inline-block;width:3px;height:14px;border-radius:2px;background:var(--goal)}
 
 /* ランキング・月の人ごと */
 .rk-ctl{display:flex;flex-direction:column;gap:10px}
@@ -508,7 +513,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
       <div id="cal-day" class="cal-day" aria-live="polite"></div>
     </div>
     <div class="block">
-      <h2>稼働日数・打った台・拾った台・渡した台・リセ・1g</h2>
+      <h2>稼働日数・打った台・拾った台・渡した台・リセ・1g・pt</h2>
       <div id="mon-work" class="wk"></div>
     </div>
     <div class="seg" role="radiogroup" aria-label="分け方">
@@ -589,6 +594,11 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
       <div id="ar-list" class="list"></div>
       <div class="key-row"><input id="ar-new" class="tin" type="text" maxlength="20" placeholder="足す地域の名前" autocomplete="off" aria-label="足す地域の名前"><button type="button" id="ar-add" class="btn sm">足す</button></div>
       <p id="ar-err" class="err" role="alert" hidden></p>
+    </div>
+    <div id="pg" class="block" hidden>
+      <h2>ptの基準値</h2>
+      <div class="key-row"><input id="pg-in" class="tin" type="text" inputmode="decimal" maxlength="7" placeholder="例 15" autocomplete="off" aria-label="ptの基準値"><button type="button" id="pg-save" class="btn sm">決める</button></div>
+      <p id="pg-err" class="err" role="alert" hidden></p>
     </div>
   </section>
 </div>
@@ -687,13 +697,13 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
      S.recs is what the spreadsheet last said; S.queue holds what this phone did and has not sent yet. The screen always
      shows S.recs with the queue laid on top, so a record appears at once even with no signal in the hall. */
   var S = {key:'', me:null, members:[], picks:[], aliases:[], aims:[], machines:[], recs:[], queue:[], sending:null, loading:false, failed:'', retry:null,
-           info:null, infoVer:'', view:null, groups:[], areas:['新橋', '歌舞伎', '大野']};   // areas：地域の一覧（どのグループも同じ。2026-11-23）
+           info:null, infoVer:'', view:null, groups:[], areas:['新橋', '歌舞伎', '大野'], ptGoal:0};   // ptGoal：収支の画面の pt の基準値（どのグループも同じ。0＝なし）   // areas：地域の一覧（どのグループも同じ。2026-11-23）
   /* 管理の人がほかのグループを見ている間だけ {id, own:{本人のグループの中身}}。覚えない（開き直すと本人のグループに戻す。決定111）。
      切り替え中の S は見ているグループの中身で、本人のグループの中身は own に置いておく。viewSeq は切り替えのたびに増やし、前に頼んだ答えを捨てる */
   var G = null, viewSeq = 0;
   (function(){
     var c = loadJSON(LS_CACHE, null);
-    if (c && Array.isArray(c.records)){ S.me = c.me || null; S.members = c.members || []; S.picks = c.picks || []; S.aliases = c.aliases || []; S.aims = c.aims || []; S.machines = c.machines || []; S.recs = c.records; S.infoVer = c.infoVer || ''; S.view = c.view || null; if (Array.isArray(c.areas)) S.areas = c.areas; }
+    if (c && Array.isArray(c.records)){ S.me = c.me || null; S.members = c.members || []; S.picks = c.picks || []; S.aliases = c.aliases || []; S.aims = c.aims || []; S.machines = c.machines || []; S.recs = c.records; S.infoVer = c.infoVer || ''; S.view = c.view || null; if (Array.isArray(c.areas)) S.areas = c.areas; if (typeof c.ptGoal==='number') S.ptGoal = c.ptGoal; }
     try { localStorage.removeItem(LS_INFO); } catch(e){}   // 台の情報はもう使わない（前の版の控えを消す）
     var q = loadJSON(LS_QUEUE, []);
     S.queue = Array.isArray(q) ? q : [];
@@ -701,10 +711,10 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   // 控えはいつも本人のグループの分だけ。ほかのグループの答えは書かない（決定111）
   function saveCache(){
     var o = G ? G.own : S;
-    store(LS_CACHE, JSON.stringify({me:S.me, members:o.members, picks:o.picks, aliases:o.aliases, aims:o.aims, machines:o.machines, records:o.recs, infoVer:o.infoVer, view:o.view, areas:S.areas}));
+    store(LS_CACHE, JSON.stringify({me:S.me, members:o.members, picks:o.picks, aliases:o.aliases, aims:o.aims, machines:o.machines, records:o.recs, infoVer:o.infoVer, view:o.view, areas:S.areas, ptGoal:S.ptGoal}));
   }
   // what the spreadsheet sent back with action "all"
-  function takeAll(r){ S.me = r.me; S.members = r.members || []; S.picks = r.picks || []; S.aliases = r.aliases || []; S.aims = r.aims || []; S.machines = r.machines || []; S.recs = r.records || []; S.infoVer = r.infoVer || ''; S.view = r.view || null; S.groups = r.groups || []; if (Array.isArray(r.areas)) S.areas = r.areas; S.failed = ''; S.readErr = ''; }
+  function takeAll(r){ S.me = r.me; S.members = r.members || []; S.picks = r.picks || []; S.aliases = r.aliases || []; S.aims = r.aims || []; S.machines = r.machines || []; S.recs = r.records || []; S.infoVer = r.infoVer || ''; S.view = r.view || null; S.groups = r.groups || []; if (Array.isArray(r.areas)) S.areas = r.areas; if (typeof r.ptGoal==='number') S.ptGoal = r.ptGoal; S.failed = ''; S.readErr = ''; }
   // 合計の40%・1人あたりを出すのは最初のグループだけ（決定111。前の受け口には view がないので、そのときは今までどおり出す）
   function isFirst(){ return !S.view || !!S.view.first; }
   // 切り替え中の直す・消す（g の付いた操作）は控えに書かない。ほかのグループの字をスマホに残さないため（決定111）
@@ -1876,16 +1886,27 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
      （決定109。user 2026-11-06 「拾った台数と渡した台数は合算していい」）。渡した台の列はそのまま残す */
   /* リセ・1g（2026-11-23 オーナー）：狙い目の名前に「リセット」「即前兆確認」がつく台を、打った台・拾った台から外して別の列に出す（aimKind）。
      渡した台の列はそのまま */
+  /* pt（2026-11-23 オーナー「収支の画面の打った台などの記録のところpt式にしたくて／拾った台、渡した台は1pt／リセは0.5pt／1gは0.25pt／
+     これで計算して1gの横に設計して基準値を設定できるようにして欲しい／イメージは赤色縦棒」）：
+     pt＝拾った台（自分で打った台と渡した台を足した数）×1＋リセ×0.5＋1g×0.25。基準値のところに赤い縦の線を引く。棒の長さの基準は pt の一番多い人か基準値の大きい方 */
+  function ptNum(v){ return String(Math.round(v * 100) / 100); }
   function renderWork(all){
-    var order = activeNames(), ppl = monthSums(all, month, 'by', order).people, md = 0, mn = 0, mf = 0, mg = 0, mr = 0, m1 = 0;
+    var order = activeNames(), ppl = monthSums(all, month, 'by', order).people, md = 0, mn = 0, mf = 0, mg = 0, mr = 0, m1 = 0, mp = 0, goal = +S.ptGoal || 0;
     function played(p){ return p.n - p.rs - p.g1; }
     function picked(p){ return p.found + p.gave - p.pickOut; }
+    function pts(p){ return picked(p) + p.rs * 0.5 + p.g1 * 0.25; }
     ppl.sort(function(a, b){ var i = order.indexOf(a.name), j = order.indexOf(b.name); return (i<0 ? 99 : i) - (j<0 ? 99 : j); });
-    ppl.forEach(function(p){ md = Math.max(md, p.days); mn = Math.max(mn, played(p)); mf = Math.max(mf, picked(p)); mg = Math.max(mg, p.gave); mr = Math.max(mr, p.rs); m1 = Math.max(m1, p.g1); });
+    ppl.forEach(function(p){ md = Math.max(md, p.days); mn = Math.max(mn, played(p)); mf = Math.max(mf, picked(p)); mg = Math.max(mg, p.gave); mr = Math.max(mr, p.rs); m1 = Math.max(m1, p.g1); mp = Math.max(mp, pts(p)); });
     function bar(v, max, label){ return '<span class="wk-bar'+(v ? '' : ' none')+'"><span>'+label+'</span>'+(v ? '<i style="width:'+(v / max * 100).toFixed(1)+'%"></i>' : '')+'</span>'; }
-    $('mon-work').innerHTML = ppl.length ? '<span class="wk-h">稼働日数</span><span class="wk-h">打った台</span><span class="wk-h">拾った台</span><span class="wk-h">渡した台</span><span class="wk-h">リセ</span><span class="wk-h">1g</span>'
+    function ptBar(v){
+      var top = Math.max(mp, goal) || 1;
+      return '<span class="wk-bar'+(v ? '' : ' none')+'"><span>'+ptNum(v)+'pt</span><span class="wk-track">'+(v ? '<i style="width:'+(v / top * 100).toFixed(1)+'%"></i>' : '')
+        + (goal ? '<b style="left:'+(goal / top * 100).toFixed(1)+'%"></b>' : '')+'</span></span>';
+    }
+    $('mon-work').innerHTML = ppl.length ? '<span class="wk-h">稼働日数</span><span class="wk-h">打った台</span><span class="wk-h">拾った台</span><span class="wk-h">渡した台</span><span class="wk-h">リセ</span><span class="wk-h">1g</span><span class="wk-h">pt</span>'
       + ppl.map(function(p){ return '<span class="wk-name">'+esc(p.name)+'</span>' + bar(p.days, md, p.days+'日') + bar(played(p), mn, played(p)+'台') + bar(picked(p), mf, picked(p)+'台') + bar(p.gave, mg, p.gave+'台')
-        + bar(p.rs, mr, p.rs+'台') + bar(p.g1, m1, p.g1+'台'); }).join('')
+        + bar(p.rs, mr, p.rs+'台') + bar(p.g1, m1, p.g1+'台') + ptBar(pts(p)); }).join('')
+      + (goal ? '<p class="wk-goal"><i></i>基準値 '+ptNum(goal)+'pt</p>' : '')
       : '';
   }
   $('mon-prev').addEventListener('click', function(){ month = shiftMonth(month, -1); calDay = ''; renderMonth(); });
@@ -2015,7 +2036,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   function renderSet(fetch){
     $('set-me').innerHTML = S.me ? 'この端末は <b>' + esc(S.me.name) + '</b> さん' + (S.me.admin ? '（管理）' : '') + 'で使っています。' : '';
     $('adm').hidden = !(S.me && S.me.admin);
-    renderPicks(); renderAims(); renderAreas();
+    renderPicks(); renderAims(); renderAreas(); renderPtGoal();
     if (!(S.me && S.me.admin)) return;
     if (fetch){
       $('adm-link').hidden = true; admOpen = null;
@@ -2418,6 +2439,25 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     }, function(){ b.disabled = false; err.textContent = 'つながりません。もう一度どうぞ。'; err.hidden = false; });
   });
 
+  /* ptの基準値（2026-11-23 オーナー。見本を見て「管理の人が決め全員同じ」）：収支の画面の pt の列の赤い縦線。どのグループも同じ1つ。空か 0 で決めると線を消す */
+  function renderPtGoal(){
+    var box = $('pg'); box.hidden = !(S.me && S.me.admin);
+    if (box.hidden || document.activeElement===$('pg-in')) return;
+    $('pg-in').value = S.ptGoal ? ptNum(S.ptGoal) : '';
+  }
+  $('pg-save').addEventListener('click', function(){
+    var b = $('pg-save'), v = $('pg-in').value.normalize('NFKC').replace(/[\s　]+/g, '').replace(/pt$/i, ''), err = $('pg-err');
+    err.hidden = true;
+    if (!/^\d{0,4}(\.\d{1,2})?$/.test(v) || +v > 9999){ err.textContent = '基準値は 0〜9999 の数で入れてください（小数は2けたまで）'; err.hidden = false; return; }
+    b.disabled = true;
+    call('ptGoal', {goal:v}).then(function(r){
+      b.disabled = false;
+      if (!r.ok){ err.textContent = r.error || 'うまくいきませんでした'; err.hidden = false; return; }
+      S.ptGoal = +r.ptGoal || 0; $('pg-in').value = S.ptGoal ? ptNum(S.ptGoal) : '';
+      saveCache(); refresh(); toast(S.ptGoal ? 'ptの基準値を ' + ptNum(S.ptGoal) + 'pt にしました' : 'ptの基準値を消しました');
+    }, function(){ b.disabled = false; err.textContent = 'つながりません。もう一度どうぞ。'; err.hidden = false; });
+  });
+
   $('set-reload').addEventListener('click', function(){ reload(); renderSet(true); toast('読み込み直しています'); });
   $('set-switch').addEventListener('click', function(){ lockOut(''); });
 
@@ -2435,7 +2475,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   window.__neraicho = {calc:calc, norm:norm, groups:groups, monthSums:monthSums, applyQueue:applyQueue, keyFrom:keyFrom, fmtAt:fmtAt, pickList:pickList, recs:recs,
     resolvePick:resolvePick, timeLabel:timeLabel, shortDay:shortDay, hasTime:hasTime, byNewest:byNewest,
     parseFields:parseFields, fieldsText:fieldsText, detText:detText, detLabel:detLabel, detKey:detKey, aimList:aimList, resolveAim:resolveAim,
-    aimFields:aimFields, yomiKey:yomiKey, byYomi:byYomi, allMachines:allMachines, shareOf:shareOf, daySums:daySums, compactYen:compactYen, inSpan:inSpan, machineHits:machineHits, timeBand:timeBand, splitKey:splitKey, rankOut:rankOut, formArea:formArea};
+    aimFields:aimFields, yomiKey:yomiKey, byYomi:byYomi, allMachines:allMachines, shareOf:shareOf, daySums:daySums, compactYen:compactYen, inSpan:inSpan, machineHits:machineHits, timeBand:timeBand, splitKey:splitKey, rankOut:rankOut, formArea:formArea, ptNum:ptNum};
 
   /* ---------- start ---------- */
   if (!canStore) $('no-store').hidden = false;
@@ -2465,7 +2505,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   'use strict';
   // BUILD＝この index.html の BUILD の値を空（''）にした中身の SHA-256 の頭12字。sw.js の BUILD・version.json の build と同じ値にする
   // （2026-10-31 から。前の組み立ての道具 build.py は消えたので、この決め方にした）
-  var BUILD = 'cea02c43b762', CACHE = 'neraicho-app-v1', lastCheck = 0;
+  var BUILD = '8fbcbaf8751d', CACHE = 'neraicho-app-v1', lastCheck = 0;
   if (!('serviceWorker' in navigator)) return;
   var bar = document.getElementById('app-update');
   document.body.insertBefore(bar, document.body.firstChild);   // above the page, so it never covers the machine select or tabs
