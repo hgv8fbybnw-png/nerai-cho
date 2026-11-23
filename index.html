@@ -1897,12 +1897,13 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   function addPlay(g, r, c){ g.n++; g.yen += c.yen; if (c.yen>0) g.win++; g.plays.push({at:r.at, yen:c.yen, by:r.by}); }
   /* 2026-11-23 オーナー「ヴァルブレイブの最強区間狙いはptごとに…東京グールの解放狙いもptごとに分類…当該などの細かいところは両者ともに分けなくて良い」、
      同じ日の直し「ヴァルブレイブの分類分けは9ptか15ptかではなく1-0-8,2-0-5とかそっち／東京グールも解放じゃなくて9pt,10ptとかそっち
-     ptがないものはランキングに入れなくていい」：この2つの狙い目の中は、ヴァルヴレイヴ2 は 成功数-失敗数-ラッシュ数（1-0-8）、東京喰種は pt数（9pt）だけで分ける。
+     ptがないものはランキングに入れなくていい」、さらに「解放狙いで枠組みしないで欲しいってその枠から出して／最強区間も同じ」：
+     この2つの狙い目は、ヴァルヴレイヴ2 は 成功数-失敗数-ラッシュ数（1-0-8）、東京喰種は pt数（9pt）ごとに、それぞれランキングの1行にする（狙い目の行の中に入れない）。
      その数がそろっていない記録は、ランキングに入れない（splitKey が ''。ほかの狙い目は null） */
   function detVal(det, name){ var k = norm(name), p = parseDet(det).filter(function(x){ return norm(x[0])===k; })[0]; return p ? norm(p[1]) : ''; }
   var SPLIT_AIMS = {
-    'valvrave2|最強区間狙い': {h:'成功-失敗-ラッシュごと', key:function(det){ var v = ['成功数', '失敗数', 'ラッシュ数'].map(function(n){ return detVal(det, n); }); return v.every(Boolean) ? v.join('-') : ''; }},
-    'tokyo_ghoul|解放狙い': {h:'ptごと', key:function(det){ var v = detVal(det, 'pt数').replace(/pt$/, ''); return v ? v + 'pt' : ''; }}
+    'valvrave2|最強区間狙い': {key:function(det){ var v = ['成功数', '失敗数', 'ラッシュ数'].map(function(n){ return detVal(det, n); }); return v.every(Boolean) ? v.join('-') : ''; }},
+    'tokyo_ghoul|解放狙い': {key:function(det){ var v = detVal(det, 'pt数').replace(/pt$/, ''); return v ? v + 'pt' : ''; }}
   };
   function splitOf(mk, aim){ return aim ? SPLIT_AIMS[mk + '|' + norm(aim)] || null : null; }
   function splitKey(mk, aim, det){ var s = splitOf(mk, aim); return s ? s.key(det) : null; }
@@ -1915,12 +1916,13 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     var by = {}, out = [];
     all.forEach(function(r){   // newest first
       if (r.picked) return;   // 拾っただけの行は入れない（決定111）
-      var mk = mKey(r), aim = r.aim ? (aimAliasOf(mk, r.aim, aims) || r.aim) : '', k = mk + '|' + norm(aim), c = calc(r), sk = splitKey(mk, aim, r.det);
+      var mk = mKey(r), aim = r.aim ? (aimAliasOf(mk, r.aim, aims) || r.aim) : '', c = calc(r), sk = splitKey(mk, aim, r.det);
       if (sk==='') return;   // 1-0-8・9pt の数がそろっていない記録は入れない
-      if (!by[k]){ by[k] = {mk:mk, name:r.name, aim:aim, split:sk===null ? '' : splitOf(mk, aim).h, n:0, win:0, yen:0, last:r.at, plays:[], subs:[], sby:{}}; out.push(by[k]); }
-      var g = by[k], dk = sk!==null ? sk : aim ? detKey(r.det) : '';
+      var k = mk + '|' + norm(aim) + (sk ? '|' + sk : '');   // 1-0-8・9pt は、それぞれ別の行（label。aim は外す見分けに使う元の狙い目）
+      if (!by[k]){ by[k] = {mk:mk, name:r.name, aim:aim, label:sk || '', n:0, win:0, yen:0, last:r.at, plays:[], subs:[], sby:{}}; out.push(by[k]); }
+      var g = by[k], dk = aim && !sk ? detKey(r.det) : '';
       addPlay(g, r, c);
-      if (!g.sby[dk]){ g.sby[dk] = {key:dk, det:dk ? (sk!==null ? sk : r.det) : '', n:0, win:0, yen:0, plays:[]}; g.subs.push(g.sby[dk]); }
+      if (!g.sby[dk]){ g.sby[dk] = {key:dk, det:dk ? r.det : '', n:0, win:0, yen:0, plays:[]}; g.subs.push(g.sby[dk]); }
       addPlay(g.sby[dk], r, c);
     });
     out.forEach(function(g){ g.avg = roundHalfAway(g.yen / g.n); g.subs.forEach(function(x){ x.avg = roundHalfAway(x.yen / x.n); }); delete g.sby; });
@@ -1979,18 +1981,18 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     function meta(x){ return cnt ? '<span>勝ち'+x.win+'台</span><span>'+esc('収支 '+signed(x.yen, '円'))+'</span>' : '<span>'+x.n+'台</span><span>勝ち'+x.win+'台</span>'; }
     el.innerHTML = list.map(function(g, i){
       var inner;
-      if (g.aim){
-        // 数ごと（ヴァルヴレイヴ2 最強区間狙いは 1-0-8 ごと、東京喰種 解放狙いは 9pt ごと）。並びは上の順位と同じ。数の記録なしは最後
+      if (g.aim && !g.label){
+        // 数ごと。並びは上の順位と同じ。数の記録なしは最後（1-0-8・9pt の行は、中に1台ずつ出す）
         var subs = g.subs.slice().sort(function(a, b){ return (!a.key) - (!b.key) || order(a, b); });
-        inner = '<div class="rk-subs"><p class="chips-h">'+esc(g.split || 'G数などの数ごと')+'</p>' + subs.map(function(x){
-          return '<details class="rk-sub"><summary><span class="rk-main">'+(x.key ? '<b>'+esc(g.split ? x.det : detLabel(x.det))+'</b>' : '<b class="none">数の記録なし</b>')
+        inner = '<div class="rk-subs"><p class="chips-h">G数などの数ごと</p>' + subs.map(function(x){
+          return '<details class="rk-sub"><summary><span class="rk-main">'+(x.key ? '<b>'+esc(detLabel(x.det))+'</b>' : '<b class="none">数の記録なし</b>')
             + '<span class="rk-meta">'+meta(x)+'</span></span>'
             + '<span class="rk-val">'+valHTML(x)+'</span></summary>' + playsHTML(x.plays) + '</details>';
         }).join('') + '</div>';
       } else inner = playsHTML(g.plays);
       return '<details class="rk"><summary>'
         + '<span class="rk-no">'+(i+1)+'</span>'
-        + '<span class="rk-main">'+(only ? '' : '<small>'+esc(g.name)+'</small>')+(g.aim ? '<b>'+esc(g.aim)+'</b>' : '<b class="none">狙い目なし</b>')
+        + '<span class="rk-main">'+(only ? '' : '<small>'+esc(g.name)+'</small>')+(g.label ? '<b>'+esc(g.label)+'</b>' : g.aim ? '<b>'+esc(g.aim)+'</b>' : '<b class="none">狙い目なし</b>')
         + '<span class="rk-meta">'+meta(g)+'</span></span>'
         + '<span class="rk-val">'+valHTML(g)+'<small>'+(cnt ? '打った台' : '合計')+'</small></span>'
         + '</summary>' + inner + '</details>';
@@ -2463,7 +2465,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   'use strict';
   // BUILD＝この index.html の BUILD の値を空（''）にした中身の SHA-256 の頭12字。sw.js の BUILD・version.json の build と同じ値にする
   // （2026-10-31 から。前の組み立ての道具 build.py は消えたので、この決め方にした）
-  var BUILD = 'b532dec3210d', CACHE = 'neraicho-app-v1', lastCheck = 0;
+  var BUILD = 'cea02c43b762', CACHE = 'neraicho-app-v1', lastCheck = 0;
   if (!('serviceWorker' in navigator)) return;
   var bar = document.getElementById('app-update');
   document.body.insertBefore(bar, document.body.firstChild);   // above the page, so it never covers the machine select or tabs
