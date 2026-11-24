@@ -131,6 +131,9 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
 .fe .tin,.fe .sel{background:var(--surface);padding:8px 10px}
 .fe-row{display:grid;grid-template-columns:minmax(0,1fr) 5.8em auto;gap:6px;align-items:center}
 .fe-row .fe-opts{grid-column:1 / -1}
+.vals-head{display:flex;align-items:center;gap:8px}
+.vals-head .btn{margin-left:auto}
+.ed{display:flex;flex-direction:column;gap:8px;border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:8px}
 .fe>.btn{align-self:flex-start}
 .mres{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;background:var(--bg);border-radius:10px;padding:8px 10px}
 .mres span{font-size:13px;font-weight:700;color:var(--muted)}
@@ -451,6 +454,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
           <div id="aim-fe" class="fe" hidden></div>
         </div>
         <div id="aim-vals" class="vals" hidden></div>
+        <div id="aim-ed" class="ed" hidden></div>
       </div>
       <div class="field">
         <span class="lbl" id="pick-lbl">拾った人</span>
@@ -1200,6 +1204,8 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   /* the 狙い目 part of the form. detVals keeps the numbers typed (by item name, so they stay when the 狙い目 changes);
      newFields is the 入れる数 chosen for a new 狙い目; editExtra the items of a record being fixed that its 狙い目 no longer asks */
   var detVals = {}, newFields = null, feOpen = false, valsSig = '', editExtra = [];
+  // 決まった狙い目を記録の画面で直す（管理の人だけ。2026-11-24 オーナー「決まった狙い目のところの内容修正できない」→ 案を見て「この形・管理の人だけ」）
+  var edCan = false, edOpen = null;   // edOpen＝{key, aim（今の名前）, nm（入れた名前）, fields（orig つき）, start（開いたときの入れる数）}
   function formAim(){
     var fm = formMachine();
     if (!fm) return {fm:null, list:[], typed:'', aim:'', isNew:false};
@@ -1231,15 +1237,18 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
       $('aim-fe').hidden = !feOpen;
       if (feOpen && !$('aim-fe').firstChild) feRender($('aim-fe'), nf);
     } else { feOpen = false; $('aim-fe').innerHTML = ''; $('aim-fe').hidden = true; }
+    edCan = !!(S.me && S.me.admin && fa.fm && fa.aim && !fa.isNew && !playing && allMachines().some(function(m){ return m.key===fa.fm.key; }));
+    if (edOpen && (!edCan || edOpen.key!==norm(fa.aim))) edOpen = null;
     renderVals(formFields(fa));
+    renderEd();
   }
   // the boxes for the numbers; drawn again only when the items change, so typing is never interrupted
   function renderVals(fields){
-    var box = $('aim-vals'), sig = fieldsText(fields) + fields.map(function(f){ return f.extra ? '*' : ''; }).join('');
-    box.hidden = !fields.length;
+    var box = $('aim-vals'), sig = fieldsText(fields) + fields.map(function(f){ return f.extra ? '*' : ''; }).join('') + (edCan ? (edOpen ? '!o' : '!') : '');
+    box.hidden = !fields.length && !edCan;
     if (sig===valsSig){ syncValChips(); return; }
     valsSig = sig;
-    box.innerHTML = '<p class="chips-h">数</p>' + fields.map(function(f, i){
+    box.innerHTML = '<div class="vals-head"><p class="chips-h">数</p>' + (edCan ? '<button type="button" class="btn sm" data-ed="open" aria-expanded="'+(edOpen ? 'true' : 'false')+'">'+(edOpen ? 'とじる' : '直す')+'</button>' : '') + '</div>' + fields.map(function(f, i){
       var v = detVals[f.name] || '', id = 'fv-' + i;
       if (f.opts.length) return '<div class="vrow"><span class="mlbl" id="'+id+'">'+esc(f.name)+'</span><div class="chips" role="group" aria-labelledby="'+id+'">'
         + f.opts.map(function(o){ return '<button type="button" class="chip" data-vname="'+esc(f.name)+'" data-v="'+esc(o)+'" aria-pressed="'+(v===o ? 'true' : 'false')+'">'+esc(o)+'</button>'; }).join('') + '</div></div>';
@@ -1259,10 +1268,92 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
     detVals[n] = v==='-' ? '' : v;
     if (e.target.getAttribute('data-neg')) signBtn(e.target);
   });
+  function edStart(){
+    var fa = formAim(), f = aimFields(fa.fm.key, fa.aim, S.aims, S.queue).map(function(x){ return Object.assign({}, x, {orig:x.name}); });
+    edOpen = {key:norm(fa.aim), aim:fa.aim, nm:fa.aim, fields:f, start:fieldsText(f)};
+  }
+  function renderEd(){
+    var box = $('aim-ed');
+    if (!edOpen){ box.hidden = true; box.innerHTML = ''; box.removeAttribute('data-key'); return; }
+    if (!box.hidden && box.getAttribute('data-key')===edOpen.key) return edSay();   // 打っている途中は描き直さない
+    box.setAttribute('data-key', edOpen.key);
+    box.innerHTML = '<p class="chips-h">この狙い目を直す（みんなの記録に効きます）</p>'
+      + '<label class="chips-h" for="ed-nm">名前</label><input id="ed-nm" class="tin" data-ed="nm" type="text" maxlength="80" value="'+esc(edOpen.nm)+'" autocomplete="off">'
+      + '<p class="chips-h">入れる数</p><div class="fe" data-ed="fe"></div>'
+      + '<p class="hint" data-ed="say"></p><p class="err" data-ed="err" hidden></p>'
+      + '<div class="acts"><button type="button" class="btn sm" data-ed="close">やめる</button><button type="button" class="btn sm main" data-ed="go">決める</button></div>';
+    box.hidden = false;
+    var fe = box.querySelector('[data-ed="fe"]');
+    feRender(fe, edOpen.fields); feBind(fe, function(f){ edOpen.fields = f; edSay(); });
+    edSay();
+  }
+  function edState(){
+    var fa = formAim(), nm = edOpen.nm.trim(), kn = norm(nm), ren = amRenames(edOpen.fields);
+    return {fa:fa, nm:nm, ren:ren, renamed:!!nm && nm!==edOpen.aim, fch:fieldsText(edOpen.fields)!==edOpen.start || !!ren,
+      dup:fa.list.filter(function(x){ return x.key===kn && x.key!==edOpen.key; })[0], self:fa.list.filter(function(x){ return x.key===edOpen.key; })[0]};
+  }
+  function edSay(){
+    var box = $('aim-ed'); if (!edOpen || box.hidden) return;
+    var s = edState(), say = '';
+    if (!s.nm) say = '名前を入れてください。';
+    else if (s.dup) say = '「' + s.dup.text + '」はもうあります。1つにするときは、設定の「狙い目の整理」の「まとめる」を使ってください。';
+    else if (s.renamed) say = '「' + edOpen.aim + '」を「' + s.nm + '」に変えます。この台の記録' + (s.self ? s.self.n : 0) + '件も新しい名前になります（G数などの数はそのまま）。';
+    box.querySelector('[data-ed="say"]').textContent = say;
+    box.querySelector('[data-ed="go"]').disabled = !s.nm || !!s.dup || (!s.renamed && !s.fch);
+  }
+  // 名前を変えたあとは、手元の一覧・打っている名前・直す欄も新しい名前にする（読み直しが届くまで「新しい狙い目」に見えないように）
+  function edRenamedLocal(key, from, to){
+    S.aims.forEach(function(a){ if (a.k===key && !a.to && norm(a.aim)===norm(from)) a.aim = to; });
+    recs().forEach(function(r){ if (r.aim && mKey(r)===key && norm(r.aim)===norm(from)) r.aim = to; });
+    $('f-aim').value = to;
+    if (edOpen){ edOpen.aim = to; edOpen.nm = to; edOpen.key = norm(to); }
+  }
+  $('aim-ed').addEventListener('input', function(e){ if (e.target.getAttribute('data-ed')==='nm' && edOpen){ edOpen.nm = e.target.value; edSay(); } });
+  $('aim-ed').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-ed]'); if (!b || !edOpen) return;
+    var act = b.getAttribute('data-ed');
+    if (act==='close'){ edOpen = null; renderAim(); return; }
+    if (act!=='go') return;
+    var s = edState(), key = s.fa.fm.key, m = allMachines().filter(function(x){ return x.key===key; })[0], err = $('aim-ed').querySelector('[data-ed="err"]');
+    if (!m || !s.nm || s.dup || (!s.renamed && !s.fch)) return;
+    var from = edOpen.aim, fields = edOpen.fields, renOk = false, n = 0, fixed = 0;
+    b.disabled = true; err.hidden = true;
+    (s.renamed ? call('aimRename', {m:m.m, name:m.label, from:from, to:s.nm}) : Promise.resolve({ok:true, to:from})).then(function(r){
+      if (!r.ok) throw r;
+      if (s.renamed){ renOk = true; n = r.件数 || 0; edRenamedLocal(key, from, r.to || s.nm); }
+      if (!s.fch) return {ok:true};
+      var p = {m:m.m, name:m.label, aim:r.to || s.nm, fields:fieldsText(fields)}; if (s.ren) p.ren = s.ren;
+      return call('aimFields', p);
+    }).then(function(r){
+      if (!r.ok) throw r;
+      fixed = r.直した記録 || 0;
+      // 打っている途中の数は、新しい項目の名前に移す
+      fields.forEach(function(f){ if (f.orig && norm(f.orig)!==norm(f.name) && detVals[f.orig]!=null){ detVals[f.name] = detVals[f.orig]; delete detVals[f.orig]; } });
+      var to = edOpen.aim;
+      if (s.fch) S.aims.forEach(function(a){ if (a.k===key && !a.to && norm(a.aim)===norm(to)) a.f = fieldsText(fields); });
+      edOpen = null; valsSig = ''; renderAim();
+      toast(s.renamed && s.fch ? '「' + from + '」を「' + to + '」に変え、入れる数も変えました'
+        : s.renamed ? '「' + from + '」を「' + to + '」に変えました（' + n + '件）'
+        : '「' + to + '」の入れる数を変えました' + (fixed ? '（記録' + fixed + '件の項目名も直しました）' : ''));
+      reload();
+    }).catch(function(r){
+      b.disabled = false;
+      if (renOk){ valsSig = ''; renderAim(); }
+      var box = $('aim-ed'), er = box.querySelector('[data-ed="err"]') || err;
+      er.textContent = (renOk ? '名前は変えました。入れる数は変えられませんでした。' : '') + (r && r.error ? r.error : 'つながりません。もう一度どうぞ。');
+      er.hidden = false;
+    });
+  });
   function signed(v){ var s = String(v).normalize('NFKC').replace(/[−ー‐–—]/g, '-'); return (/^\s*-/.test(s) ? '-' : '') + digits(s); }
   function signBtn(inp){ var b = $('aim-vals').querySelector('.sgn[data-sgn="'+inp.id+'"]'); if (b) b.setAttribute('aria-pressed', inp.value.charAt(0)==='-' ? 'true' : 'false'); }
   $('aim-vals').addEventListener('pointerdown', function(e){ if (e.target.closest('.sgn')) e.preventDefault(); });
   $('aim-vals').addEventListener('click', function(e){
+    if (e.target.closest('[data-ed="open"]')){
+      if (edOpen) edOpen = null; else edStart();
+      renderAim();
+      if (edOpen){ var ni = $('aim-ed').querySelector('[data-ed="nm"]'); if (ni) ni.focus(); }
+      return;
+    }
     var sg = e.target.closest('.sgn');
     if (sg){
       var inp = $(sg.getAttribute('data-sgn')), v = inp.value.charAt(0)==='-' ? inp.value.slice(1) : '-' + inp.value;
@@ -2519,7 +2610,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   'use strict';
   // BUILD＝この index.html の BUILD の値を空（''）にした中身の SHA-256 の頭12字。sw.js の BUILD・version.json の build と同じ値にする
   // （2026-10-31 から。前の組み立ての道具 build.py は消えたので、この決め方にした）
-  var BUILD = '69e5480fd162', CACHE = 'neraicho-app-v1', lastCheck = 0;
+  var BUILD = 'eab8c77b5366', CACHE = 'neraicho-app-v1', lastCheck = 0;
   if (!('serviceWorker' in navigator)) return;
   var bar = document.getElementById('app-update');
   document.body.insertBefore(bar, document.body.firstChild);   // above the page, so it never covers the machine select or tabs
