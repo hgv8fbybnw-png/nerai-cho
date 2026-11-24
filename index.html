@@ -1263,7 +1263,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   }
   $('aim-vals').addEventListener('input', function(e){
     var n = e.target.getAttribute('data-vname'); if (!n) return;
-    var v = e.target.getAttribute('data-extra') ? e.target.value : e.target.getAttribute('data-neg') ? signed(e.target.value) : digits(e.target.value);
+    var v = e.target.getAttribute('data-extra') ? e.target.value : e.target.getAttribute('data-neg') ? signedDigits(e.target.value) : digits(e.target.value);
     if (v!==e.target.value) e.target.value = v;
     detVals[n] = v==='-' ? '' : v;
     if (e.target.getAttribute('data-neg')) signBtn(e.target);
@@ -1344,7 +1344,8 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
       er.hidden = false;
     });
   });
-  function signed(v){ var s = String(v).normalize('NFKC').replace(/[−ー‐–—]/g, '-'); return (/^\s*-/.test(s) ? '-' : '') + digits(s); }
+  // 差枚の欄の字（頭の「-」と数字だけ）。金額の字の signed(v, unit) と同じ名前にしない（2026-11-25：同じ名前で金額の字が上書きされた）
+  function signedDigits(v){ var s = String(v).normalize('NFKC').replace(/[−ー‐–—]/g, '-'); return (/^\s*-/.test(s) ? '-' : '') + digits(s); }
   function signBtn(inp){ var b = $('aim-vals').querySelector('.sgn[data-sgn="'+inp.id+'"]'); if (b) b.setAttribute('aria-pressed', inp.value.charAt(0)==='-' ? 'true' : 'false'); }
   $('aim-vals').addEventListener('pointerdown', function(e){ if (e.target.closest('.sgn')) e.preventDefault(); });
   $('aim-vals').addEventListener('click', function(e){
@@ -2610,7 +2611,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   'use strict';
   // BUILD＝この index.html の BUILD の値を空（''）にした中身の SHA-256 の頭12字。sw.js の BUILD・version.json の build と同じ値にする
   // （2026-10-31 から。前の組み立ての道具 build.py は消えたので、この決め方にした）
-  var BUILD = 'eab8c77b5366', CACHE = 'neraicho-app-v1', lastCheck = 0;
+  var BUILD = '5852b7515f68', CACHE = 'neraicho-app-v1', lastCheck = 0;
   if (!('serviceWorker' in navigator)) return;
   var bar = document.getElementById('app-update');
   document.body.insertBefore(bar, document.body.firstChild);   // above the page, so it never covers the machine select or tabs
