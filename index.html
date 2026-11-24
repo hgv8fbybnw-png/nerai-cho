@@ -121,6 +121,8 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
 .vrow{display:grid;grid-template-columns:5.6em minmax(0,1fr);gap:8px;align-items:center}
 .vrow .gbox,.vrow .chip{background:var(--surface)}
 .vrow .gbox input{font-size:19px;padding:5px 10px}
+.gbox .sgn{flex:none;align-self:stretch;width:46px;border:0;border-left:1px solid var(--line);background:transparent;color:var(--ink);font-size:22px;font-weight:700;cursor:pointer}
+.gbox .sgn[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
 .fe-box{display:flex;flex-direction:column;gap:8px}
 .fe-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}
 .fe-head b{font-size:14px}
@@ -1241,8 +1243,10 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
       var v = detVals[f.name] || '', id = 'fv-' + i;
       if (f.opts.length) return '<div class="vrow"><span class="mlbl" id="'+id+'">'+esc(f.name)+'</span><div class="chips" role="group" aria-labelledby="'+id+'">'
         + f.opts.map(function(o){ return '<button type="button" class="chip" data-vname="'+esc(f.name)+'" data-v="'+esc(o)+'" aria-pressed="'+(v===o ? 'true' : 'false')+'">'+esc(o)+'</button>'; }).join('') + '</div></div>';
+      var neg = !f.extra && /差枚/.test(f.name);   // 差枚の欄だけマイナスも（2026-11-24）
       return '<div class="vrow"><label class="mlbl" for="'+id+'">'+esc(f.name)+'</label><div class="gbox"><input id="'+id+'" data-vname="'+esc(f.name)+'"'
-        + (f.extra ? ' data-extra="1" type="text" maxlength="12"' : ' type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6"') + ' value="'+esc(v)+'" placeholder="—" autocomplete="off"></div></div>';
+        + (f.extra ? ' data-extra="1" type="text" maxlength="12"' : ' type="text" inputmode="numeric" pattern="[0-9]*" maxlength="' + (neg ? 7 : 6) + '"' + (neg ? ' data-neg="1"' : '')) + ' value="'+esc(v)+'" placeholder="—" autocomplete="off">'
+        + (neg ? '<button type="button" class="sgn" data-sgn="'+id+'" aria-label="マイナスとプラスを入れかえる" aria-pressed="'+(String(v).charAt(0)==='-' ? 'true' : 'false')+'">−</button>' : '') + '</div></div>';
     }).join('');
   }
   function syncValChips(){
@@ -1250,11 +1254,21 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   }
   $('aim-vals').addEventListener('input', function(e){
     var n = e.target.getAttribute('data-vname'); if (!n) return;
-    var v = e.target.getAttribute('data-extra') ? e.target.value : digits(e.target.value);
+    var v = e.target.getAttribute('data-extra') ? e.target.value : e.target.getAttribute('data-neg') ? signed(e.target.value) : digits(e.target.value);
     if (v!==e.target.value) e.target.value = v;
-    detVals[n] = v;
+    detVals[n] = v==='-' ? '' : v;
+    if (e.target.getAttribute('data-neg')) signBtn(e.target);
   });
+  function signed(v){ var s = String(v).normalize('NFKC').replace(/[−ー‐–—]/g, '-'); return (/^\s*-/.test(s) ? '-' : '') + digits(s); }
+  function signBtn(inp){ var b = $('aim-vals').querySelector('.sgn[data-sgn="'+inp.id+'"]'); if (b) b.setAttribute('aria-pressed', inp.value.charAt(0)==='-' ? 'true' : 'false'); }
+  $('aim-vals').addEventListener('pointerdown', function(e){ if (e.target.closest('.sgn')) e.preventDefault(); });
   $('aim-vals').addEventListener('click', function(e){
+    var sg = e.target.closest('.sgn');
+    if (sg){
+      var inp = $(sg.getAttribute('data-sgn')), v = inp.value.charAt(0)==='-' ? inp.value.slice(1) : '-' + inp.value;
+      inp.value = v; detVals[inp.getAttribute('data-vname')] = v==='-' ? '' : v; signBtn(inp);
+      return;
+    }
     var b = e.target.closest('.chip[data-vname]'); if (!b) return;
     var n = b.getAttribute('data-vname'), v = b.getAttribute('data-v');
     detVals[n] = detVals[n]===v ? '' : v;
@@ -2505,7 +2519,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   'use strict';
   // BUILD＝この index.html の BUILD の値を空（''）にした中身の SHA-256 の頭12字。sw.js の BUILD・version.json の build と同じ値にする
   // （2026-10-31 から。前の組み立ての道具 build.py は消えたので、この決め方にした）
-  var BUILD = '8fbcbaf8751d', CACHE = 'neraicho-app-v1', lastCheck = 0;
+  var BUILD = '69e5480fd162', CACHE = 'neraicho-app-v1', lastCheck = 0;
   if (!('serviceWorker' in navigator)) return;
   var bar = document.getElementById('app-update');
   document.body.insertBefore(bar, document.body.firstChild);   // above the page, so it never covers the machine select or tabs
