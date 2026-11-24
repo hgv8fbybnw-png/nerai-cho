@@ -11,7 +11,17 @@
 <link rel="icon" href="icon-192.png" sizes="192x192">
 <meta name="theme-color" content="#F1F2F7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0E1120" media="(prefers-color-scheme: dark)">
-<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}/* 用語の「？」と吹き出し（2026-11-25 オーナー「難しい単語について小さい?マークみたいなポップアップで説明文見れる仕組み」→ 見本を見て「この形で作る」。
+   四角は出さない：言葉の枠・押したときの灰色（tap-highlight）・吹き出しの枠線はなし） */
+.tw{cursor:pointer;-webkit-tap-highlight-color:transparent;outline:none;border-bottom:1px dotted var(--accent);-webkit-user-select:none;user-select:none}
+.tw .q{display:inline-block;width:15px;height:15px;margin-left:2px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-family:var(--font-body);font-size:11px;font-weight:700;font-style:normal;line-height:15px;text-align:center;vertical-align:2px}
+.tw[aria-expanded="true"] .q{background:var(--accent);color:var(--accent-ink)}
+.tip{position:absolute;z-index:30;background:var(--tip);color:var(--ink);border-radius:16px;padding:12px 44px 12px 14px;font-size:14px;font-weight:400;line-height:1.6;text-align:left;box-shadow:0 8px 24px rgba(0,0,0,.18),0 2px 6px rgba(0,0,0,.1)}
+.tip b{display:block;font-size:15px;font-weight:700;margin-bottom:2px;overflow-wrap:anywhere}
+.tip p{margin:0;overflow-wrap:anywhere}
+.tip-x{position:absolute;top:2px;right:2px;width:44px;height:44px;padding:0;border:0;background:transparent;color:var(--muted);font:inherit;font-size:22px;line-height:1;cursor:pointer;outline:none;-webkit-tap-highlight-color:transparent}
+.tip-t{position:absolute;width:12px;height:12px;background:var(--tip);transform:rotate(45deg)}
+</style>
 </head><body><style>
 /* 狙い目だけのページ（決定70・2026-10-31）：狙い目帳（../index.html）の狙い目タブだけを持つページ。メンバー以外にも見せる。
    記録・一覧・月の収支・ランキング・設定は持たない。中身（台の情報・オーナーの文）はこのページに書かず、
@@ -31,7 +41,7 @@
      JS＝リセット台の出し方（「リセット台一覧（2026-11-10…」の説明〜$('rs-q')。LS_RESET_M の名前だけ neraicho.mi.… に変えた） */
 :root{
   --bg:#F1F2F7; --surface:#FFFFFF; --ink:#151A2D; --muted:#596079; --line:#D8DBE6;
-  --accent:#2B45C4; --accent-ink:#FFFFFF; --accent-soft:#E5E9FA;
+  --accent:#2B45C4; --accent-ink:#FFFFFF; --accent-soft:#E5E9FA; --tip:#FFFFFF;
   --go:#13784A; --go-soft:#E1F2E8; --skip:#9A2B2B; --skip-soft:#F7E3E3;
   --font-body:"Hiragino Sans","Hiragino Kaku Gothic ProN","BIZ UDPGothic","Yu Gothic",Meiryo,"Noto Sans JP",system-ui,sans-serif;
   --font-num:system-ui,-apple-system,"Segoe UI",Roboto,"Hiragino Sans",sans-serif;
@@ -40,14 +50,14 @@
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --bg:#0E1120; --surface:#171B2D; --ink:#E6E8F2; --muted:#99A0B8; --line:#2A3049;
-    --accent:#8A9FFF; --accent-ink:#0E1120; --accent-soft:#1D2547;
+    --accent:#8A9FFF; --accent-ink:#0E1120; --accent-soft:#1D2547; --tip:#262D4A;
     --go:#62CC94; --go-soft:#11301F; --skip:#F09090; --skip-soft:#381718;
     color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
   --bg:#0E1120; --surface:#171B2D; --ink:#E6E8F2; --muted:#99A0B8; --line:#2A3049;
-  --accent:#8A9FFF; --accent-ink:#0E1120; --accent-soft:#1D2547;
+  --accent:#8A9FFF; --accent-ink:#0E1120; --accent-soft:#1D2547; --tip:#262D4A;
   --go:#62CC94; --go-soft:#11301F; --skip:#F09090; --skip-soft:#381718;
   color-scheme:dark;
 }
@@ -370,6 +380,96 @@ p{margin:0}
     return (c && Array.isArray(c.terms) ? c.terms : []).filter(function(t){ return t && t.w!=null && String(t.w).trim()!==''; });
   }
   function termIndex(tm, w){ for (var i=0; i<tm.length; i++) if (tm[i].w===w) return i; return -1; }
+  /* 用語の「？」と吹き出し（2026-11-25 オーナー「難しい単語について小さい?マークみたいなポップアップで説明文見れる仕組み」→ 見本を見て「この形で作る」）。
+     「？」のついた言葉（.tw の data-tw）を押すと、その下（下に入らなければ上）に吹き出し。もう一度押す・ほかを押す・×で閉じる。
+     吹き出しは body に置き、ページといっしょに動く。中身は tipData(data-tw) → {w 見出し, d [説明の行]} */
+  var tipOpen = null;   // {el 吹き出し, w 押した言葉, key data-tw}
+  function tipClose(){ if (tipOpen){ tipOpen.el.remove(); tipOpen.w.setAttribute('aria-expanded', 'false'); tipOpen = null; } }
+  function tipShow(w){
+    var key = w.getAttribute('data-tw'), same = tipOpen && tipOpen.w===w, t = tipData(key);
+    tipClose();
+    if (same || !t) return;
+    var el = document.createElement('div');
+    el.className = 'tip'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', t.w);
+    el.innerHTML = '<i class="tip-t" aria-hidden="true"></i><b>' + esc(t.w) + '</b>' + t.d.map(function(s){ return '<p>' + esc(s) + '</p>'; }).join('')
+      + '<button type="button" class="tip-x" aria-label="閉じる">×</button>';
+    document.body.appendChild(el);
+    var col = document.querySelector('.wrap').getBoundingClientRect(), r = w.getBoundingClientRect(), x0 = col.left + 12, wd = Math.max(200, col.width - 24);
+    el.style.left = (x0 + window.scrollX) + 'px'; el.style.width = wd + 'px';
+    var h = el.offsetHeight, dock = document.querySelector('.dock'), floor = dock ? dock.getBoundingClientRect().top : window.innerHeight;
+    var up = r.bottom + 10 + h > floor - 8 && r.top - 10 - h >= 8;
+    el.style.top = ((up ? r.top - 10 - h : r.bottom + 10) + window.scrollY) + 'px';
+    var tl = el.querySelector('.tip-t');
+    tl.style.left = Math.min(Math.max(r.left + r.width / 2 - x0 - 6, 14), wd - 26) + 'px'; tl.style[up ? 'bottom' : 'top'] = '-6px';
+    w.setAttribute('aria-expanded', 'true'); tipOpen = {el:el, w:w, key:key};
+    if (!up){ var b = el.getBoundingClientRect().bottom; if (b > floor - 8) window.scrollBy(0, b - floor + 16); }
+  }
+  // 描き直しで言葉が入れかわったとき：同じ言葉があれば吹き出しはそのまま、なければ閉じる
+  function tipRelink(root){
+    if (!tipOpen || document.body.contains(tipOpen.w)) return;
+    var w = root.querySelector('.tw[data-tw="' + tipOpen.key.replace(/["\\]/g, '') + '"]');
+    if (w){ w.setAttribute('aria-expanded', 'true'); tipOpen.w = w; } else tipClose();
+  }
+  document.addEventListener('click', function(e){
+    if (e.target.closest('.tip-x')){ tipClose(); return; }
+    if (e.target.closest('.tip')) return;
+    var w = e.target.closest('.tw[data-tw]');
+    if (w){ tipShow(w); return; }
+    if (tipOpen) tipClose();
+  });
+  document.addEventListener('keydown', function(e){
+    var w = e.target.closest && e.target.closest('.tw[data-tw]');
+    if (w && (e.key==='Enter' || e.key===' ')){ e.preventDefault(); tipShow(w); }
+    else if (e.key==='Escape') tipClose();
+  });
+  // 横幅が変わったとき（向きを変えた）だけ閉じる。iPhone は上下に動かすだけで上下の帯が出入りして resize が来るので、高さでは閉じない
+  var tipWidth = window.innerWidth;
+  window.addEventListener('resize', function(){ if (window.innerWidth!==tipWidth){ tipWidth = window.innerWidth; tipClose(); } });
+  function tipData(k){ var t = infoTerms()[+k]; return t ? {w:String(t.w), d:infoLines(t.d).map(String)} : null; }
+  function tipReEsc(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+  /* root の中の文で、用語集の言葉が「その画面で最初に出た所」に点線と「？」をつける（全部につけると「下位AT後2スルー」などの行が「？」だらけになるため）。
+     「スルー/何スルー」は / で分けたどれでも、「◯◯間」は AT間・CZ間・ボーナス間など。長い言葉を先に見る（上位AT は AT より先、AT間 は AT より先）。
+     英字の言葉（CZ・AT・MY など）は前後が英字のときはつけない。ボタン・見出し・小さい印の中にはつけない */
+  function tipMark(root){
+    tipClose();
+    var tm = infoTerms(), alts = [];
+    if (!root || !tm.length) return;
+    tm.forEach(function(t, i){
+      String(t.w).split('/').forEach(function(a){
+        a = a.trim(); if (!a) return;
+        var wild = a.indexOf('◯◯')>=0;
+        alts.push({src: wild ? a.split('◯◯').map(tipReEsc).join('(?:[A-Za-z]{2,5}|ボーナス)') : tipReEsc(a), i:i, ascii:/^[A-Za-z]+$/.test(a), n: wild ? 99 : a.length});
+      });
+    });
+    if (!alts.length) return;
+    alts.sort(function(a, b){ return b.n - a.n; });
+    var re = new RegExp(alts.map(function(a){ return '(' + a.src + ')'; }).join('|'), 'gi'), used = {}, nodes = [], n;
+    var walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    while ((n = walk.nextNode())) if (n.nodeValue.trim() && !(n.parentElement && n.parentElement.closest('button, h2, h3, .src, .tag, .bd-h, .if-kana, .tw'))) nodes.push(n);
+    nodes.forEach(function(node){
+      var s = node.nodeValue, hit = [], m;
+      re.lastIndex = 0;
+      while ((m = re.exec(s))){
+        var k = 1; while (m[k]===undefined) k++;
+        var a = alts[k - 1], at = m.index, end = at + m[0].length;
+        if (a.ascii && (/[A-Za-z]/.test(s.charAt(at - 1)) || /[A-Za-z]/.test(s.charAt(end)))){ re.lastIndex = at + 1; continue; }
+        if (used[a.i]) continue;
+        used[a.i] = 1; hit.push([at, end, a.i]);
+      }
+      if (!hit.length) return;
+      var f = document.createDocumentFragment(), last = 0;
+      hit.forEach(function(x){
+        f.appendChild(document.createTextNode(s.slice(last, x[0])));
+        var w = document.createElement('span');
+        w.className = 'tw'; w.setAttribute('role', 'button'); w.setAttribute('tabindex', '0'); w.setAttribute('aria-expanded', 'false'); w.setAttribute('data-tw', String(x[2]));
+        w.textContent = s.slice(x[0], x[1]);
+        w.insertAdjacentHTML('beforeend', '<span class="q" aria-hidden="true">?</span>');
+        f.appendChild(w); last = x[1];
+      });
+      f.appendChild(document.createTextNode(s.slice(last)));
+      node.parentNode.replaceChild(f, node);
+    });
+  }
   function lineList(a){ return '<ul class="fl">' + a.map(function(s){ return '<li>' + esc(s) + '</li>'; }).join('') + '</ul>'; }
   function infoMachine(id){
     var ms = infoMachines();
@@ -391,6 +491,7 @@ p{margin:0}
           + t.map(esc).join('<br>') + '</span><i aria-hidden="true">›</i></button>';
       return '<div class="cm-g">' + (g.h ? '<h3>' + esc(g.h) + '</h3>' : '') + (t.length ? lineList(t) : '') + '</div>';
     }).join('') + (tm.length ? '<button type="button" class="btn" id="if-terms-open">用語集 ›</button>' : '');
+    tipMark(cm);
     if (!S.info){
       st.hidden = false; list.innerHTML = '';
       st.textContent = infoBusy ? '読みこみ中です（はじめてのときは少しかかります）'
@@ -431,6 +532,7 @@ p{margin:0}
     if (fx.length) h += '<div class="if-focus x"><h3>特記</h3>' + lineList(fx) + '</div>';
     if (!m.nerai){   // the phone still holds the content of the version before the 狙い目 rewrite
       $('if-view').innerHTML = h + '<p class="empty">新しい中身を読みこみ中です。電波のある所で開き直してください。</p>';
+      tipMark($('if-view'));
       return;
     }
     h += '<div class="block"><h2>狙い目</h2>' + m.nerai.map(function(a){
@@ -440,9 +542,11 @@ p{margin:0}
         + '</div>';
     }).join('') + '</div>';
     $('if-view').innerHTML = h;
+    tipMark($('if-view'));
   }
   // 決定69：用語集の画面（台の画面と同じ作り）。言葉を太字の見出しに、その下に説明の行
   function renderInfoTerms(tm){
+    tipClose();
     $('if-view').innerHTML = '<div class="if-top"><button type="button" class="btn" id="if-back">‹ 台の一覧</button><h2>用語集</h2></div>'
       + '<div class="block if-terms">' + tm.map(function(t, i){
         return '<div class="tm" id="if-tm-' + i + '"><h3>' + esc(t.w) + '</h3>'
@@ -539,6 +643,7 @@ p{margin:0}
     var st = $('rs-state'), list = $('rs-list'), cm = $('rs-common'), cr = commonReset();
     cm.hidden = !cr.length;
     cm.innerHTML = cm.hidden ? '' : '<h2>全台共通</h2><div class="cm-g">' + lineList(cr) + '</div>';
+    tipMark(cm);
     if (!S.info){
       st.hidden = false; list.innerHTML = '';
       st.textContent = infoBusy ? '読みこみ中です（はじめてのときは少しかかります）' : '狙い目の中身がとれませんでした。電波のある所で開き直してください';
@@ -561,6 +666,7 @@ p{margin:0}
       + (d.rows.length ? borderTable(d.rows) : d.lines.length ? '' : '<p class="rs-none">ボーダーの数字はまだなし</p>');
     if (aim) h += '<div class="block"><h2>狙い目</h2><div class="aim">' + aim + '</div></div>';
     $('rs-view').innerHTML = h;
+    tipMark($('rs-view'));
   }
   $('rs-list').addEventListener('click', function(e){
     var b = e.target.closest('[data-rs]'); if (!b) return;
@@ -593,7 +699,7 @@ p{margin:0}
   'use strict';
   // BUILD＝この index.html の BUILD の値を空（''）にした中身の SHA-256 の頭12字。sw.js の BUILD・version.json の build と同じ値にする
   // （2026-10-31 から。前の組み立ての道具 build.py は消えたので、この決め方にした）
-  var BUILD = '9d3044e8a9a0', CACHE = 'neraimi-v1', lastCheck = 0;
+  var BUILD = 'a298b7761c3b', CACHE = 'neraimi-v1', lastCheck = 0;
   if (!('serviceWorker' in navigator)) return;
   var bar = document.getElementById('app-update');
   document.body.insertBefore(bar, document.body.firstChild);   // above the page, so it never covers the machine select or tabs

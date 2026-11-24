@@ -11,7 +11,17 @@
 <link rel="icon" href="icon-192.png" sizes="192x192">
 <meta name="theme-color" content="#F1F2F7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0E1120" media="(prefers-color-scheme: dark)">
-<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}/* 用語の「？」と吹き出し（2026-11-25 オーナー「難しい単語について小さい?マークみたいなポップアップで説明文見れる仕組み」→ 見本を見て「この形で作る」。
+   四角は出さない：言葉の枠・押したときの灰色（tap-highlight）・吹き出しの枠線はなし） */
+.tw{cursor:pointer;-webkit-tap-highlight-color:transparent;outline:none;border-bottom:1px dotted var(--accent);-webkit-user-select:none;user-select:none}
+.tw .q{display:inline-block;width:15px;height:15px;margin-left:2px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-family:var(--font-body);font-size:11px;font-weight:700;font-style:normal;line-height:15px;text-align:center;vertical-align:2px}
+.tw[aria-expanded="true"] .q{background:var(--accent);color:var(--accent-ink)}
+.tip{position:absolute;z-index:30;background:var(--tip);color:var(--ink);border-radius:16px;padding:12px 44px 12px 14px;font-size:14px;font-weight:400;line-height:1.6;text-align:left;box-shadow:0 8px 24px rgba(0,0,0,.18),0 2px 6px rgba(0,0,0,.1)}
+.tip b{display:block;font-size:15px;font-weight:700;margin-bottom:2px;overflow-wrap:anywhere}
+.tip p{margin:0;overflow-wrap:anywhere}
+.tip-x{position:absolute;top:2px;right:2px;width:44px;height:44px;padding:0;border:0;background:transparent;color:var(--muted);font:inherit;font-size:22px;line-height:1;cursor:pointer;outline:none;-webkit-tap-highlight-color:transparent}
+.tip-t{position:absolute;width:12px;height:12px;background:var(--tip);transform:rotate(45deg)}
+</style>
 </head><body><style>
 /* 狙い目帳 (2026-10-19): a play log kept apart from 鬣犬. The team has not settled the 狙い目 yet, so each play is
    written down as 台 + the 狙い目 in free words (or none) + 投資/回収 + 拾った人 (free words) + the date and time, and the
@@ -23,7 +33,7 @@
    Colors and the money rule are the same as 鬣犬. */
 :root{
   --bg:#F1F2F7; --surface:#FFFFFF; --ink:#151A2D; --muted:#596079; --line:#D8DBE6;
-  --accent:#2B45C4; --accent-ink:#FFFFFF; --accent-soft:#E5E9FA;
+  --accent:#2B45C4; --accent-ink:#FFFFFF; --accent-soft:#E5E9FA; --tip:#FFFFFF;
   --go:#13784A; --go-soft:#E1F2E8; --skip:#9A2B2B; --skip-soft:#F7E3E3; --goal:#E0302A;
   --font-body:"Hiragino Sans","Hiragino Kaku Gothic ProN","BIZ UDPGothic","Yu Gothic",Meiryo,"Noto Sans JP",system-ui,sans-serif;
   --font-num:system-ui,-apple-system,"Segoe UI",Roboto,"Hiragino Sans",sans-serif;
@@ -32,14 +42,14 @@
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --bg:#0E1120; --surface:#171B2D; --ink:#E6E8F2; --muted:#99A0B8; --line:#2A3049;
-    --accent:#8A9FFF; --accent-ink:#0E1120; --accent-soft:#1D2547;
+    --accent:#8A9FFF; --accent-ink:#0E1120; --accent-soft:#1D2547; --tip:#262D4A;
     --go:#62CC94; --go-soft:#11301F; --skip:#F09090; --skip-soft:#381718; --goal:#FF5A52;
     color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
   --bg:#0E1120; --surface:#171B2D; --ink:#E6E8F2; --muted:#99A0B8; --line:#2A3049;
-  --accent:#8A9FFF; --accent-ink:#0E1120; --accent-soft:#1D2547;
+  --accent:#8A9FFF; --accent-ink:#0E1120; --accent-soft:#1D2547; --tip:#262D4A;
   --go:#62CC94; --go-soft:#11301F; --skip:#F09090; --skip-soft:#381718; --goal:#FF5A52;
   color-scheme:dark;
 }
@@ -219,6 +229,7 @@ input[type="datetime-local"].tin,input[type="date"].tin{min-height:46px;-webkit-
 /* 稼働日数・打った台・拾った台・渡した台：名前を上の段に置き、その下に数ごとの棒の列を並べる。棒の長さの基準は列ごとに別 */
 .wk{display:grid;grid-template-columns:repeat(6,minmax(0,1fr)) minmax(0,1.3fr);gap:4px 6px;font-size:13px}
 .wk-h{font-size:12px;font-weight:700;color:var(--muted)}
+.wk-h .q{width:14px;height:14px;line-height:14px;font-size:10.5px;vertical-align:1px}
 .wk-name{grid-column:1 / -1;margin-top:8px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .wk-bar{display:flex;flex-direction:column;gap:3px;min-width:0}
 .wk-bar i{display:block;height:10px;border-radius:0 4px 4px 0;background:var(--accent)}
@@ -1996,6 +2007,57 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
      これで計算して1gの横に設計して基準値を設定できるようにして欲しい／イメージは赤色縦棒」）：
      pt＝拾った台（自分で打った台と渡した台を足した数）×1＋リセ×0.5＋1g×0.25。基準値のところに赤い縦の線を引く。棒の長さの基準は pt の一番多い人か基準値の大きい方 */
   function ptNum(v){ return String(Math.round(v * 100) / 100); }
+  /* 用語の「？」と吹き出し（2026-11-25 オーナー「難しい単語について小さい?マークみたいなポップアップで説明文見れる仕組み」→ 見本を見て「この形で作る」）。
+     「？」のついた言葉（.tw の data-tw）を押すと、その下（下に入らなければ上）に吹き出し。もう一度押す・ほかを押す・×で閉じる。
+     吹き出しは body に置き、ページといっしょに動く。中身は tipData(data-tw) → {w 見出し, d [説明の行]} */
+  var tipOpen = null;   // {el 吹き出し, w 押した言葉, key data-tw}
+  function tipClose(){ if (tipOpen){ tipOpen.el.remove(); tipOpen.w.setAttribute('aria-expanded', 'false'); tipOpen = null; } }
+  function tipShow(w){
+    var key = w.getAttribute('data-tw'), same = tipOpen && tipOpen.w===w, t = tipData(key);
+    tipClose();
+    if (same || !t) return;
+    var el = document.createElement('div');
+    el.className = 'tip'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', t.w);
+    el.innerHTML = '<i class="tip-t" aria-hidden="true"></i><b>' + esc(t.w) + '</b>' + t.d.map(function(s){ return '<p>' + esc(s) + '</p>'; }).join('')
+      + '<button type="button" class="tip-x" aria-label="閉じる">×</button>';
+    document.body.appendChild(el);
+    var col = document.querySelector('.wrap').getBoundingClientRect(), r = w.getBoundingClientRect(), x0 = col.left + 12, wd = Math.max(200, col.width - 24);
+    el.style.left = (x0 + window.scrollX) + 'px'; el.style.width = wd + 'px';
+    var h = el.offsetHeight, dock = document.querySelector('.dock'), floor = dock ? dock.getBoundingClientRect().top : window.innerHeight;
+    var up = r.bottom + 10 + h > floor - 8 && r.top - 10 - h >= 8;
+    el.style.top = ((up ? r.top - 10 - h : r.bottom + 10) + window.scrollY) + 'px';
+    var tl = el.querySelector('.tip-t');
+    tl.style.left = Math.min(Math.max(r.left + r.width / 2 - x0 - 6, 14), wd - 26) + 'px'; tl.style[up ? 'bottom' : 'top'] = '-6px';
+    w.setAttribute('aria-expanded', 'true'); tipOpen = {el:el, w:w, key:key};
+    if (!up){ var b = el.getBoundingClientRect().bottom; if (b > floor - 8) window.scrollBy(0, b - floor + 16); }
+  }
+  // 描き直しで言葉が入れかわったとき：同じ言葉があれば吹き出しはそのまま、なければ閉じる
+  function tipRelink(root){
+    if (!tipOpen || document.body.contains(tipOpen.w)) return;
+    var w = root.querySelector('.tw[data-tw="' + tipOpen.key.replace(/["\\]/g, '') + '"]');
+    if (w){ w.setAttribute('aria-expanded', 'true'); tipOpen.w = w; } else tipClose();
+  }
+  document.addEventListener('click', function(e){
+    if (e.target.closest('.tip-x')){ tipClose(); return; }
+    if (e.target.closest('.tip')) return;
+    var w = e.target.closest('.tw[data-tw]');
+    if (w){ tipShow(w); return; }
+    if (tipOpen) tipClose();
+  });
+  document.addEventListener('keydown', function(e){
+    var w = e.target.closest && e.target.closest('.tw[data-tw]');
+    if (w && (e.key==='Enter' || e.key===' ')){ e.preventDefault(); tipShow(w); }
+    else if (e.key==='Escape') tipClose();
+  });
+  // 横幅が変わったとき（向きを変えた）だけ閉じる。iPhone は上下に動かすだけで上下の帯が出入りして resize が来るので、高さでは閉じない
+  var tipWidth = window.innerWidth;
+  window.addEventListener('resize', function(){ if (window.innerWidth!==tipWidth){ tipWidth = window.innerWidth; tipClose(); } });
+  // 収支の列の見出しの「？」（リセ・1g はオーナーが 2026-11-23 に決めたときの言葉。pt は 2026-11-23 の式）
+  var WK_TIPS = {'リセ':['狙い目の名前に「リセット」がつく台の数', '打った台・拾った台には数えない'],
+    '1g':['狙い目の名前に「即前兆確認」がつく台の数', '打った台・拾った台には数えない'],
+    'pt':['拾った台×1＋リセ×0.5＋1g×0.25', '赤い縦の線は基準値（管理の人が設定で決める）']};
+  function tipData(k){ return WK_TIPS[k] ? {w:k, d:WK_TIPS[k]} : null; }
+  function wkHead(k){ return '<span class="wk-h">' + (WK_TIPS[k] ? '<span class="tw" role="button" tabindex="0" aria-expanded="false" data-tw="' + k + '">' + k + '<span class="q" aria-hidden="true">?</span></span>' : k) + '</span>'; }
   function renderWork(all){
     var order = activeNames(), ppl = monthSums(all, month, 'by', order).people, md = 0, mn = 0, mf = 0, mg = 0, mr = 0, m1 = 0, mp = 0, goal = +S.ptGoal || 0;
     function played(p){ return p.n - p.rs - p.g1; }
@@ -2009,11 +2071,12 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
       return '<span class="wk-bar'+(v ? '' : ' none')+'"><span>'+ptNum(v)+'pt</span><span class="wk-track">'+(v ? '<i style="width:'+(v / top * 100).toFixed(1)+'%"></i>' : '')
         + (goal ? '<b style="left:'+(goal / top * 100).toFixed(1)+'%"></b>' : '')+'</span></span>';
     }
-    $('mon-work').innerHTML = ppl.length ? '<span class="wk-h">稼働日数</span><span class="wk-h">打った台</span><span class="wk-h">拾った台</span><span class="wk-h">渡した台</span><span class="wk-h">リセ</span><span class="wk-h">1g</span><span class="wk-h">pt</span>'
+    $('mon-work').innerHTML = ppl.length ? '<span class="wk-h">稼働日数</span><span class="wk-h">打った台</span><span class="wk-h">拾った台</span><span class="wk-h">渡した台</span>' + wkHead('リセ') + wkHead('1g') + wkHead('pt')
       + ppl.map(function(p){ return '<span class="wk-name">'+esc(p.name)+'</span>' + bar(p.days, md, p.days+'日') + bar(played(p), mn, played(p)+'台') + bar(picked(p), mf, picked(p)+'台') + bar(p.gave, mg, p.gave+'台')
         + bar(p.rs, mr, p.rs+'台') + bar(p.g1, m1, p.g1+'台') + ptBar(pts(p)); }).join('')
       + (goal ? '<p class="wk-goal"><i></i>基準値 '+ptNum(goal)+'pt</p>' : '')
       : '';
+    tipRelink($('mon-work'));
   }
   $('mon-prev').addEventListener('click', function(){ month = shiftMonth(month, -1); calDay = ''; renderMonth(); });
   $('mon-next').addEventListener('click', function(){ month = shiftMonth(month, 1); calDay = ''; renderMonth(); });
@@ -2611,7 +2674,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   'use strict';
   // BUILD＝この index.html の BUILD の値を空（''）にした中身の SHA-256 の頭12字。sw.js の BUILD・version.json の build と同じ値にする
   // （2026-10-31 から。前の組み立ての道具 build.py は消えたので、この決め方にした）
-  var BUILD = '5852b7515f68', CACHE = 'neraicho-app-v1', lastCheck = 0;
+  var BUILD = '45fae9a189b8', CACHE = 'neraicho-app-v1', lastCheck = 0;
   if (!('serviceWorker' in navigator)) return;
   var bar = document.getElementById('app-update');
   document.body.insertBefore(bar, document.body.firstChild);   // above the page, so it never covers the machine select or tabs
